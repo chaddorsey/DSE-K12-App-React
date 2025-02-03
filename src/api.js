@@ -48,3 +48,34 @@ export async function getUserProfile(id, token) {
   return handleResponse(response);
 }
 
+// Match Session API Functions
+
+export async function startMatchSession() {
+  const response = await fetch(`${API_BASE}/match/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return handleResponse(response);
+}
+
+export async function joinMatchSession(sessionId) {
+  const response = await fetch(`${API_BASE}/match/${sessionId}/join`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return handleResponse(response);
+}
+
+export async function getMatchStatus(sessionId) {
+  const response = await fetch(`${API_BASE}/match/${sessionId}/status`);
+  return handleResponse(response);
+}
+
+export async function cancelMatchSession(sessionId) {
+  const response = await fetch(`${API_BASE}/match/${sessionId}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return handleResponse(response);
+}
+

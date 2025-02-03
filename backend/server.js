@@ -10,7 +10,7 @@ const app = express();
 const PORT = 3001;
 const JWT_SECRET = 'your_jwt_secret'; // In production, store this securely (e.g. in environment variables)
 
-// In-memory session storage for match sessions
+// In-memory session storage for match sessions (for demonstration)
 const sessions = {};
 
 // Middleware
@@ -67,7 +67,7 @@ app.post('/api/auth/reset', async (req, res) => {
 // User Management Endpoint
 // -------------------------------
 
-// Get list of users (public information only)
+// Get list of users (public info only)
 app.get('/api/users', (req, res) => {
   const publicUsers = users.map(({ id, username, email }) => ({ id, username, email }));
   res.json(publicUsers);
@@ -77,16 +77,20 @@ app.get('/api/users', (req, res) => {
 // Match Session Endpoints
 // -------------------------------
 
+// Create a new match session
 app.post('/api/match/start', (req, res) => {
+  // Generate a simple unique session ID (for demonstration)
   const sessionId = Math.random().toString(36).substr(2, 9);
-  sessions[sessionId] = { user1: true, user2: false };
+  sessions[sessionId] = { user1: true, user2: false, results: {} };
+  // Set a cookie with the session ID (httpOnly)
   res.cookie('matchSessionId', sessionId, { httpOnly: true });
-  res.json({
-    sessionId,
-    matchUrl: `http://localhost:3000/match/${sessionId}`,
+  res.json({ 
+    sessionId, 
+    matchUrl: `http://localhost:3000/match/${sessionId}`  // Shareable URL for the match session
   });
 });
 
+// Endpoint for User 2 to join a match session
 app.post('/api/match/:sessionId/join', (req, res) => {
   const { sessionId } = req.params;
   if (sessions[sessionId]) {
@@ -97,6 +101,7 @@ app.post('/api/match/:sessionId/join', (req, res) => {
   }
 });
 
+// Polling endpoint to check session status
 app.get('/api/match/:sessionId/status', (req, res) => {
   const { sessionId } = req.params;
   if (sessions[sessionId]) {
@@ -106,6 +111,7 @@ app.get('/api/match/:sessionId/status', (req, res) => {
   }
 });
 
+// Endpoint to cancel a session (if needed)
 app.post('/api/match/:sessionId/cancel', (req, res) => {
   const { sessionId } = req.params;
   if (sessions[sessionId]) {
