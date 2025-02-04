@@ -37,7 +37,7 @@ function Login({ onLogin, onResetPassword }) {
       const { user, token } = await loginUser({ username, password });
       localStorage.setItem('token', token);
       onLogin(user);
-      navigate('/onboarding');
+      // onLogin now handles redirection based on existing onboarding answers.
     } catch (err) {
       setError(err.message);
     }
@@ -173,6 +173,7 @@ const OnboardingQuestionComponents = {
 };
 
 function Onboarding({ onComplete }) {
+  // New users: ask questions that have not yet been answered.
   const [questions] = useState(() => {
     let copy = [...EXTENDED_QUESTIONS];
     for (let i = copy.length - 1; i > 0; i--) {
@@ -209,6 +210,7 @@ function Onboarding({ onComplete }) {
 
 /* -------------------------------
    MoreOnboarding Component
+   (Only presents questions that have not been answered)
 ------------------------------- */
 function MoreOnboarding({ answeredIds, onComplete, onReturn }) {
   const remaining = EXTENDED_QUESTIONS.filter(q => !answeredIds.has(q.number));
@@ -989,7 +991,7 @@ function Header({ selfie, setSelfie, user, headToHeadStats, quizStats }) {
 }
 
 /* -------------------------------
-   Main App Component with React Router
+   Main App Component with React Router and Repeat-User Logic
 ------------------------------- */
 function App() {
   const navigate = useNavigate();
@@ -1002,15 +1004,41 @@ function App() {
   const [headToHeadStats, setHeadToHeadStats] = useState({ matches: 0, correctResponses: 0 });
   const [quizStats, setQuizStats] = useState({ total: 0, correct: 0 });
   const answeredIds = useMemo(() => new Set(onboardingAnswers.map(a => a.questionId)), [onboardingAnswers]);
+
+  // Modified handleLogin to normalize onboardingAnswers.
   const handleLogin = (data) => {
     setUser(data);
-    navigate('/onboarding');
+    let normalizedAnswers = [];
+    if (data.onboardingAnswers) {
+      if (Array.isArray(data.onboardingAnswers)) {
+        normalizedAnswers = data.onboardingAnswers;
+      } else {
+        normalizedAnswers = Object.entries(data.onboardingAnswers).map(([label, answer]) => {
+          const qDef = EXTENDED_QUESTIONS.find(q => q.label === label);
+          return {
+            questionId: qDef ? qDef.number : label,
+            question: qDef ? qDef.question : label,
+            answer,
+          };
+        });
+      }
+    }
+    if (normalizedAnswers.length > 0) {
+      setOnboardingAnswers(normalizedAnswers);
+      setUser(prev => ({ ...prev, onboardingAnswers: normalizedAnswers }));
+      navigate('/people');
+    } else {
+      navigate('/onboarding');
+    }
   };
+
   const completeOnboarding = (ans) => {
     setOnboardingAnswers(ans);
+    // Here, update the user profile on the backend as needed.
     setUser(prev => ({ ...prev, onboardingAnswers: ans }));
     navigate('/people');
   };
+
   const initiateHeadToHead = useCallback(async (opponent) => {
     try {
       const session = await startMatchSession({ initiatorId: user.id, opponentId: opponent.id });
@@ -1022,6 +1050,7 @@ function App() {
       console.error("Error starting match session:", err);
     }
   }, [user]);
+
   const handleJoinMatch = (response) => {
     const session = response.session ? response.session : response;
     if (!session) {
@@ -1039,6 +1068,7 @@ function App() {
         console.error("Error fetching initiator profile:", err);
       });
   };
+
   return (
     <div className="App">
       {user && <Header selfie={selfie} setSelfie={setSelfie} user={user} headToHeadStats={headToHeadStats} quizStats={quizStats} />}
@@ -1080,7 +1110,7 @@ function App() {
           headToHeadMode={headToHeadMode}
           onRecordAnswer={() => {}}
           onCompleteQuiz={(total, correct) => setQuizStats({ total, correct })}
-          onCompleteHeadToHead={(correct) => setHeadToHeadStats(prev => ({
+          onCompleteHeadToDay={(correct) => setHeadToHeadStats(prev => ({
             matches: prev.matches + 1,
             correctResponses: prev.correctResponses + correct,
           }))}
