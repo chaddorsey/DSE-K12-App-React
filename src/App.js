@@ -1,13 +1,17 @@
 // src/App.js
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import './App.css';
+import { QRCodeCanvas } from 'qrcode.react';
 import {
   loginUser,
   getUsers,
   resetPassword,
   startMatchSession,
   joinMatchSession,
-  getMatchStatus
+  getMatchStatus,
+  updateMatchResult,
+  getUserProfile,
+  getQuestionDistractors
 } from './api';
 import { EXTENDED_QUESTIONS } from './constants/questions';
 
@@ -19,26 +23,273 @@ function FallbackComponent() {
 }
 
 /* -------------------------------
-   Head-to-Head Setup Component
-   Receives match session details from the backend.
+   Head-to-Head Invitation Component
+   Displays match URL, QR code, and dynamic status indicators.
 ------------------------------- */
-function HeadToHeadSetup({ matchSession, triggeringUser, opponent, onStartQuiz }) {
+function HeadToHeadInvitation({ matchSession, onMatchStarted, onCancel }) {
+  const [sessionData, setSessionData] = useState(matchSession);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const updatedSession = await getMatchStatus(matchSession.sessionId);
+        setSessionData(updatedSession);
+        if (updatedSession.status === 'started' || updatedSession.status === 'complete') {
+          clearInterval(interval);
+          onMatchStarted(updatedSession);
+        }
+      } catch (err) {
+        console.error("Error polling match status:", err);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [matchSession, onMatchStarted]);
+
   return (
-    <div className="head-to-head-setup">
-      <h2>Head-to-Head Match Setup</h2>
-      <p>Your ID: {triggeringUser.id}</p>
-      <p>
-        Send this URL to your opponent ({opponent.username}, ID: {opponent.id}):
-      </p>
-      <p className="head-to-head-url">{matchSession.matchUrl}</p>
-      <p>Please wait for your opponent to join...</p>
-      <button onClick={onStartQuiz}>Skip Waiting and Start Quiz</button>
+    <div className="head-to-head-invitation">
+      <h2>Head-to-Head Match Invitation</h2>
+      <p>Your match session ID: {sessionData.sessionId}</p>
+      <p>Share this URL with your opponent to join:</p>
+      <p className="head-to-head-url">{sessionData.matchUrl}</p>
+      <div className="qr-code">
+        <QRCodeCanvas value={sessionData.matchUrl} />
+      </div>
+      <p>Waiting for opponent to join...</p>
+      <button onClick={onCancel}>Cancel Match</button>
     </div>
   );
 }
 
 /* -------------------------------
-   Onboarding Question Components
+   Head-to-Head Quiz Question Component
+   Presents a single quiz question with distractor options.
+------------------------------- */
+function HeadToHeadQuizQuestion({ questionData, onAnswer }) {
+  const [distractors, setDistractors] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    async function fetchDistractors() {
+      if (questionData.type === 'MC') {
+        // For MC, use allowed options from EXTENDED_QUESTIONS:
+        const qDef = EXTENDED_QUESTIONS.find(q => q.number === questionData.questionId);
+        if (qDef && qDef.options.length > 0) {
+          const options = qDef.options.filter(opt => opt !== questionData.correctAnswer);
+          let chosen = [];
+          if (options.length <= 2) {
+            chosen = options;
+          } else {
+            const shuffled = options.sort(() => 0.5 - Math.random());
+            chosen = shuffled.slice(0, 2);
+          }
+          setDistractors(chosen);
+        }
+      } else if (questionData.type === 'NM' || questionData.type === 'OP') {
+        // For numerical and open response, fetch distractors from backend
+        try {
+          const data = await getQuestionDistractors(questionData.label, questionData.correctAnswer);
+          setDistractors(data.distractors);
+        } catch (err) {
+          console.error("Error fetching distractors", err);
+          setDistractors([]);
+        }
+      }
+    }
+    fetchDistractors();
+  }, [questionData]);
+
+  const computedOptions = useMemo(() => {
+    const allOptions = [questionData.correctAnswer, ...distractors];
+    return allOptions.sort(() => 0.5 - Math.random());
+  }, [questionData.correctAnswer, distractors]);
+
+  const handleClick = (opt) => {
+    if (!submitted) {
+      setSubmitted(true);
+      setSelected(opt);
+      const answerCorrect = opt === questionData.correctAnswer;
+      onAnswer(answerCorrect, opt, questionData.correctAnswer);
+    }
+  };
+
+  return (
+    <div className="quiz-question">
+      <h3>{questionData.question}</h3>
+      <div className="quiz-options">
+        {computedOptions.map((opt, idx) => (
+          <div
+            key={idx}
+            className={`quiz-option ${submitted 
+              ? (opt === questionData.correctAnswer ? "highlight" : (opt === selected ? "selected" : ""))
+              : ""}`}
+            onClick={() => handleClick(opt)}
+          >
+            {opt}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------
+   Head-to-Head Quiz Component
+   Presents a series of 5 questions based on the opponent's onboarding answers.
+------------------------------- */
+function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
+  const [opponentData, setOpponentData] = useState(opponent);
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentFeedback, setCurrentFeedback] = useState(null);
+  const [localScore, setLocalScore] = useState(0);
+  const [resultsSubmitted, setResultsSubmitted] = useState(false);
+  const [opponentResult, setOpponentResult] = useState(null);
+  const batchSize = 5;
+
+  // Fetch opponent full profile if needed
+  useEffect(() => {
+    async function fetchOpponent() {
+      if (!opponentData.onboardingAnswers || opponentData.onboardingAnswers.length === 0) {
+        try {
+          const profile = await getUserProfile(opponentData.id, localStorage.getItem('token'));
+          setOpponentData(profile);
+        } catch (err) {
+          console.error("Error fetching opponent profile", err);
+        }
+      }
+    }
+    fetchOpponent();
+  }, [opponentData]);
+
+  // Generate quiz questions from opponent's onboarding answers
+  useEffect(() => {
+    if (opponentData.onboardingAnswers && opponentData.onboardingAnswers.length > 0) {
+      const shuffled = opponentData.onboardingAnswers.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, batchSize).map(q => {
+        let qDef = EXTENDED_QUESTIONS.find(item => item.number === q.questionId);
+        if (!qDef) {
+          qDef = { type: 'OP', label: q.questionId.toString() };
+        }
+        return {
+          questionId: q.questionId,
+          question: q.question,
+          correctAnswer: q.answer,
+          type: qDef.type,
+          label: qDef.label
+        };
+      });
+      setQuestions(selected);
+    }
+  }, [opponentData]);
+
+  const handleAnswer = (isCorrect, selectedAnswer, correctAnswer) => {
+    if (isCorrect) {
+      setLocalScore(prev => prev + 1);
+    }
+    setCurrentFeedback({ isCorrect, selected: selectedAnswer, correct: correctAnswer });
+  };
+
+  const nextQuestion = () => {
+    setCurrentFeedback(null);
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      // Submit results
+      const resultPayload = {
+        userId: currentUser.id,
+        answers: questions.map((q, idx) => ({
+          questionId: q.questionId,
+          // For simplicity, we record a placeholder result here.
+          correct: idx <= currentIndex
+        })),
+        score: localScore
+      };
+      updateMatchResult(sessionData.sessionId, resultPayload)
+        .then(() => {
+          setResultsSubmitted(true);
+        })
+        .catch(err => console.error("Error updating match result", err));
+    }
+  };
+
+  // Poll for opponent result after submission
+  useEffect(() => {
+    if (resultsSubmitted) {
+      const interval = setInterval(async () => {
+        try {
+          const updatedSession = await getMatchStatus(sessionData.sessionId);
+          if (updatedSession.results && updatedSession.results[opponentData.id]) {
+            setOpponentResult(updatedSession.results[opponentData.id]);
+            if (updatedSession.status === 'complete') {
+              clearInterval(interval);
+            }
+          }
+        } catch (err) {
+          console.error("Error polling opponent result", err);
+        }
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [resultsSubmitted, sessionData, opponentData.id]);
+
+  return (
+    <div className="head-to-head-quiz">
+      <div className="return-link" onClick={() => onComplete()}>Return to People Menu</div>
+      {questions.length === 0 ? (
+        <div>
+          <h3>Your opponent has not completed onboarding. Cannot start quiz.</h3>
+          <button onClick={() => onComplete()}>Return to People</button>
+        </div>
+      ) : (
+        <>
+          <HeadToHeadQuizQuestion
+            key={questions[currentIndex].questionId}
+            questionData={questions[currentIndex]}
+            onAnswer={handleAnswer}
+          />
+          {currentFeedback && (
+            <div className="quiz-feedback">
+              {currentFeedback.isCorrect ? (
+                <span className="correct">
+                  Correct! (Your answer: {currentFeedback.selected})
+                </span>
+              ) : (
+                <span className="incorrect">
+                  Incorrect. Your answer: {currentFeedback.selected}. Correct answer: {currentFeedback.correct}.
+                </span>
+              )}
+            </div>
+          )}
+          <div className="quiz-navigation">
+            {currentIndex < questions.length - 1 ? (
+              <button onClick={nextQuestion}>Next Question</button>
+            ) : (
+              <button onClick={nextQuestion}>Submit Quiz</button>
+            )}
+          </div>
+          <div className="quiz-summary">
+            Your score: {localScore} out of {questions.length}
+          </div>
+          {resultsSubmitted && (
+            <div className="opponent-status">
+              {opponentResult ? (
+                <div>
+                  Opponent's score: {opponentResult.score}
+                </div>
+              ) : (
+                <div>Waiting for opponent to finish...</div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------
+   Onboarding Components (unchanged)
 ------------------------------- */
 function OnboardingOpenResponse({ question, onAnswer }) {
   const [response, setResponse] = useState("");
@@ -91,17 +342,12 @@ function OnboardingNumerical({ question, min, max, onAnswer }) {
   );
 }
 
-/* Mapping from question type to onboarding component */
 const OnboardingQuestionComponents = {
   OP: OnboardingOpenResponse,
   MC: OnboardingMultipleChoice,
   NM: OnboardingNumerical,
 };
 
-/* -------------------------------
-   OnboardingRandom Component
-   Presents 7 random onboarding questions.
-------------------------------- */
 function OnboardingRandom({ onComplete }) {
   const [questions] = useState(() => {
     let copy = [...EXTENDED_QUESTIONS];
@@ -143,10 +389,6 @@ function OnboardingRandom({ onComplete }) {
   );
 }
 
-/* -------------------------------
-   MoreOnboarding Component
-   Presents additional onboarding questions in batches of 5.
-------------------------------- */
 function MoreOnboarding({ answeredIds, onComplete, onReturn }) {
   const remaining = EXTENDED_QUESTIONS.filter(q => !answeredIds.has(q.number));
   const batchSize = 5;
@@ -228,8 +470,7 @@ function MoreOnboarding({ answeredIds, onComplete, onReturn }) {
 }
 
 /* -------------------------------
-   QuizQuestionFromOnboarding Component
-   Presents a quiz question with fixed response options.
+   QuizQuestionFromOnboarding Component (unchanged)
 ------------------------------- */
 function QuizQuestionFromOnboarding({ questionData, allResponses, onAnswer }) {
   const correctAnswer = questionData.answer;
@@ -281,8 +522,7 @@ function QuizQuestionFromOnboarding({ questionData, allResponses, onAnswer }) {
 }
 
 /* -------------------------------
-   ResetPassword Component
-   New screen for resetting a user's password.
+   ResetPassword Component (unchanged)
 ------------------------------- */
 function ResetPassword({ onReturnToLogin }) {
   const [username, setUsername] = useState('');
@@ -333,21 +573,16 @@ function ResetPassword({ onReturnToLogin }) {
 }
 
 /* -------------------------------
-   JoinMatch Component
-   Temporary screen for joining a match session by entering a session ID.
+   JoinMatch Component (updated to include userId for joining match)
 ------------------------------- */
-function JoinMatch({ onJoinSuccess, onReturn }) {
+function JoinMatch({ onJoinSuccess, onReturn, currentUser }) {
   const [sessionId, setSessionId] = useState('');
   const [error, setError] = useState(null);
   const handleJoin = async () => {
     setError(null);
     try {
-      await joinMatchSession(sessionId);
-      const matchSession = {
-        sessionId,
-        matchUrl: window.location.origin + "/match/" + sessionId,
-      };
-      onJoinSuccess(matchSession);
+      const session = await joinMatchSession(sessionId, { userId: currentUser.id });
+      onJoinSuccess(session);
     } catch (err) {
       setError(err.message);
     }
@@ -369,8 +604,7 @@ function JoinMatch({ onJoinSuccess, onReturn }) {
 }
 
 /* -------------------------------
-   People Component
-   Fetches users from the backend.
+   People Component (unchanged)
 ------------------------------- */
 function People({ user, selfie, onMoreQuestions, onSelectSubject, onStartHeadToHead, onJoinMatch }) {
   const [people, setPeople] = useState([]);
@@ -419,8 +653,7 @@ function People({ user, selfie, onMoreQuestions, onSelectSubject, onStartHeadToH
 }
 
 /* -------------------------------
-   Header Component
-   Displays head-to-head and overall quiz statistics.
+   Header Component (unchanged)
 ------------------------------- */
 function Header({ selfie, setSelfie, user, headToHeadStats, quizStats }) {
   const [showProfile, setShowProfile] = useState(false);
@@ -467,8 +700,7 @@ function Header({ selfie, setSelfie, user, headToHeadStats, quizStats }) {
 }
 
 /* -------------------------------
-   Login Component
-   Uses the backend API for authentication and includes a Reset Password link.
+   Login Component (unchanged)
 ------------------------------- */
 function Login({ onLogin, onResetPassword }) {
   const [username, setUsername] = useState('');
@@ -509,7 +741,7 @@ function Login({ onLogin, onResetPassword }) {
 }
 
 /* -------------------------------
-   Selfie Component
+   Selfie Component (unchanged)
 ------------------------------- */
 function Selfie({ onCapture }) {
   const [imageSrc, setImageSrc] = useState(null);
@@ -539,8 +771,7 @@ function Selfie({ onCapture }) {
 }
 
 /* -------------------------------
-   SubjectDetail Component
-   Displays the selected subject with buttons for Start Quiz and Start Head-to-Head match.
+   SubjectDetail Component (unchanged)
 ------------------------------- */
 function SubjectDetail({ subject, onStartQuiz, onStartHeadToHead, onReturn }) {
   return (
@@ -554,9 +785,7 @@ function SubjectDetail({ subject, onStartQuiz, onStartHeadToHead, onReturn }) {
 }
 
 /* -------------------------------
-   QuizSession Component
-   Presents batches of 5 quiz questions, tracks overall progress,
-   and logs overall quiz stats only when the session ends.
+   QuizSession Component (unchanged for non-head-to-head quiz)
 ------------------------------- */
 function QuizSession({ subject, headToHeadMode, onRecordAnswer, onReturn, onCompleteQuiz, onCompleteHeadToHead }) {
   const totalPool = subject.onboardingAnswers;
@@ -682,7 +911,7 @@ function QuizSession({ subject, headToHeadMode, onRecordAnswer, onReturn, onComp
    Main App Component
 ------------------------------- */
 function App() {
-  const [step, setStep] = useState('login'); // steps: login, reset, onboarding, people, joinMatch, headToHeadSetup, quiz, subjectDetail
+  const [step, setStep] = useState('login'); // steps: login, reset, onboarding, people, joinMatch, headToHeadInvitation, headToHeadQuiz, quiz, subjectDetail
   const [user, setUser] = useState(null);
   const [selfie, setSelfie] = useState(null);
   const [onboardingAnswers, setOnboardingAnswers] = useState([]);
@@ -709,47 +938,28 @@ function App() {
     }));
   };
 
-  // Poll for opponent join when in head-to-head setup.
-  useEffect(() => {
-    let interval;
-    if (step === 'headToHeadSetup' && matchSession) {
-      interval = setInterval(async () => {
-        try {
-          const status = await getMatchStatus(matchSession.sessionId);
-          if (status.joined) {
-            clearInterval(interval);
-            setStep('quiz');
-          }
-        } catch (err) {
-          console.error("Error polling match status:", err);
-        }
-      }, 2000);
-    }
-    return () => clearInterval(interval);
-  }, [step, matchSession]);
-
   // Function to initiate a head-to-head match (for the initiating user)
   const initiateHeadToHead = useCallback(async (opponent) => {
     try {
-      const session = await startMatchSession();
+      const session = await startMatchSession({ initiatorId: user.id, opponentId: opponent.id });
       setMatchSession(session);
       setHeadToHeadTrigger(user);
       setHeadToHeadOpponent(opponent);
       setHeadToHeadMode(true);
-      setStep('headToHeadSetup');
+      setStep('headToHeadInvitation');
     } catch (err) {
       console.error("Error starting match session:", err);
     }
   }, [user]);
 
-  // Function to handle joining a match session via the temporary JoinMatch screen.
+  // Function to handle joining a match session via the JoinMatch screen.
   const handleJoinMatch = (session) => {
     setMatchSession(session);
-    // For testing, assume the current user is the opponent.
-    setHeadToHeadTrigger(user);
+    // For joining, assume current user is the invited opponent.
+    setHeadToHeadTrigger(null);
     setHeadToHeadOpponent(user);
     setHeadToHeadMode(true);
-    setStep('quiz');
+    setStep('headToHeadQuiz');
   };
 
   return (
@@ -803,14 +1013,30 @@ function App() {
         <JoinMatch
           onJoinSuccess={handleJoinMatch}
           onReturn={() => setStep('people')}
+          currentUser={user}
         />
       )}
-      {step === 'headToHeadSetup' && matchSession && headToHeadTrigger && headToHeadOpponent && (
-        <HeadToHeadSetup
+      {step === 'headToHeadInvitation' && matchSession && headToHeadTrigger && headToHeadOpponent && (
+        <HeadToHeadInvitation
           matchSession={matchSession}
-          triggeringUser={headToHeadTrigger}
+          onMatchStarted={(updatedSession) => setStep('headToHeadQuiz')}
+          onCancel={() => {
+            setHeadToHeadMode(false);
+            setMatchSession(null);
+            setStep('people');
+          }}
+        />
+      )}
+      {step === 'headToHeadQuiz' && matchSession && headToHeadMode && headToHeadOpponent && (
+        <HeadToHeadQuiz
+          sessionData={matchSession}
+          currentUser={user}
           opponent={headToHeadOpponent}
-          onStartQuiz={() => setStep('quiz')}
+          onComplete={() => {
+            setHeadToHeadMode(false);
+            setMatchSession(null);
+            setStep('people');
+          }}
         />
       )}
       {step === 'quiz' && (
@@ -853,4 +1079,3 @@ function App() {
 }
 
 export default App;
-

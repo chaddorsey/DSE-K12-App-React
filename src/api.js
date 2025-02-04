@@ -50,18 +50,20 @@ export async function getUserProfile(id, token) {
 
 // Match Session API Functions
 
-export async function startMatchSession() {
+export async function startMatchSession({ initiatorId, opponentId }) {
   const response = await fetch(`${API_BASE}/match/start`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ initiatorId, opponentId }),
   });
   return handleResponse(response);
 }
 
-export async function joinMatchSession(sessionId) {
+export async function joinMatchSession(sessionId, { userId }) {
   const response = await fetch(`${API_BASE}/match/${sessionId}/join`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
   });
   return handleResponse(response);
 }
@@ -71,11 +73,27 @@ export async function getMatchStatus(sessionId) {
   return handleResponse(response);
 }
 
-export async function cancelMatchSession(sessionId) {
-  const response = await fetch(`${API_BASE}/match/${sessionId}/cancel`, {
+export async function updateMatchResult(sessionId, { userId, answers, score }) {
+  const response = await fetch(`${API_BASE}/match/${sessionId}/result`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, answers, score }),
   });
   return handleResponse(response);
 }
 
+export async function cancelMatchSession(sessionId) {
+  const response = await fetch(`${API_BASE}/match/${sessionId}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return handleResponse(response);
+}
+
+// Distractor API Function for numerical and open response questions
+export async function getQuestionDistractors(label, correctAnswer) {
+  const response = await fetch(
+    `${API_BASE}/questions/distractors?label=${encodeURIComponent(label)}&correctAnswer=${encodeURIComponent(correctAnswer)}`
+  );
+  return handleResponse(response);
+}
