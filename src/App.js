@@ -24,7 +24,6 @@ function FallbackComponent() {
 
 /* -------------------------------
    Head-to-Head Invitation Component
-   Displays match URL, QR code, and dynamic status indicators.
 ------------------------------- */
 function HeadToHeadInvitation({ matchSession, onMatchStarted, onCancel }) {
   const [sessionData, setSessionData] = useState(matchSession);
@@ -33,6 +32,8 @@ function HeadToHeadInvitation({ matchSession, onMatchStarted, onCancel }) {
     const interval = setInterval(async () => {
       try {
         const updatedSession = await getMatchStatus(matchSession.sessionId);
+        // Fallback: if updatedSession.matchUrl is missing, use the original match URL.
+        updatedSession.matchUrl = updatedSession.matchUrl || matchSession.matchUrl;
         setSessionData(updatedSession);
         if (updatedSession.status === 'started' || updatedSession.status === 'complete') {
           clearInterval(interval);
@@ -62,7 +63,6 @@ function HeadToHeadInvitation({ matchSession, onMatchStarted, onCancel }) {
 
 /* -------------------------------
    Head-to-Head Quiz Question Component
-   Presents a single quiz question with distractor options.
 ------------------------------- */
 function HeadToHeadQuizQuestion({ questionData, onAnswer }) {
   const [distractors, setDistractors] = useState([]);
@@ -72,7 +72,6 @@ function HeadToHeadQuizQuestion({ questionData, onAnswer }) {
   useEffect(() => {
     async function fetchDistractors() {
       if (questionData.type === 'MC') {
-        // For MC, use allowed options from EXTENDED_QUESTIONS:
         const qDef = EXTENDED_QUESTIONS.find(q => q.number === questionData.questionId);
         if (qDef && qDef.options.length > 0) {
           const options = qDef.options.filter(opt => opt !== questionData.correctAnswer);
@@ -86,7 +85,6 @@ function HeadToHeadQuizQuestion({ questionData, onAnswer }) {
           setDistractors(chosen);
         }
       } else if (questionData.type === 'NM' || questionData.type === 'OP') {
-        // For numerical and open response, fetch distractors from backend
         try {
           const data = await getQuestionDistractors(questionData.label, questionData.correctAnswer);
           setDistractors(data.distractors);
@@ -99,7 +97,7 @@ function HeadToHeadQuizQuestion({ questionData, onAnswer }) {
     fetchDistractors();
   }, [questionData]);
 
-  const computedOptions = useMemo(() => {
+  const computedOptions = React.useMemo(() => {
     const allOptions = [questionData.correctAnswer, ...distractors];
     return allOptions.sort(() => 0.5 - Math.random());
   }, [questionData.correctAnswer, distractors]);
@@ -135,22 +133,35 @@ function HeadToHeadQuizQuestion({ questionData, onAnswer }) {
 
 /* -------------------------------
    Head-to-Head Quiz Component
-   Presents a series of 5 questions based on the opponent's onboarding answers.
 ------------------------------- */
 function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
   const [opponentData, setOpponentData] = useState(opponent);
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentFeedback, setCurrentFeedback] = useState(null);
+  const [results, setResults] = useState([]);
   const [localScore, setLocalScore] = useState(0);
   const [resultsSubmitted, setResultsSubmitted] = useState(false);
   const [opponentResult, setOpponentResult] = useState(null);
   const batchSize = 5;
 
-  // Fetch opponent full profile if needed
+  // Normalize opponent onboarding answers safely.
+  const normalizeOnboardingAnswers = (answers) => {
+    if (!answers) return [];
+    if (Array.isArray(answers)) return answers;
+    return Object.entries(answers).map(([label, answer]) => {
+      const qDef = EXTENDED_QUESTIONS.find(q => q.label === label) || { number: label, question: label, type: 'OP', label };
+      return {
+        questionId: qDef.number,
+        question: qDef.question,
+        answer,
+      };
+    });
+  };
+
   useEffect(() => {
     async function fetchOpponent() {
-      if (!opponentData.onboardingAnswers || opponentData.onboardingAnswers.length === 0) {
+      if (!opponentData.onboardingAnswers || (Array.isArray(opponentData.onboardingAnswers) && opponentData.onboardingAnswers.length === 0)) {
         try {
           const profile = await getUserProfile(opponentData.id, localStorage.getItem('token'));
           setOpponentData(profile);
@@ -162,15 +173,14 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
     fetchOpponent();
   }, [opponentData]);
 
-  // Generate quiz questions from opponent's onboarding answers
+  // Generate quiz questions from the opponent's answers.
   useEffect(() => {
-    if (opponentData.onboardingAnswers && opponentData.onboardingAnswers.length > 0) {
-      const shuffled = opponentData.onboardingAnswers.sort(() => 0.5 - Math.random());
+    const normalized = normalizeOnboardingAnswers(opponentData.onboardingAnswers);
+    if (normalized && normalized.length > 0) {
+      const shuffled = normalized.sort(() => 0.5 - Math.random());
       const selected = shuffled.slice(0, batchSize).map(q => {
         let qDef = EXTENDED_QUESTIONS.find(item => item.number === q.questionId);
-        if (!qDef) {
-          qDef = { type: 'OP', label: q.questionId.toString() };
-        }
+        if (!qDef) qDef = { type: 'OP', label: q.questionId.toString() };
         return {
           questionId: q.questionId,
           question: q.question,
@@ -184,9 +194,15 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
   }, [opponentData]);
 
   const handleAnswer = (isCorrect, selectedAnswer, correctAnswer) => {
-    if (isCorrect) {
-      setLocalScore(prev => prev + 1);
-    }
+    const currentQuestion = questions[currentIndex];
+    setResults(prev => [...prev, {
+      questionId: currentQuestion.questionId,
+      question: currentQuestion.question,
+      selectedAnswer,
+      correctAnswer,
+      isCorrect
+    }]);
+    if (isCorrect) setLocalScore(prev => prev + 1);
     setCurrentFeedback({ isCorrect, selected: selectedAnswer, correct: correctAnswer });
   };
 
@@ -195,14 +211,9 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      // Submit results
       const resultPayload = {
         userId: currentUser.id,
-        answers: questions.map((q, idx) => ({
-          questionId: q.questionId,
-          // For simplicity, we record a placeholder result here.
-          correct: idx <= currentIndex
-        })),
+        results,
         score: localScore
       };
       updateMatchResult(sessionData.sessionId, resultPayload)
@@ -213,7 +224,6 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
     }
   };
 
-  // Poll for opponent result after submission
   useEffect(() => {
     if (resultsSubmitted) {
       const interval = setInterval(async () => {
@@ -221,9 +231,7 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
           const updatedSession = await getMatchStatus(sessionData.sessionId);
           if (updatedSession.results && updatedSession.results[opponentData.id]) {
             setOpponentResult(updatedSession.results[opponentData.id]);
-            if (updatedSession.status === 'complete') {
-              clearInterval(interval);
-            }
+            if (updatedSession.status === 'complete') clearInterval(interval);
           }
         } catch (err) {
           console.error("Error polling opponent result", err);
@@ -235,7 +243,9 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
 
   return (
     <div className="head-to-head-quiz">
-      <div className="return-link" onClick={() => onComplete()}>Return to People Menu</div>
+      <div className="return-link" onClick={() => onComplete()}>
+        Return to People Menu
+      </div>
       {questions.length === 0 ? (
         <div>
           <h3>Your opponent has not completed onboarding. Cannot start quiz.</h3>
@@ -243,42 +253,64 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
         </div>
       ) : (
         <>
-          <HeadToHeadQuizQuestion
-            key={questions[currentIndex].questionId}
-            questionData={questions[currentIndex]}
-            onAnswer={handleAnswer}
-          />
-          {currentFeedback && (
-            <div className="quiz-feedback">
-              {currentFeedback.isCorrect ? (
-                <span className="correct">
-                  Correct! (Your answer: {currentFeedback.selected})
-                </span>
-              ) : (
-                <span className="incorrect">
-                  Incorrect. Your answer: {currentFeedback.selected}. Correct answer: {currentFeedback.correct}.
-                </span>
+          {!resultsSubmitted ? (
+            <>
+              <HeadToHeadQuizQuestion
+                key={questions[currentIndex].questionId}
+                questionData={questions[currentIndex]}
+                onAnswer={handleAnswer}
+              />
+              {currentFeedback && (
+                <div className="quiz-feedback">
+                  {currentFeedback.isCorrect ? (
+                    <span className="correct">
+                      Correct! (Your answer: {currentFeedback.selected})
+                    </span>
+                  ) : (
+                    <span className="incorrect">
+                      Incorrect. Your answer: {currentFeedback.selected}. Correct answer: {currentFeedback.correct}.
+                    </span>
+                  )}
+                </div>
               )}
-            </div>
-          )}
-          <div className="quiz-navigation">
-            {currentIndex < questions.length - 1 ? (
-              <button onClick={nextQuestion}>Next Question</button>
-            ) : (
-              <button onClick={nextQuestion}>Submit Quiz</button>
-            )}
-          </div>
-          <div className="quiz-summary">
-            Your score: {localScore} out of {questions.length}
-          </div>
-          {resultsSubmitted && (
-            <div className="opponent-status">
+              <div className="quiz-navigation">
+                {currentIndex < questions.length - 1 ? (
+                  <button onClick={nextQuestion}>Next Question</button>
+                ) : (
+                  <button onClick={nextQuestion}>Submit Quiz</button>
+                )}
+              </div>
+              <div className="quiz-summary">
+                Your current score: {localScore} out of {questions.length}
+              </div>
+            </>
+          ) : (
+            <div className="quiz-summary">
+              <h3>Quiz Complete</h3>
+              <div>
+                <p>Your Responses:</p>
+                <ul>
+                  {results.map((r, idx) => (
+                    <li key={idx}>
+                      Q{r.questionId}: {r.isCorrect ? "Correct" : "Incorrect"} (Your answer: {r.selectedAnswer}, Correct: {r.correctAnswer})
+                    </li>
+                  ))}
+                </ul>
+              </div>
               {opponentResult ? (
                 <div>
-                  Opponent's score: {opponentResult.score}
+                  <p>Opponent's Responses:</p>
+                  <ul>
+                    {opponentResult.results && opponentResult.results.map((r, idx) => (
+                      <li key={idx}>
+                        Q{r.questionId}: {r.isCorrect ? "Correct" : "Incorrect"} (Their answer: {r.selectedAnswer}, Correct: {r.correctAnswer})
+                      </li>
+                    ))}
+                    <p>Opponent's score: {opponentResult.score}</p>
+                  </ul>
                 </div>
               ) : (
-                <div>Waiting for opponent to finish...</div>
+                <div>Waiting for opponent to finish their quiz...</div>
               )}
             </div>
           )}
@@ -297,12 +329,7 @@ function OnboardingOpenResponse({ question, onAnswer }) {
   return (
     <div className="quiz-question">
       <h3>{question}</h3>
-      <input
-        type="text"
-        maxLength={100}
-        value={response}
-        onChange={(e) => setResponse(e.target.value)}
-      />
+      <input type="text" maxLength={100} value={response} onChange={(e) => setResponse(e.target.value)} />
       <button onClick={handleSubmit}>Submit</button>
     </div>
   );
@@ -378,13 +405,7 @@ function OnboardingRandom({ onComplete }) {
     <div className="onboarding-container">
       <h2>Onboarding</h2>
       <div className="question-prompt">{currentQuestion.question}</div>
-      <ContentComponent
-        question={currentQuestion.question}
-        options={currentQuestion.options}
-        min={0}
-        max={100}
-        onAnswer={handleAnswer}
-      />
+      <ContentComponent question={currentQuestion.question} options={currentQuestion.options} min={0} max={100} onAnswer={handleAnswer} />
     </div>
   );
 }
@@ -424,13 +445,7 @@ function MoreOnboarding({ answeredIds, onComplete, onReturn }) {
                     min={0}
                     max={100}
                     onAnswer={(answer) => {
-                      onComplete([
-                        {
-                          questionId: batch[currentIndex].number,
-                          question: batch[currentIndex].question,
-                          answer,
-                        },
-                      ]);
+                      onComplete([{ questionId: batch[currentIndex].number, question: batch[currentIndex].question, answer }]);
                       if (currentIndex < batch.length - 1) {
                         setCurrentIndex(currentIndex + 1);
                         setCounter(counter + 1);
@@ -476,9 +491,7 @@ function QuizQuestionFromOnboarding({ questionData, allResponses, onAnswer }) {
   const correctAnswer = questionData.answer;
   const isNumeric = !isNaN(Number(correctAnswer));
   const computedOptions = (() => {
-    const others = allResponses
-      .filter(resp => resp.questionId === questionData.questionId && resp.answer !== correctAnswer)
-      .map(resp => resp.answer);
+    const others = allResponses.filter(resp => resp.questionId === questionData.questionId && resp.answer !== correctAnswer).map(resp => resp.answer);
     const unique = Array.from(new Set(others));
     if (isNumeric) {
       let allNums = [Number(correctAnswer), ...unique.map(val => Number(val))];
@@ -504,15 +517,11 @@ function QuizQuestionFromOnboarding({ questionData, allResponses, onAnswer }) {
       <h3>What did this person answer to: "{questionData.question}"?</h3>
       <div className="quiz-options">
         {computedOptions.map((opt, idx) => (
-          <div
-            key={idx}
-            className={`quiz-option ${submitted 
-              ? (isNumeric 
-                  ? (Number(opt) === Number(correctAnswer) ? "highlight" : (opt === selected ? "selected" : ""))
-                  : (opt === correctAnswer ? "highlight" : (opt === selected ? "selected" : "")))
-              : ""}`}
-            onClick={() => handleClick(opt)}
-          >
+          <div key={idx} className={`quiz-option ${submitted 
+            ? (isNumeric 
+                ? (Number(opt) === Number(correctAnswer) ? "highlight" : (opt === selected ? "selected" : ""))
+                : (opt === correctAnswer ? "highlight" : (opt === selected ? "selected" : "")))
+            : ""}`} onClick={() => handleClick(opt)}>
             {opt}
           </div>
         ))}
@@ -573,31 +582,40 @@ function ResetPassword({ onReturnToLogin }) {
 }
 
 /* -------------------------------
-   JoinMatch Component (updated to include userId for joining match)
+   JoinMatch Component (updated with feedback)
 ------------------------------- */
 function JoinMatch({ onJoinSuccess, onReturn, currentUser }) {
   const [sessionId, setSessionId] = useState('');
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  
   const handleJoin = async () => {
     setError(null);
+    if (!sessionId.trim()) {
+      setError("Session ID cannot be empty.");
+      return;
+    }
+    setLoading(true);
     try {
-      const session = await joinMatchSession(sessionId, { userId: currentUser.id });
-      onJoinSuccess(session);
+      const response = await joinMatchSession(sessionId.trim(), { userId: currentUser.id });
+      // If response.session exists, use it; otherwise, assume response itself is the session.
+      const session = response.session ? response.session : response;
+      onJoinSuccess({ session });
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
+  
   return (
     <div className="join-match-container">
       <h2>Join Match Session</h2>
       {error && <p className="error">{error}</p>}
-      <input 
-        type="text" 
-        placeholder="Enter Match Session ID" 
-        value={sessionId} 
-        onChange={(e) => setSessionId(e.target.value)} 
-      />
-      <button onClick={handleJoin}>Join Match</button>
+      <input type="text" placeholder="Enter Match Session ID" value={sessionId} onChange={(e) => setSessionId(e.target.value)} />
+      <button onClick={handleJoin} disabled={loading}>
+        {loading ? "Joining..." : "Join Match"}
+      </button>
       <button onClick={onReturn}>Return to People</button>
     </div>
   );
@@ -787,7 +805,7 @@ function SubjectDetail({ subject, onStartQuiz, onStartHeadToHead, onReturn }) {
 /* -------------------------------
    QuizSession Component (unchanged for non-head-to-head quiz)
 ------------------------------- */
-function QuizSession({ subject, headToHeadMode, onRecordAnswer, onReturn, onCompleteQuiz, onCompleteHeadToHead }) {
+function QuizSession({ subject, headToHeadMode, onRecordAnswer, onCompleteQuiz, onCompleteHeadToHead, onReturn }) {
   const totalPool = subject.onboardingAnswers;
   const noQuestions = !totalPool || totalPool.length === 0;
   const [correctMap, setCorrectMap] = useState({});
@@ -827,16 +845,11 @@ function QuizSession({ subject, headToHeadMode, onRecordAnswer, onReturn, onComp
 
   return (
     <div className="quiz-session">
-      <div
-        className="return-link"
-        onClick={() => {
-          if (headToHeadMode && onCompleteHeadToHead) {
-            onCompleteHeadToHead(overallCorrect);
-          }
-          onCompleteQuiz(overallTotal, overallCorrect);
-          onReturn();
-        }}
-      >
+      <div className="return-link" onClick={() => {
+        if (headToHeadMode && onCompleteHeadToHead) onCompleteHeadToHead(overallCorrect);
+        onCompleteQuiz(overallTotal, overallCorrect);
+        onReturn();
+      }}>
         Return to People Menu
       </div>
       {noQuestions ? (
@@ -848,9 +861,7 @@ function QuizSession({ subject, headToHeadMode, onRecordAnswer, onReturn, onComp
         <div>
           <h3>All quiz questions have been answered correctly for this person.</h3>
           <button onClick={() => {
-            if (headToHeadMode && onCompleteHeadToHead) {
-              onCompleteHeadToHead(overallCorrect);
-            }
+            if (headToHeadMode && onCompleteHeadToHead) onCompleteHeadToHead(overallCorrect);
             onCompleteQuiz(overallTotal, overallCorrect);
             onReturn();
           }}>Return to People</button>
@@ -867,9 +878,7 @@ function QuizSession({ subject, headToHeadMode, onRecordAnswer, onReturn, onComp
             <>
               <div className="quiz-feedback">
                 {currentFeedback.isCorrect ? (
-                  <span className="correct">
-                    Correct! (Your answer: {currentFeedback.selected})
-                  </span>
+                  <span className="correct">Correct! (Your answer: {currentFeedback.selected})</span>
                 ) : (
                   <span className="incorrect">
                     Incorrect. Your answer: {currentFeedback.selected}. Correct answer: {currentFeedback.correct}.
@@ -881,16 +890,12 @@ function QuizSession({ subject, headToHeadMode, onRecordAnswer, onReturn, onComp
                   <button onClick={nextQuestion}>Next Question</button>
                 ) : (
                   <>
-                    <div className="quiz-summary">
-                      You got {overallCorrect} out of {overallTotal} correct.
-                    </div>
+                    <div className="quiz-summary">You got {overallCorrect} out of {overallTotal} correct.</div>
                     {totalPool.filter(q => !correctMap[q.questionId]).length >= batchSize && (
                       <button onClick={nextQuestion}>Answer more</button>
                     )}
                     <button onClick={() => {
-                      if (headToHeadMode && onCompleteHeadToHead) {
-                        onCompleteHeadToHead(overallCorrect);
-                      }
+                      if (headToHeadMode && onCompleteHeadToHead) onCompleteHeadToHead(overallCorrect);
                       onCompleteQuiz(overallTotal, overallCorrect);
                       onReturn();
                     }}>
@@ -938,7 +943,7 @@ function App() {
     }));
   };
 
-  // Function to initiate a head-to-head match (for the initiating user)
+  // Function for initiating a head-to-head match.
   const initiateHeadToHead = useCallback(async (opponent) => {
     try {
       const session = await startMatchSession({ initiatorId: user.id, opponentId: opponent.id });
@@ -952,14 +957,26 @@ function App() {
     }
   }, [user]);
 
-  // Function to handle joining a match session via the JoinMatch screen.
-  const handleJoinMatch = (session) => {
+  // Updated joinMatch handler for the accepting user.
+  const handleJoinMatch = (response) => {
+    // Use response.session if available; otherwise, assume response itself is the session.
+    const session = response.session ? response.session : response;
+    if (!session) {
+      console.error("Join match response did not include a session.");
+      return;
+    }
     setMatchSession(session);
-    // For joining, assume current user is the invited opponent.
-    setHeadToHeadTrigger(null);
-    setHeadToHeadOpponent(user);
     setHeadToHeadMode(true);
-    setStep('headToHeadQuiz');
+    setHeadToHeadTrigger(null);
+    // Fetch the initiator's profile so that the quiz is based on the other user's answers.
+    getUserProfile(session.initiator, localStorage.getItem('token'))
+      .then(profile => {
+        setHeadToHeadOpponent(profile);
+        setStep('headToHeadQuiz');
+      })
+      .catch(err => {
+        console.error("Error fetching initiator profile:", err);
+      });
   };
 
   return (
@@ -982,9 +999,7 @@ function App() {
           onResetPassword={() => setStep('reset')}
         />
       )}
-      {step === 'reset' && (
-        <ResetPassword onReturnToLogin={() => setStep('login')} />
-      )}
+      {step === 'reset' && <ResetPassword onReturnToLogin={() => setStep('login')} />}
       {step === 'onboarding' && (
         <OnboardingRandom
           onComplete={(ans) => {
@@ -1010,11 +1025,7 @@ function App() {
         />
       )}
       {step === 'joinMatch' && (
-        <JoinMatch
-          onJoinSuccess={handleJoinMatch}
-          onReturn={() => setStep('people')}
-          currentUser={user}
-        />
+        <JoinMatch onJoinSuccess={handleJoinMatch} onReturn={() => setStep('people')} currentUser={user} />
       )}
       {step === 'headToHeadInvitation' && matchSession && headToHeadTrigger && headToHeadOpponent && (
         <HeadToHeadInvitation
