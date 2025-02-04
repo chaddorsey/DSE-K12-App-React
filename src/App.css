@@ -1,3 +1,4 @@
+/* src/App.css */
 .App {
   text-align: center;
   font-family: Arial, sans-serif;
@@ -98,149 +99,51 @@
   margin-top: 20px;
 }
 
-/* Binary Question */
-.binary-question .binary-option {
-  padding: 40px;
-  margin: 5px;
-  color: white;
-  font-size: 1.5em;
-  cursor: pointer;
-  background-color: #777;
+/* Head-to-Head Invitation */
+.head-to-head-invitation {
+  margin: 20px;
+  padding: 20px;
+  border: 2px solid #007BFF;
   border-radius: 8px;
 }
-.binary-question .binary-option.selected {
-  background-color: #fcc;
-  border: 2px solid yellow;
-}
-
-/* Likert */
-.likert-question .likert-option {
-  padding: 15px;
-  border: 1px solid #ccc;
-  margin: 5px;
-  cursor: pointer;
-  background-color: #eee;
-  border-radius: 4px;
-}
-
-/* Single Axis */
-.single-axis-question {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.single-axis-question input[type="range"] {
-  width: 80%;
-  margin-bottom: 10px;
-}
-.slider-labels {
-  width: 80%;
-  display: flex;
-  justify-content: space-between;
+.head-to-head-invitation .head-to-head-url {
   font-weight: bold;
+  margin: 10px 0;
 }
-.slider-label {
-  font-size: 0.9em;
-}
-.single-axis-question button {
-  margin-top: 10px;
+.qr-code {
+  margin: 20px auto;
+  width: 128px;
+  height: 128px;
 }
 
-/* Two Dimensional */
-.two-dimensional-question {
+/* Head-to-Head Round Initiation (New) */
+.head-to-head-round-initiation {
   margin: 20px;
+  padding: 20px;
+  border: 2px dashed #28A745;
+  border-radius: 8px;
 }
-.coordinate-plane {
-  width: 300px;
-  height: 300px;
-  background-color: black;
-  margin: 0 auto;
-  position: relative;
-  cursor: pointer;
-  border: 2px solid #fff;
+.head-to-head-round-initiation .initiator-section,
+.head-to-head-round-initiation .join-section {
+  margin-bottom: 20px;
 }
-.coordinate-plane .click-area {
-  height: 100%;
-  width: 100%;
-}
-.coordinate-plane .axis-label {
-  pointer-events: none;
-  position: absolute;
-  color: white;
-  font-size: 0.9em;
+.head-to-head-round-initiation .head-to-head-url {
   font-weight: bold;
-  text-shadow: 1px 1px 2px black;
+  margin: 10px 0;
 }
-.coordinate-plane .axis-label.top {
-  top: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.coordinate-plane .axis-label.bottom {
-  bottom: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.coordinate-plane .axis-label.left {
-  left: 5px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.coordinate-plane .axis-label.right {
-  right: 5px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.instruction {
-  margin-top: 10px;
-  font-style: italic;
-  font-size: 0.9em;
+.head-to-head-round-initiation input[type="text"] {
+  padding: 8px;
+  margin-right: 10px;
 }
 
-/* Four Corners */
-.four-corners-question .corner-grid,
-.four-corners-quiz {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  width: 300px;
-  height: 300px;
-  margin: 0 auto;
-}
-.corner-grid .corner-option,
-.four-corners-option {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2em;
+/* Return Link */
+.return-link {
+  position: absolute;
+  top: 0;
+  right: 10px;
   cursor: pointer;
-  color: white;
-  border: 2px solid transparent;
-  border-radius: 4px;
-}
-.corner-grid .corner-0,
-.four-corners-option.corner-0 {
-  background-color: orange;
-}
-.corner-grid .corner-1,
-.four-corners-option.corner-1 {
-  background-color: blue;
-}
-.corner-grid .corner-2,
-.four-corners-option.corner-2 {
-  background-color: purple;
-}
-.corner-grid .corner-3,
-.four-corners-option.corner-3 {
-  background-color: green;
-}
-.four-corners-option.selected {
-  border-color: red;
-  background-color: #fcc;
-}
-.four-corners-option.highlight {
-  border-color: yellow;
-  background-color: #cfc;
+  color: blue;
+  text-decoration: underline;
 }
 
 /* People */
@@ -272,10 +175,6 @@
 }
 .person-name {
   margin-top: 5px;
-}
-.all-answered {
-  font-size: 0.8em;
-  color: green;
 }
 
 /* User Avatar (Selfie) */
@@ -316,42 +215,6 @@
   margin: 20px;
   position: relative;
   padding-top: 30px;
-}
-.return-link {
-  position: absolute;
-  top: 0;
-  right: 10px;
-  cursor: pointer;
-  color: blue;
-  text-decoration: underline;
-}
-.quiz-question {
-  margin: 20px 0;
-}
-.quiz-options {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-}
-.quiz-option {
-  padding: 10px 15px;
-  margin: 0 5px;
-  background-color: #ddd;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: background-color 0.2s;
-  border-radius: 4px;
-}
-.quiz-option:hover {
-  background-color: #ccc;
-}
-.quiz-option.selected {
-  border-color: red;
-  background-color: #fcc;
-}
-.quiz-option.highlight {
-  border-color: yellow;
-  background-color: #cfc;
 }
 .quiz-continuum {
   display: flex;
@@ -398,102 +261,12 @@
   border-color: yellow;
   background-color: #cfc;
 }
-.quiz-feedback {
-  margin-top: 10px;
-  font-weight: bold;
-}
-.quiz-navigation {
+
+/* Additional styling for round actions */
+.round-actions {
   margin-top: 20px;
 }
-
-/* Marquee Quiz Styles */
-.marquee-plane {
-  width: 300px;
-  height: 300px;
-  background-color: black;
-  margin: 0 auto;
-  position: relative;
-  border: 2px solid #fff;
-  cursor: crosshair;
-}
-.marquee-plane .axis-label {
-  pointer-events: none;
-  position: absolute;
-  color: white;
-  font-size: 0.9em;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px black;
-}
-.marquee-plane .axis-label.top {
-  top: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.marquee-plane .axis-label.bottom {
-  bottom: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.marquee-plane .axis-label.left {
-  left: 5px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.marquee-plane .axis-label.right {
-  right: 5px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.selection-rect {
-  position: absolute;
-  border: 2px dashed #ff0;
-  background-color: rgba(255, 255, 0, 0.2);
-}
-.hint-rect {
-  position: absolute;
-  border: 2px solid #f00;
-  background-color: rgba(255, 0, 0, 0.2);
-}
-.actual-point {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background-color: #0f0;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* Head-to-Head Invitation Styles */
-.head-to-head-invitation {
-  margin: 20px;
-  padding: 20px;
-  border: 2px solid #007BFF;
-  border-radius: 8px;
-}
-.head-to-head-invitation .head-to-head-url {
-  font-weight: bold;
-  margin: 10px 0;
-}
-.qr-code {
-  margin: 20px auto;
-  width: 128px;
-  height: 128px;
-}
-
-/* Head-to-Head Quiz Styles */
-.head-to-head-quiz {
-  margin: 20px;
-  padding: 20px;
-  border: 2px dashed #28A745;
-  border-radius: 8px;
-}
-
-/* Return Link */
-.return-link {
-  position: absolute;
-  top: 0;
-  right: 10px;
-  cursor: pointer;
-  color: blue;
-  text-decoration: underline;
+.round-actions button {
+  margin: 0 10px;
+  padding: 10px 20px;
 }

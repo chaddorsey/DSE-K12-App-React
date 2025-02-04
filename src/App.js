@@ -62,6 +62,90 @@ function HeadToHeadInvitation({ matchSession, onMatchStarted, onCancel }) {
 }
 
 /* -------------------------------
+   Head-to-Head Round Initiation Component
+   (New Component for new round initiation)
+------------------------------- */
+function HeadToHeadRoundInitiation({ matchSession, currentUser, onRoundStarted, onTimeout, onReturnToPeople }) {
+  const [joinCode, setJoinCode] = useState('');
+  const [error, setError] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(30);
+
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const updatedSession = await getMatchStatus(matchSession.sessionId);
+        updatedSession.matchUrl = updatedSession.matchUrl || matchSession.matchUrl;
+        if (updatedSession.status === 'started' || updatedSession.status === 'complete') {
+          clearInterval(pollInterval);
+          onRoundStarted(updatedSession);
+        }
+      } catch (err) {
+        console.error("Error polling match status:", err);
+      }
+    }, 2000);
+
+    const timerInterval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timerInterval);
+          clearInterval(pollInterval);
+          onTimeout();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(timerInterval);
+    };
+  }, [matchSession, onRoundStarted, onTimeout]);
+
+  const handleJoin = async () => {
+    setError(null);
+    if (!joinCode.trim()) {
+      setError("Session code cannot be empty.");
+      return;
+    }
+    try {
+      const response = await joinMatchSession(joinCode.trim(), { userId: currentUser.id });
+      const session = response.session ? response.session : response;
+      onRoundStarted(session);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="head-to-head-round-initiation">
+      <h2>New Round Initiation</h2>
+      <div className="initiator-section">
+        <p>Your session code: {matchSession.sessionId}</p>
+        <p>Share this URL with your opponent:</p>
+        <p className="head-to-head-url">{matchSession.matchUrl}</p>
+        <div className="qr-code">
+          <QRCodeCanvas value={matchSession.matchUrl} />
+        </div>
+        <p>Waiting for opponent to join... ({timeLeft} seconds remaining)</p>
+      </div>
+      <div className="join-section">
+        <h3>Or join a round:</h3>
+        {error && <p className="error">{error}</p>}
+        <input
+          type="text"
+          placeholder="Enter Session Code"
+          value={joinCode}
+          onChange={(e) => setJoinCode(e.target.value)}
+        />
+        <button onClick={handleJoin}>Join Round</button>
+      </div>
+      <button onClick={onReturnToPeople}>Return to People</button>
+    </div>
+  );
+}
+
+/* -------------------------------
    Head-to-Head Quiz Question Component
 ------------------------------- */
 function HeadToHeadQuizQuestion({ questionData, onAnswer }) {
@@ -134,7 +218,7 @@ function HeadToHeadQuizQuestion({ questionData, onAnswer }) {
 /* -------------------------------
    Head-to-Head Quiz Component
 ------------------------------- */
-function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
+function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete, onTryAnotherRound }) {
   const [opponentData, setOpponentData] = useState(opponent);
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -221,6 +305,16 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
           setResultsSubmitted(true);
         })
         .catch(err => console.error("Error updating match result", err));
+    }
+  };
+
+  // Handler for triggering a new round.
+  const handleTryAnotherRound = async () => {
+    try {
+      const newSession = await startMatchSession({ initiatorId: currentUser.id, opponentId: opponent.id });
+      onTryAnotherRound(newSession);
+    } catch(err) {
+      console.error("Error starting new round:", err);
     }
   };
 
@@ -312,6 +406,10 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete }) {
               ) : (
                 <div>Waiting for opponent to finish their quiz...</div>
               )}
+              <div className="round-actions">
+                <button onClick={() => onComplete()}>Return to People</button>
+                <button onClick={handleTryAnotherRound}>Try another round</button>
+              </div>
             </div>
           )}
         </>
@@ -598,7 +696,6 @@ function JoinMatch({ onJoinSuccess, onReturn, currentUser }) {
     setLoading(true);
     try {
       const response = await joinMatchSession(sessionId.trim(), { userId: currentUser.id });
-      // If response.session exists, use it; otherwise, assume response itself is the session.
       const session = response.session ? response.session : response;
       onJoinSuccess({ session });
     } catch (err) {
@@ -916,7 +1013,7 @@ function QuizSession({ subject, headToHeadMode, onRecordAnswer, onCompleteQuiz, 
    Main App Component
 ------------------------------- */
 function App() {
-  const [step, setStep] = useState('login'); // steps: login, reset, onboarding, people, joinMatch, headToHeadInvitation, headToHeadQuiz, quiz, subjectDetail
+  const [step, setStep] = useState('login'); // steps: login, reset, onboarding, people, joinMatch, headToHeadInvitation, headToHeadQuiz, roundInitiation, quiz, subjectDetail
   const [user, setUser] = useState(null);
   const [selfie, setSelfie] = useState(null);
   const [onboardingAnswers, setOnboardingAnswers] = useState([]);
@@ -959,7 +1056,6 @@ function App() {
 
   // Updated joinMatch handler for the accepting user.
   const handleJoinMatch = (response) => {
-    // Use response.session if available; otherwise, assume response itself is the session.
     const session = response.session ? response.session : response;
     if (!session) {
       console.error("Join match response did not include a session.");
@@ -968,7 +1064,6 @@ function App() {
     setMatchSession(session);
     setHeadToHeadMode(true);
     setHeadToHeadTrigger(null);
-    // Fetch the initiator's profile so that the quiz is based on the other user's answers.
     getUserProfile(session.initiator, localStorage.getItem('token'))
       .then(profile => {
         setHeadToHeadOpponent(profile);
@@ -1044,6 +1139,29 @@ function App() {
           currentUser={user}
           opponent={headToHeadOpponent}
           onComplete={() => {
+            setHeadToHeadMode(false);
+            setMatchSession(null);
+            setStep('people');
+          }}
+          onTryAnotherRound={(newSession) => {
+            setMatchSession(newSession);
+            setStep('roundInitiation');
+          }}
+          onCompleteHeadToHead={handleCompleteHeadToHead}
+          onRecordAnswer={() => {}}
+          onCompleteQuiz={handleCompleteQuiz}
+        />
+      )}
+      {step === 'roundInitiation' && matchSession && headToHeadMode && headToHeadOpponent && (
+        <HeadToHeadRoundInitiation
+          matchSession={matchSession}
+          currentUser={user}
+          onRoundStarted={(updatedSession) => {
+            setMatchSession(updatedSession);
+            setStep('headToHeadQuiz');
+          }}
+          onTimeout={() => setStep('headToHeadQuiz')}
+          onReturnToPeople={() => {
             setHeadToHeadMode(false);
             setMatchSession(null);
             setStep('people');
