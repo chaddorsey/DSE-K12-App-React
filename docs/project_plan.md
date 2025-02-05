@@ -1,101 +1,112 @@
 # Project Plan: Refactoring and Optimization Initiative
 
 ## Overview
-This project will refactor and optimize our existing React/Express codebase to adhere to our Coding Style Guide and Writing Good Interfaces guidelines. The aim is to improve code consistency, modularity, observability, and maintainability, making the project more robust and IDE-friendly for extensive development work.
+This project will refactor and optimize our existing React/Express codebase to adhere to our Coding Style Guide and Writing Good Interfaces guidelines, with particular attention to operation in hotel/conference WiFi environments. The aim is to improve code consistency, modularity, observability, and maintainability, while ensuring reliable operation in restricted network environments.
 
-## Phase 1: Refactoring for Consistency and Modularity
+## Phase 1: Network Resilience and Initial Refactoring
 ### Objective
-Establish a consistent naming convention, split the monolithic code into logically separate modules, and align with the Coding Style Guide.
+Implement basic network handling capabilities and begin establishing consistent code structure.
 ### Tasks
-- **Task 1:** Audit the codebase to identify inconsistencies (e.g., "Hood" vs. "HeadToHead") and style deviations.
-- **Task 2:** Refactor the codebase to split the large monolithic file into separate modules (e.g., separate files for each React component, API utilities, and backend models).
-- **Task 3:** Rename variables and functions to adhere to semantic naming and constant usage per the style guide.
+- **Task 1:** Implement network status monitoring and feedback system
+- **Task 2:** Add WiFi portal redirect handling
+- **Task 3:** Implement basic retry logic for failed requests
+- **Task 4:** Audit codebase for inconsistencies (e.g., "Hood" vs. "HeadToHead")
+- **Task 5:** Begin splitting monolithic code into separate modules
+### Success Metrics
+- Network performance targets met (5s initial load on 3G, 50KB max payload size)
+- All portal redirects handled gracefully
+- Clear network status feedback implemented
 ### Expected Timeline
 1–2 weeks
 
 ## Phase 2: Interface and Observability Enhancements
 ### Objective
-Redesign public interfaces (both API and UI) to be intuitive and robust, with improved error handling and logging.
+Redesign public interfaces for robustness and implement comprehensive logging.
 ### Tasks
-- **Task 1:** Redesign API interfaces to minimize boilerplate and prevent leakage of implementation details.
-- **Task 2:** Refactor React component interfaces to clearly separate presentation from business logic.
-- **Task 3:** Integrate structured logging and enhanced error messaging throughout the codebase.
-- **Task 4:** Develop unit tests (using Jest/React Testing Library) and integration tests (using Cypress/Postman) for key functionalities.
+- **Task 1:** Redesign API interfaces to minimize boilerplate
+- **Task 2:** Refactor React component interfaces
+- **Task 3:** Integrate structured logging with network event capture
+- **Task 4:** Develop comprehensive test suite including network scenarios
+### Success Metrics
+- 100% of public APIs have TypeScript interfaces
+- 100% of React components have PropTypes/TypeScript types
+- 80%+ test coverage for business logic
+- All network-related errors properly logged
 ### Expected Timeline
 2 weeks
 
-## Phase 3: IDE Optimization and Production Readiness
+## Phase 3: Code Quality and Production Readiness
 ### Objective
-Optimize the project structure for extensive development in an external IDE and prepare for production deployment.
+Finalize code quality improvements and prepare for production deployment.
 ### Tasks
-- **Task 1:** Finalize the modular folder structure with dedicated directories for components, utilities, models, and tests.
-- **Task 2:** Integrate a continuous integration (CI) pipeline (e.g., GitHub Actions, Travis CI) for automated testing and style checks.
-- **Task 3:** Update documentation and conduct final code reviews.
-- **Task 4:** Deploy to a staging environment and perform manual QA.
+- **Task 1:** Enforce code quality metrics:
+  - Max cyclomatic complexity: 10
+  - Max file size: 300 lines
+  - Max function size: 30 lines
+- **Task 2:** Set up CI pipeline with network testing
+- **Task 3:** Complete documentation updates
+- **Task 4:** Conduct final QA in simulated conference environment
+### Success Metrics
+- Zero ESLint/TypeScript errors
+- All quality metrics met
+- Successful testing in simulated network conditions
 ### Expected Timeline
 1 week
 
 ## Testing Strategy
 ### Unit Testing
 - **Components:**  
-  Write unit tests for each React component to validate behavior and state management.
+  Test React components including network status handling
 - **API:**  
-  Use mocks to simulate API responses and test error handling.
+  Test with simulated network conditions and portal redirects
 ### Integration Testing
 - **User Flows:**  
-  Automate end-to-end testing for complete user flows (e.g., login → onboarding → match initiation → head-to-head quiz).
-- **Tools:**  
-  Use Cypress or Postman for integration testing.
+  Test complete flows with network interruptions
+- **Network Scenarios:**  
+  Test portal redirects, connection drops, and slow connections
 
 ## Observability
 ### Logging
 - **Structured Logging:**  
-  Implement structured (e.g., JSON) logging to capture key events such as user logins, onboarding completions, match session updates, and errors.
+  JSON format logging for all network events, user actions, and errors
 - **Key Points:**  
-  Log entry and exit points of major functions, state changes, and API calls.
+  Log network status changes, portal interactions, and API failures
 ### Metrics
 - **Monitor:**  
-  Track API response times, error rates, and head-to-head session metrics using external monitoring tools (e.g., Grafana, Prometheus).
-
-## Future Considerations
-### Potential Enhancements
-- **Persistent Storage:**  
-  Migrate from in‑memory storage to a persistent database.
-- **Advanced Modularization:**  
-  Further refactor code to leverage modern React patterns (e.g., hooks, context, higher‑order components).
-- **Performance Improvements:**  
-  Implement caching and lazy loading where appropriate.
-### Known Limitations
-- The current backend is in‑memory only and intended for development.
-- The initial refactoring does not fully split all frontend components; further modularization is planned.
+  Track network performance, error rates, and portal redirect handling
 
 ## Dependencies
 ### Runtime Dependencies
-- **Frontend:** React, React Router, qrcode.react.
-- **Backend:** Express, bcrypt, cookie-parser, cors, jsonwebtoken.
+- **Frontend:** React, React Router, qrcode.react
+- **Backend:** Express, bcrypt, cookie-parser, cors, jsonwebtoken
 ### Development Dependencies
-- ESLint and Prettier for style enforcement.
-- Jest, React Testing Library, and Cypress for testing.
+- ESLint and Prettier for style enforcement
+- Jest, React Testing Library, and Cypress for testing
+- Network condition simulation tools
 
 ## Security Considerations
-- **Authentication:** Secure JWT-based authentication and proper token handling.
-- **Input Validation:** Validate and sanitize all user inputs on both frontend and backend.
-- **Best Practices:** Follow secure coding guidelines to prevent injection attacks and data breaches.
+- **Authentication:** Secure JWT handling across network interruptions
+- **Input Validation:** Validate all user inputs
+- **Network Security:** Handle portal redirects securely
 
 ## Rollout Strategy
-1. **Development Phase:**  
-   Work on refactoring in a dedicated branch; conduct regular code reviews.
-2. **Testing Phase:**  
-   Run unit and integration tests; perform manual QA testing.
-3. **Staging Deployment:**  
-   Deploy the refactored code to a staging environment and gather user feedback.
-4. **Production Deployment:**  
-   Merge changes into main and deploy to production.
-5. **Monitoring Phase:**  
-   Continuously monitor logs and metrics post-deployment and address any issues.
+1. **Development:**  
+   Implement changes in feature branches with network testing
+2. **Testing:**  
+   Test in simulated conference network conditions
+3. **Staging:**  
+   Deploy to staging environment with similar network constraints
+4. **Production:**  
+   Gradual rollout with network monitoring
+5. **Monitoring:**  
+   Track network-related metrics and user feedback
+
+## Known Limitations
+- Basic network resilience only; no offline functionality
+- No complex caching strategies
+- In-memory backend storage remains unchanged
 
 ## References
-- Coding Style Guide (provided in @context/coding_style_guide.md)
-- Writing Good Interfaces guidelines (provided in @context/writing_good_interfaces.md)
-- Google Style Guides
-- Presentations by Sean Parent, Scott Meyers, and Joshua Bloch
+- Coding Style Guide
+- Writing Good Interfaces guidelines
+- Network testing best practices
