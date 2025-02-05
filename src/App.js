@@ -25,20 +25,27 @@ function FallbackComponent() {
 }
 
 /* -------------------------------
-   Login Component
+   Login Component (Redirect if already logged in)
 ------------------------------- */
-function Login({ onLogin, onResetPassword }) {
+function Login({ user, onLogin, onResetPassword }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+
+  // If user is already logged in, redirect to People page.
+  useEffect(() => {
+    if (user) {
+      navigate('/people');
+    }
+  }, [user, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const { user, token } = await loginUser({ username, password });
       localStorage.setItem('token', token);
       onLogin(user);
-      // onLogin now handles redirection based on existing onboarding answers.
     } catch (err) {
       setError(err.message);
     }
@@ -83,9 +90,8 @@ function Register() {
     setError(null);
     setMessage(null);
     try {
-      const { user, token } = await registerUser({ username, password, email });
+      await registerUser({ username, password, email });
       setMessage("Registration successful! Please log in.");
-      // Optionally, you could automatically log the user in.
       navigate('/login');
     } catch (err) {
       setError(err.message);
@@ -223,7 +229,6 @@ const OnboardingQuestionComponents = {
 };
 
 function Onboarding({ onComplete }) {
-  // New users: ask questions that have not yet been answered.
   const [questions] = useState(() => {
     let copy = [...EXTENDED_QUESTIONS];
     for (let i = copy.length - 1; i > 0; i--) {
@@ -260,7 +265,6 @@ function Onboarding({ onComplete }) {
 
 /* -------------------------------
    MoreOnboarding Component
-   (Only presents questions that have not been answered)
 ------------------------------- */
 function MoreOnboarding({ answeredIds, onComplete, onReturn }) {
   const remaining = EXTENDED_QUESTIONS.filter(q => !answeredIds.has(q.number));
@@ -337,11 +341,12 @@ function MoreOnboarding({ answeredIds, onComplete, onReturn }) {
 }
 
 /* -------------------------------
-   People Component
+   People Component (with Register button)
 ------------------------------- */
 function People({ user, selfie, onMoreQuestions, onSelectSubject, onStartHeadToHead, onJoinMatch }) {
   const [people, setPeople] = useState([]);
   const navigate = useNavigate();
+  // Always call hooks unconditionally.
   useEffect(() => {
     async function fetchUsers() {
       try {
@@ -353,6 +358,10 @@ function People({ user, selfie, onMoreQuestions, onSelectSubject, onStartHeadToH
     }
     fetchUsers();
   }, []);
+  // Instead of conditionally calling hooks, render a placeholder if user is null.
+  if (!user) {
+    return <div>Loading...</div>;
+  }
   return (
     <div className="people-container">
       <h2>People</h2>
@@ -662,7 +671,7 @@ function QuizQuestionFromOnboarding({ questionData, allResponses, onAnswer }) {
 /* -------------------------------
    Head-to-Head Quiz Component
 ------------------------------- */
-function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete, onTryAnotherRound, onCompleteHeadToHead, onRecordAnswer, onCompleteQuiz }) {
+function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete, onTryAnotherRound, onCompleteHeadToHood, onRecordAnswer, onCompleteQuiz }) {
   const [opponentData, setOpponentData] = useState(opponent);
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -854,7 +863,7 @@ function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete, onTryA
 /* -------------------------------
    QuizSession Component (for non-head-to-head quiz)
 ------------------------------- */
-function QuizSession({ subject, headToHeadMode, onRecordAnswer, onCompleteQuiz, onCompleteHeadToHead, onReturn }) {
+function QuizSession({ subject, headToHeadMode, onRecordAnswer, onCompleteQuiz, onCompleteHeadToHood, onReturn }) {
   const totalPool = subject && subject.onboardingAnswers;
   const noQuestions = !totalPool || totalPool.length === 0;
   const [correctMap, setCorrectMap] = useState({});
@@ -894,7 +903,7 @@ function QuizSession({ subject, headToHeadMode, onRecordAnswer, onCompleteQuiz, 
   return (
     <div className="quiz-session">
       <div className="return-link" onClick={() => {
-        if (headToHeadMode && onCompleteHeadToHead) onCompleteHeadToHead(overallCorrect);
+        if (headToHeadMode && onCompleteHeadToHood) onCompleteHeadToHood(overallCorrect);
         onCompleteQuiz(overallTotal, overallCorrect);
         onReturn();
       }}>
@@ -909,7 +918,7 @@ function QuizSession({ subject, headToHeadMode, onRecordAnswer, onCompleteQuiz, 
         <div>
           <h3>All quiz questions have been answered correctly for this person.</h3>
           <button onClick={() => {
-            if (headToHeadMode && onCompleteHeadToHead) onCompleteHeadToHead(overallCorrect);
+            if (headToHeadMode && onCompleteHeadToHood) onCompleteHeadToHood(overallCorrect);
             onCompleteQuiz(overallTotal, overallCorrect);
             onReturn();
           }}>Return to People</button>
@@ -943,7 +952,7 @@ function QuizSession({ subject, headToHeadMode, onRecordAnswer, onCompleteQuiz, 
                       <button onClick={nextQuestion}>Answer more</button>
                     )}
                     <button onClick={() => {
-                      if (headToHeadMode && onCompleteHeadToHead) onCompleteHeadToHead(overallCorrect);
+                      if (headToHeadMode && onCompleteHeadToHood) onCompleteHeadToHood(overallCorrect);
                       onCompleteQuiz(overallTotal, overallCorrect);
                       onReturn();
                     }}>
@@ -998,9 +1007,10 @@ function JoinMatch({ onJoinSuccess, onReturn, currentUser }) {
 }
 
 /* -------------------------------
-   Header Component
+   Header Component (with Logout)
 ------------------------------- */
-function Header({ selfie, setSelfie, user, headToHeadStats, quizStats }) {
+function Header({ selfie, setSelfie, user, headToHeadStats, quizStats, onLogout }) {
+  // Always call hooks unconditionally.
   const [showProfile, setShowProfile] = useState(false);
   const toggleProfile = () => setShowProfile(!showProfile);
   const handleDeleteSelfie = () => setSelfie(null);
@@ -1013,16 +1023,17 @@ function Header({ selfie, setSelfie, user, headToHeadStats, quizStats }) {
     }
   };
   const percentCorrect = quizStats.total > 0 ? ((quizStats.correct / quizStats.total) * 100).toFixed(1) : 0;
+  // Guard rendering user-dependent content safely.
   return (
     <div className="header">
       <div className="header-avatar" onClick={toggleProfile}>
         {selfie ? (
           <img src={selfie} alt="Profile" className="user-selfie" />
         ) : (
-          <div className="user-placeholder">{user.username.charAt(0).toUpperCase()}</div>
+          <div className="user-placeholder">{user?.username?.charAt(0).toUpperCase()}</div>
         )}
       </div>
-      {showProfile && (
+      {showProfile && user && (
         <div className="profile-menu">
           <div className="profile-stats">
             <p>Head-to-Head matches: {headToHeadStats.matches}</p>
@@ -1030,6 +1041,7 @@ function Header({ selfie, setSelfie, user, headToHeadStats, quizStats }) {
             <p>Total Quiz Questions Answered: {quizStats.total}</p>
             <p>Overall Accuracy: {percentCorrect}%</p>
           </div>
+          <button onClick={onLogout}>Logout</button>
           {selfie ? (
             <button onClick={handleDeleteSelfie}>Delete Selfie</button>
           ) : (
@@ -1045,7 +1057,7 @@ function Header({ selfie, setSelfie, user, headToHeadStats, quizStats }) {
 }
 
 /* -------------------------------
-   Main App Component with React Router and Repeat-User Logic
+   Main App Component with React Router, Repeat-User Logic, and Logout
 ------------------------------- */
 function App() {
   const navigate = useNavigate();
@@ -1058,6 +1070,20 @@ function App() {
   const [headToHeadStats, setHeadToHeadStats] = useState({ matches: 0, correctResponses: 0 });
   const [quizStats, setQuizStats] = useState({ total: 0, correct: 0 });
   const answeredIds = useMemo(() => new Set(onboardingAnswers.map(a => a.questionId)), [onboardingAnswers]);
+
+  // Logout function: clear state and local storage.
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setOnboardingAnswers([]);
+  };
+
+  // When user becomes null, redirect to /login.
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   // Modified handleLogin to normalize onboardingAnswers.
   const handleLogin = (data) => {
@@ -1088,7 +1114,7 @@ function App() {
 
   const completeOnboarding = (ans) => {
     setOnboardingAnswers(ans);
-    // Here, update the user profile on the backend as needed.
+    // Update the user profile on the backend as needed.
     setUser(prev => ({ ...prev, onboardingAnswers: ans }));
     navigate('/people');
   };
@@ -1125,9 +1151,9 @@ function App() {
 
   return (
     <div className="App">
-      {user && <Header selfie={selfie} setSelfie={setSelfie} user={user} headToHeadStats={headToHeadStats} quizStats={quizStats} />}
+      {user && <Header selfie={selfie} setSelfie={setSelfie} user={user} headToHeadStats={headToHeadStats} quizStats={quizStats} onLogout={handleLogout} />}
       <Routes>
-        <Route path="/login" element={<Login onLogin={handleLogin} onResetPassword={() => navigate('/reset')} />} />
+        <Route path="/login" element={<Login user={user} onLogin={handleLogin} onResetPassword={() => navigate('/reset')} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset" element={<ResetPassword onReturnToLogin={() => navigate('/login')} />} />
         <Route path="/onboarding" element={<Onboarding onComplete={completeOnboarding} />} />
@@ -1151,26 +1177,26 @@ function App() {
           selfie={selfie}
           onMoreQuestions={() => navigate('/more-onboarding')}
           onSelectSubject={(person) => navigate(`/subject/${person.id}`)}
-          onStartHeadToHead={initiateHeadToHead}
+          onStartHeadToHood={initiateHeadToHead}
           onJoinMatch={() => navigate('/join-match')}
         />} />
         <Route path="/subject/:subjectId" element={<SubjectDetail
           subject={{}} // For simplicity; implement fetching based on URL params as needed.
           onStartQuiz={() => navigate('/quiz')}
-          onStartHeadToHead={() => {}}
+          onStartHeadToHood={() => {}}
           onReturn={() => navigate('/people')}
         />} />
         <Route path="/quiz" element={<QuizSession
           subject={headToHeadMode ? headToHeadOpponent : null}
-          headToHeadMode={headToHeadMode}
+          headToHoodMode={headToHeadMode}
           onRecordAnswer={() => {}}
           onCompleteQuiz={(total, correct) => setQuizStats({ total, correct })}
-          onCompleteHeadToHead={(correct) => setHeadToHeadStats(prev => ({
+          onCompleteHeadToHood={(correct) => setHeadToHeadStats(prev => ({
             matches: prev.matches + 1,
             correctResponses: prev.correctResponses + correct,
           }))}
           onReturn={() => {
-            setHeadToHeadMode(false);
+            setHeadToHoodMode(false);
             setMatchSession(null);
             navigate('/people');
           }}
@@ -1180,7 +1206,7 @@ function App() {
           matchSession={matchSession}
           onMatchStarted={(updatedSession) => navigate('/head-to-head/quiz')}
           onCancel={() => {
-            setHeadToHeadMode(false);
+            setHeadToHoodMode(false);
             setMatchSession(null);
             navigate('/people');
           }}
@@ -1190,7 +1216,7 @@ function App() {
           currentUser={user}
           opponent={headToHeadOpponent}
           onComplete={() => {
-            setHeadToHeadMode(false);
+            setHeadToHoodMode(false);
             setMatchSession(null);
             navigate('/people');
           }}
@@ -1198,7 +1224,7 @@ function App() {
             setMatchSession(newSession);
             navigate(`/head-to-head/round/${newSession.sessionId}`);
           }}
-          onCompleteHeadToHead={(correct) => setHeadToHeadStats(prev => ({
+          onCompleteHeadToHood={(correct) => setHeadToHeadStats(prev => ({
             matches: prev.matches + 1,
             correctResponses: prev.correctResponses + correct,
           }))}
@@ -1211,12 +1237,12 @@ function App() {
           onRoundStarted={(updatedSession) => navigate('/head-to-head/quiz')}
           onTimeout={() => navigate('/head-to-head/quiz')}
           onReturnToPeople={() => {
-            setHeadToHeadMode(false);
+            setHeadToHoodMode(false);
             setMatchSession(null);
             navigate('/people');
           }}
         />} />
-        <Route path="*" element={<Login onLogin={handleLogin} onResetPassword={() => navigate('/reset')} />} />
+        <Route path="*" element={<Login user={user} onLogin={handleLogin} onResetPassword={() => navigate('/reset')} />} />
       </Routes>
     </div>
   );
