@@ -4,6 +4,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
+  registerUser,
   loginUser,
   getUsers,
   resetPassword,
@@ -62,6 +63,55 @@ function Login({ onLogin, onResetPassword }) {
         </div>
         <button type="submit">Login</button>
       </form>
+      <button onClick={() => navigate('/register')}>Register New User</button>
+    </div>
+  );
+}
+
+/* -------------------------------
+   Register Component
+------------------------------- */
+function Register() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
+  const navigate = useNavigate();
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    try {
+      const { user, token } = await registerUser({ username, password, email });
+      setMessage("Registration successful! Please log in.");
+      // Optionally, you could automatically log the user in.
+      navigate('/login');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  return (
+    <div className="register-container">
+      <h2>Register New User</h2>
+      {error && <p className="error">{error}</p>}
+      {message && <p className="success">{message}</p>}
+      <form onSubmit={handleRegister}>
+        <div>
+          <label>Username: </label>
+          <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} />
+        </div>
+        <div>
+          <label>Email: </label>
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div>
+          <label>Password: </label>
+          <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <button type="submit">Register</button>
+      </form>
+      <button onClick={() => navigate('/login')}>Return to Login</button>
     </div>
   );
 }
@@ -291,6 +341,7 @@ function MoreOnboarding({ answeredIds, onComplete, onReturn }) {
 ------------------------------- */
 function People({ user, selfie, onMoreQuestions, onSelectSubject, onStartHeadToHead, onJoinMatch }) {
   const [people, setPeople] = useState([]);
+  const navigate = useNavigate();
   useEffect(() => {
     async function fetchUsers() {
       try {
@@ -317,6 +368,9 @@ function People({ user, selfie, onMoreQuestions, onSelectSubject, onStartHeadToH
         </button>
         <button className="join-match-button" onClick={onJoinMatch}>
           Join Match
+        </button>
+        <button className="register-button" onClick={() => navigate('/register')}>
+          Register New User
         </button>
       </div>
       <div className="people-list">
@@ -1074,6 +1128,7 @@ function App() {
       {user && <Header selfie={selfie} setSelfie={setSelfie} user={user} headToHeadStats={headToHeadStats} quizStats={quizStats} />}
       <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} onResetPassword={() => navigate('/reset')} />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/reset" element={<ResetPassword onReturnToLogin={() => navigate('/login')} />} />
         <Route path="/onboarding" element={<Onboarding onComplete={completeOnboarding} />} />
         <Route path="/more-onboarding" element={
@@ -1110,7 +1165,7 @@ function App() {
           headToHeadMode={headToHeadMode}
           onRecordAnswer={() => {}}
           onCompleteQuiz={(total, correct) => setQuizStats({ total, correct })}
-          onCompleteHeadToDay={(correct) => setHeadToHeadStats(prev => ({
+          onCompleteHeadToHead={(correct) => setHeadToHeadStats(prev => ({
             matches: prev.matches + 1,
             correctResponses: prev.correctResponses + correct,
           }))}
