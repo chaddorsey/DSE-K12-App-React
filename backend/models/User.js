@@ -236,30 +236,46 @@ const users = [
   }
 ];
 
-module.exports = {
-  createUser: async function({ username, password, email }) {
-    if (users.find(u => u.username === username)) {
-      throw new Error('Username already exists.');
-    }
-    const hashedPassword = await bcrypt.hash(password, 10);
+function createUser({ username, password, email }) {
+  if (users.find(u => u.username === username)) {
+    throw new Error('Username already exists.');
+  }
+  return bcrypt.hash(password, 10).then(hashedPassword => {
     const newUser = { id: users.length + 1, username, email, password: hashedPassword, onboardingAnswers: {} };
     users.push(newUser);
     return newUser;
-  },
-  authenticateUser: async function({ username, password }) {
-    const user = users.find(u => u.username === username);
-    if (!user) {
-      throw new Error('User not found.');
-    }
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      throw new Error('Invalid password.');
-    }
-    return user;
-  },
-  getUserById: function(id) {
-    return users.find(u => u.id === id);
-  },
+  });
+}
+
+async function authenticateUser({ username, password }) {
+  const user = users.find(u => u.username === username);
+  if (!user) {
+    throw new Error('User not found.');
+  }
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) {
+    throw new Error('Invalid password.');
+  }
+  return user;
+}
+
+function getUserById(id) {
+  return users.find(u => u.id.toString() === id.toString());
+}
+
+function updateUser(id, data) {
+  const user = getUserById(id);
+  if (!user) {
+    throw new Error('User not found.');
+  }
+  Object.assign(user, data);
+  return user;
+}
+
+module.exports = {
+  createUser,
+  authenticateUser,
+  getUserById,
+  updateUser,
   users
 };
-

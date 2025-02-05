@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { createUser, authenticateUser, getUserById, users } = require('./models/User');
+const { createUser, authenticateUser, getUserById, updateUser, users } = require('./models/User');
 
 const app = express();
 const PORT = 3001;
@@ -59,15 +59,15 @@ app.post('/api/auth/reset', async (req, res) => {
 });
 
 // -------------------------------
-// User Management Endpoint
+// User Management Endpoints
 // -------------------------------
 app.get('/api/users', (req, res) => {
-  const publicUsers = users.map(({ id, username, email }) => ({ id, username, email }));
+  const publicUsers = users.map(({ id, username, email, onboardingAnswers }) => ({ id, username, email, onboardingAnswers }));
   res.json(publicUsers);
 });
 
 app.get('/api/users/:id', (req, res) => {
-  const user = users.find(u => u.id.toString() === req.params.id);
+  const user = getUserById(req.params.id);
   if (!user) {
     return res.status(404).json({ error: 'User not found.' });
   }
@@ -75,11 +75,19 @@ app.get('/api/users/:id', (req, res) => {
   res.json(user);
 });
 
+// NEW: Update user profile endpoint
+app.put('/api/users/:id', (req, res) => {
+  try {
+    const updatedUser = updateUser(req.params.id, req.body);
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // -------------------------------
 // Match Session Endpoints
 // -------------------------------
-
-// Create a new match session (initiated by a user)
 app.post('/api/match/start', (req, res) => {
   const { initiatorId, opponentId } = req.body;
   const sessionId = Math.random().toString(36).substr(2, 9);
@@ -97,7 +105,6 @@ app.post('/api/match/start', (req, res) => {
   });
 });
 
-// Invited user joins the match session
 app.post('/api/match/:sessionId/join', (req, res) => {
   const { sessionId } = req.params;
   const { userId } = req.body;
@@ -114,7 +121,6 @@ app.post('/api/match/:sessionId/join', (req, res) => {
   }
 });
 
-// Get the current status of a match session
 app.get('/api/match/:sessionId/status', (req, res) => {
   const { sessionId } = req.params;
   const session = sessions[sessionId];
@@ -125,7 +131,6 @@ app.get('/api/match/:sessionId/status', (req, res) => {
   }
 });
 
-// Submit match results for a user
 app.post('/api/match/:sessionId/result', (req, res) => {
   const { sessionId } = req.params;
   const { userId, answers, score } = req.body;
@@ -141,7 +146,6 @@ app.post('/api/match/:sessionId/result', (req, res) => {
   }
 });
 
-// Cancel a match session
 app.post('/api/match/:sessionId/cancel', (req, res) => {
   const { sessionId } = req.params;
   if (sessions[sessionId]) {
@@ -154,7 +158,6 @@ app.post('/api/match/:sessionId/cancel', (req, res) => {
 
 // -------------------------------
 // Distractor Generation Endpoint
-// For numerical and open response questions, returns two distractors drawn from all users’ responses.
 // -------------------------------
 app.get('/api/questions/distractors', (req, res) => {
   const { label, correctAnswer } = req.query;

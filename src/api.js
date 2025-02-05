@@ -48,6 +48,16 @@ export async function getUserProfile(id, token) {
   return handleResponse(response);
 }
 
+// NEW: Update user profile (e.g., onboardingAnswers)
+export async function updateUserProfile(id, data) {
+  const response = await fetch(`${API_BASE}/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+}
+
 // Match Session API Functions
 
 export async function startMatchSession({ initiatorId, opponentId }) {
