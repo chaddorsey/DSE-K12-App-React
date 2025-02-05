@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import './App.css';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
@@ -25,20 +25,21 @@ function FallbackComponent() {
 }
 
 /* -------------------------------
-   Login Component (Redirect if already logged in)
+   Login Component (Redirect if already logged in only on /login)
 ------------------------------- */
-function Login({ user, onLogin, onResetPassword }) {
+function Login({ user, onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // If user is already logged in, redirect to People page.
+  // Only redirect if on "/login"
   useEffect(() => {
-    if (user) {
+    if (user && location.pathname === '/login') {
       navigate('/people');
     }
-  }, [user, navigate]);
+  }, [user, location, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,11 +51,12 @@ function Login({ user, onLogin, onResetPassword }) {
       setError(err.message);
     }
   };
+
   return (
     <div className="login-container">
       <div className="login-header">
         <h2>DSET App Login</h2>
-        <button className="reset-link" onClick={onResetPassword}>
+        <button type="button" className="reset-link" onClick={() => navigate('/reset')}>
           Reset Password
         </button>
       </div>
@@ -70,7 +72,7 @@ function Login({ user, onLogin, onResetPassword }) {
         </div>
         <button type="submit">Login</button>
       </form>
-      <button onClick={() => navigate('/register')}>Register New User</button>
+      <button type="button" onClick={() => navigate('/register')}>Register New User</button>
     </div>
   );
 }
@@ -117,7 +119,7 @@ function Register() {
         </div>
         <button type="submit">Register</button>
       </form>
-      <button onClick={() => navigate('/login')}>Return to Login</button>
+      <button type="button" onClick={() => navigate('/login')}>Return to Login</button>
     </div>
   );
 }
@@ -166,7 +168,7 @@ function ResetPassword({ onReturnToLogin }) {
         </div>
         <button type="submit">Reset Password</button>
       </form>
-      <button className="return-button" onClick={onReturnToLogin}>
+      <button type="button" className="return-button" onClick={onReturnToLogin}>
         Return to Login Screen
       </button>
     </div>
@@ -183,7 +185,7 @@ function OnboardingOpenResponse({ question, onAnswer }) {
     <div className="quiz-question">
       <h3>{question}</h3>
       <input type="text" maxLength={100} value={response} onChange={(e) => setResponse(e.target.value)} />
-      <button onClick={handleSubmit}>Submit</button>
+      <button type="button" onClick={handleSubmit}>Submit</button>
     </div>
   );
 }
@@ -217,7 +219,7 @@ function OnboardingNumerical({ question, min, max, onAnswer }) {
     <div className="quiz-question">
       <h3>{question}</h3>
       <input type="number" value={value} min={min} max={max} onChange={handleChange} />
-      <button onClick={handleSubmit}>Submit</button>
+      <button type="button" onClick={handleSubmit}>Submit</button>
     </div>
   );
 }
@@ -346,7 +348,6 @@ function MoreOnboarding({ answeredIds, onComplete, onReturn }) {
 function People({ user, selfie, onMoreQuestions, onSelectSubject, onStartHeadToHead, onJoinMatch }) {
   const [people, setPeople] = useState([]);
   const navigate = useNavigate();
-  // Always call hooks unconditionally.
   useEffect(() => {
     async function fetchUsers() {
       try {
@@ -358,7 +359,6 @@ function People({ user, selfie, onMoreQuestions, onSelectSubject, onStartHeadToH
     }
     fetchUsers();
   }, []);
-  // Instead of conditionally calling hooks, render a placeholder if user is null.
   if (!user) {
     return <div>Loading...</div>;
   }
@@ -671,7 +671,7 @@ function QuizQuestionFromOnboarding({ questionData, allResponses, onAnswer }) {
 /* -------------------------------
    Head-to-Head Quiz Component
 ------------------------------- */
-function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete, onTryAnotherRound, onCompleteHeadToHood, onRecordAnswer, onCompleteQuiz }) {
+function HeadToHeadQuiz({ sessionData, currentUser, opponent, onComplete, onTryAnotherRound, onCompleteHeadToHead, onRecordAnswer, onCompleteQuiz }) {
   const [opponentData, setOpponentData] = useState(opponent);
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1010,7 +1010,6 @@ function JoinMatch({ onJoinSuccess, onReturn, currentUser }) {
    Header Component (with Logout)
 ------------------------------- */
 function Header({ selfie, setSelfie, user, headToHeadStats, quizStats, onLogout }) {
-  // Always call hooks unconditionally.
   const [showProfile, setShowProfile] = useState(false);
   const toggleProfile = () => setShowProfile(!showProfile);
   const handleDeleteSelfie = () => setSelfie(null);
@@ -1023,7 +1022,6 @@ function Header({ selfie, setSelfie, user, headToHeadStats, quizStats, onLogout 
     }
   };
   const percentCorrect = quizStats.total > 0 ? ((quizStats.correct / quizStats.total) * 100).toFixed(1) : 0;
-  // Guard rendering user-dependent content safely.
   return (
     <div className="header">
       <div className="header-avatar" onClick={toggleProfile}>
@@ -1061,6 +1059,7 @@ function Header({ selfie, setSelfie, user, headToHeadStats, quizStats, onLogout 
 ------------------------------- */
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [selfie, setSelfie] = useState(null);
   const [onboardingAnswers, setOnboardingAnswers] = useState([]);
@@ -1071,21 +1070,20 @@ function App() {
   const [quizStats, setQuizStats] = useState({ total: 0, correct: 0 });
   const answeredIds = useMemo(() => new Set(onboardingAnswers.map(a => a.questionId)), [onboardingAnswers]);
 
-  // Logout function: clear state and local storage.
+  // In main App, only force redirect to /login if current route is not public.
+  useEffect(() => {
+    const publicRoutes = ['/login', '/register', '/reset', '/onboarding', '/more-onboarding'];
+    if (!user && !publicRoutes.includes(location.pathname)) {
+      navigate('/login');
+    }
+  }, [user, location, navigate]);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     setUser(null);
     setOnboardingAnswers([]);
   };
 
-  // When user becomes null, redirect to /login.
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-    }
-  }, [user, navigate]);
-
-  // Modified handleLogin to normalize onboardingAnswers.
   const handleLogin = (data) => {
     setUser(data);
     let normalizedAnswers = [];
@@ -1114,7 +1112,6 @@ function App() {
 
   const completeOnboarding = (ans) => {
     setOnboardingAnswers(ans);
-    // Update the user profile on the backend as needed.
     setUser(prev => ({ ...prev, onboardingAnswers: ans }));
     navigate('/people');
   };
@@ -1129,7 +1126,7 @@ function App() {
     } catch (err) {
       console.error("Error starting match session:", err);
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const handleJoinMatch = (response) => {
     const session = response.session ? response.session : response;
@@ -1153,7 +1150,7 @@ function App() {
     <div className="App">
       {user && <Header selfie={selfie} setSelfie={setSelfie} user={user} headToHeadStats={headToHeadStats} quizStats={quizStats} onLogout={handleLogout} />}
       <Routes>
-        <Route path="/login" element={<Login user={user} onLogin={handleLogin} onResetPassword={() => navigate('/reset')} />} />
+        <Route path="/login" element={<Login user={user} onLogin={handleLogin} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset" element={<ResetPassword onReturnToLogin={() => navigate('/login')} />} />
         <Route path="/onboarding" element={<Onboarding onComplete={completeOnboarding} />} />
@@ -1162,10 +1159,10 @@ function App() {
             answeredIds={answeredIds}
             onComplete={(ans) => {
               const newAns = ans.filter(a => !answeredIds.has(a.questionId));
-              setOnboardingAnswers(prev => [...prev, ...newAns]);
+              setOnboardingAnswers(prev => [...(Array.isArray(prev.onboardingAnswers) ? prev.onboardingAnswers : []), ...newAns]);
               setUser(prev => ({
                 ...prev,
-                onboardingAnswers: [...(prev.onboardingAnswers || []), ...newAns],
+                onboardingAnswers: [...(Array.isArray(prev.onboardingAnswers) ? prev.onboardingAnswers : []), ...newAns],
               }));
               navigate('/more-onboarding');
             }}
@@ -1177,18 +1174,18 @@ function App() {
           selfie={selfie}
           onMoreQuestions={() => navigate('/more-onboarding')}
           onSelectSubject={(person) => navigate(`/subject/${person.id}`)}
-          onStartHeadToHood={initiateHeadToHead}
+          onStartHeadToHead={initiateHeadToHead}
           onJoinMatch={() => navigate('/join-match')}
         />} />
         <Route path="/subject/:subjectId" element={<SubjectDetail
-          subject={{}} // For simplicity; implement fetching based on URL params as needed.
+          subject={{}}
           onStartQuiz={() => navigate('/quiz')}
-          onStartHeadToHood={() => {}}
+          onStartHeadToHead={() => {}}
           onReturn={() => navigate('/people')}
         />} />
         <Route path="/quiz" element={<QuizSession
           subject={headToHeadMode ? headToHeadOpponent : null}
-          headToHoodMode={headToHeadMode}
+          headToHeadMode={headToHeadMode}
           onRecordAnswer={() => {}}
           onCompleteQuiz={(total, correct) => setQuizStats({ total, correct })}
           onCompleteHeadToHood={(correct) => setHeadToHeadStats(prev => ({
@@ -1196,7 +1193,7 @@ function App() {
             correctResponses: prev.correctResponses + correct,
           }))}
           onReturn={() => {
-            setHeadToHoodMode(false);
+            setHeadToHeadMode(false);
             setMatchSession(null);
             navigate('/people');
           }}
@@ -1206,7 +1203,7 @@ function App() {
           matchSession={matchSession}
           onMatchStarted={(updatedSession) => navigate('/head-to-head/quiz')}
           onCancel={() => {
-            setHeadToHoodMode(false);
+            setHeadToHeadMode(false);
             setMatchSession(null);
             navigate('/people');
           }}
@@ -1216,7 +1213,7 @@ function App() {
           currentUser={user}
           opponent={headToHeadOpponent}
           onComplete={() => {
-            setHeadToHoodMode(false);
+            setHeadToHeadMode(false);
             setMatchSession(null);
             navigate('/people');
           }}
@@ -1237,12 +1234,12 @@ function App() {
           onRoundStarted={(updatedSession) => navigate('/head-to-head/quiz')}
           onTimeout={() => navigate('/head-to-head/quiz')}
           onReturnToPeople={() => {
-            setHeadToHoodMode(false);
+            setHeadToHeadMode(false);
             setMatchSession(null);
             navigate('/people');
           }}
         />} />
-        <Route path="*" element={<Login user={user} onLogin={handleLogin} onResetPassword={() => navigate('/reset')} />} />
+        <Route path="*" element={<Login user={user} onLogin={handleLogin} />} />
       </Routes>
     </div>
   );
