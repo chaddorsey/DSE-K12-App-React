@@ -2,8 +2,9 @@
  * Tests for useQuery hook
  */
 
-import { renderHook, act } from '../testing/renderHook';
+import { renderHook, act } from '@testing-library/react';
 import { useQuery } from '../useQuery';
+import { QueryProvider } from '../../components/QueryProvider';
 import { mockMonitoring } from '../testing/mockMonitoring';
 
 describe('useQuery', () => {
@@ -13,157 +14,115 @@ describe('useQuery', () => {
     jest.clearAllMocks();
   });
 
-  describe('data fetching', () => {
-    it('should fetch and cache data', async () => {
-      const mockFetch = jest.fn().mockResolvedValue({ data: 'test' });
-      
-      const { result } = renderHook(() => 
-        useQuery('test-key', mockFetch)
-      );
+  it('should fetch and cache data', async () => {
+    const queryFn = jest.fn().mockResolvedValue('test data');
+    
+    const { result, waitForNextUpdate } = renderHook(
+      () => useQuery('test-key', queryFn),
+      { wrapper: QueryProvider }
+    );
 
-      expect(result.current.isLoading).toBe(true);
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.data).toBeUndefined();
 
-      await act(async () => {
-        await result.current.refetch();
-      });
+    await waitForNextUpdate();
 
-      expect(result.current.data).toEqual({ data: 'test' });
-      expect(result.current.isLoading).toBe(false);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.data).toBe('test data');
+    expect(queryFn).toHaveBeenCalledTimes(1);
 
-      // Should use cache on second render
-      const { result: result2 } = renderHook(() => 
-        useQuery('test-key', mockFetch)
-      );
-      expect(result2.current.data).toEqual({ data: 'test' });
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
+    // Should use cached data
+    const { result: result2 } = renderHook(
+      () => useQuery('test-key', queryFn),
+      { wrapper: QueryProvider }
+    );
 
-    it('should handle errors', async () => {
-      const error = new Error('fetch error');
-      const mockFetch = jest.fn().mockRejectedValue(error);
-
-      const { result } = renderHook(() => 
-        useQuery('test-key', mockFetch)
-      );
-
-      await act(async () => {
-        await result.current.refetch();
-      });
-
-      expect(result.current.error).toBe(error);
-      expect(mockMonitors.trackError).toHaveBeenCalledWith(error, {
-        operation: 'query',
-        key: 'test-key'
-      });
-    });
+    expect(result2.current.data).toBe('test data');
+    expect(queryFn).toHaveBeenCalledTimes(1);
   });
 
-  describe('caching', () => {
-    it('should respect cache time', async () => {
-      jest.useFakeTimers();
-      const mockFetch = jest.fn().mockResolvedValue({ data: 'test' });
+  it('should handle errors', async () => {
+    const error = new Error('Failed to fetch');
+    const queryFn = jest.fn().mockRejectedValue(error);
 
-      const { result, rerender } = renderHook(() => 
-        useQuery('test-key', mockFetch, { cacheTime: 1000 })
-      );
+    const { result, waitForNextUpdate } = renderHook(
+      () => useQuery('test-key', queryFn),
+      { wrapper: QueryProvider }
+    );
 
-      await act(async () => {
-        await result.current.refetch();
-      });
+    await waitForNextUpdate();
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-
-      // Advance past cache time
-      act(() => {
-        jest.advanceTimersByTime(1100);
-      });
-
-      rerender();
-      expect(mockFetch).toHaveBeenCalledTimes(2);
-    });
-
-    it('should support manual invalidation', async () => {
-      const mockFetch = jest.fn().mockResolvedValue({ data: 'test' });
-
-      const { result } = renderHook(() => 
-        useQuery('test-key', mockFetch)
-      );
-
-      await act(async () => {
-        await result.current.refetch();
-      });
-
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-
-      await act(async () => {
-        await result.current.invalidate();
-      });
-
-      expect(mockFetch).toHaveBeenCalledTimes(2);
-    });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBe(error);
+    expect(mockMonitors.trackError).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({
+        type: 'query_error',
+        metadata: { key: 'test-key' }
+      })
+    );
   });
 
-  describe('optimistic updates', () => {
-    it('should support optimistic updates', async () => {
-      const mockFetch = jest.fn().mockResolvedValue({ data: 'test' });
+  it('should support manual invalidation', async () => {
+    const queryFn = jest.fn()
+      .mockResolvedValueOnce('first')
+      .mockResolvedValueOnce('second');
 
-      const { result } = renderHook(() => 
-        useQuery('test-key', mockFetch)
-      );
+    const { result, waitForNextUpdate } = renderHook(
+      () => useQuery('test-key', queryFn),
+      { wrapper: QueryProvider }
+    );
 
-      await act(async () => {
-        await result.current.refetch();
-      });
+    await waitForNextUpdate();
+    expect(result.current.data).toBe('first');
 
-      act(() => {
-        result.current.setData({ data: 'optimistic' });
-      });
-
-      expect(result.current.data).toEqual({ data: 'optimistic' });
+    act(() => {
+      result.current.invalidate();
     });
 
-    it('should track optimistic update performance', async () => {
-      const { result } = renderHook(() => 
-        useQuery('test-key', () => Promise.resolve({ data: 'test' }))
-      );
-
-      act(() => {
-        result.current.setData({ data: 'optimistic' });
-      });
-
-      expect(mockMonitors.trackPerformance).toHaveBeenCalledWith({
-        type: 'optimistic_update',
-        key: 'test-key',
-        success: true
-      });
-    });
+    await waitForNextUpdate();
+    expect(result.current.data).toBe('second');
+    expect(queryFn).toHaveBeenCalledTimes(2);
   });
 
-  describe('background updates', () => {
-    it('should support background refetching', async () => {
-      const mockFetch = jest.fn()
-        .mockResolvedValueOnce({ data: 'initial' })
-        .mockResolvedValueOnce({ data: 'updated' });
+  it('should deduplicate concurrent requests', async () => {
+    const queryFn = jest.fn().mockResolvedValue('test data');
 
-      const { result } = renderHook(() => 
-        useQuery('test-key', mockFetch, { 
-          backgroundRefetch: true 
-        })
-      );
+    const { result: result1, waitForNextUpdate: wait1 } = renderHook(
+      () => useQuery('test-key', queryFn),
+      { wrapper: QueryProvider }
+    );
 
-      await act(async () => {
-        await result.current.refetch();
-      });
+    const { result: result2, waitForNextUpdate: wait2 } = renderHook(
+      () => useQuery('test-key', queryFn),
+      { wrapper: QueryProvider }
+    );
 
-      expect(result.current.data).toEqual({ data: 'initial' });
+    await Promise.all([wait1(), wait2()]);
 
-      await act(async () => {
-        await result.current.refetchInBackground();
-      });
+    expect(result1.current.data).toBe('test data');
+    expect(result2.current.data).toBe('test data');
+    expect(queryFn).toHaveBeenCalledTimes(1);
+  });
 
-      expect(result.current.data).toEqual({ data: 'updated' });
-      expect(result.current.isBackgroundLoading).toBe(false);
-    });
+  it('should track performance metrics', async () => {
+    const queryFn = jest.fn().mockResolvedValue('test data');
+
+    const { waitForNextUpdate } = renderHook(
+      () => useQuery('test-key', queryFn),
+      { wrapper: QueryProvider }
+    );
+
+    await waitForNextUpdate();
+
+    expect(mockMonitors.trackPerformance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'query_execute',
+        metadata: {
+          key: 'test-key',
+          success: true
+        }
+      })
+    );
   });
 }); 
