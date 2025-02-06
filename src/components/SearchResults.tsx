@@ -90,6 +90,7 @@ export function SearchResults({
   const [filters, setFilters] = useState<SearchFilters>({});
   const [showTypeahead, setShowTypeahead] = useState(false);
   const debouncedTypeaheadQuery = useDebounce<string>(query, typeaheadDebounceMs);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   // Use QueryProvider for caching
   const { data: results, error, isLoading } = useQuery(
@@ -199,6 +200,52 @@ export function SearchResults({
     });
   }, [monitoring]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!suggestions || suggestions.length === 0) return;
+
+    const startTime = Date.now();
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        monitoring.trackPerformance({
+          type: 'typeahead_select',
+          component: 'SearchResults',
+          totalTime: Date.now() - startTime,
+          interaction: 'keyboard_navigation',
+          metadata: { key: 'ArrowDown' }
+        });
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : prev);
+        monitoring.trackPerformance({
+          type: 'typeahead_select',
+          component: 'SearchResults',
+          totalTime: Date.now() - startTime,
+          interaction: 'keyboard_navigation',
+          metadata: { key: 'ArrowUp' }
+        });
+        break;
+
+      case 'Enter':
+        if (selectedIndex >= 0) {
+          e.preventDefault();
+          handleSuggestionClick(suggestions[selectedIndex]);
+        }
+        break;
+
+      case 'Escape':
+        setShowTypeahead(false);
+        setSelectedIndex(-1);
+        break;
+    }
+  }, [suggestions, selectedIndex, handleSuggestionClick, monitoring]);
+
   // Handle initial query
   useEffect(() => {
     if (initialQuery) {
@@ -222,25 +269,37 @@ export function SearchResults({
           type="search"
           value={query}
           onChange={handleSearchInput}
+          onKeyDown={handleKeyDown}
           onFocus={() => setShowTypeahead(true)}
-          onBlur={() => setTimeout(() => setShowTypeahead(false), 200)}
+          onBlur={() => setTimeout(() => {
+            setShowTypeahead(false);
+            setSelectedIndex(-1);
+          }, 200)}
           placeholder="Search..."
           className="search-input"
+          aria-expanded={showTypeahead && suggestions?.length > 0}
+          aria-controls="typeahead-suggestions"
+          aria-activedescendant={
+            selectedIndex >= 0 ? `suggestion-${suggestions?.[selectedIndex].id}` : undefined
+          }
         />
         
         {showTypeahead && suggestions && suggestions.length > 0 && (
           <div 
+            id="typeahead-suggestions"
             className="typeahead-suggestions"
             data-testid="typeahead-suggestions"
             role="listbox"
           >
-            {suggestions.map(suggestion => (
+            {suggestions.map((suggestion, index) => (
               <div
                 key={suggestion.id}
+                id={`suggestion-${suggestion.id}`}
                 data-testid="typeahead-suggestion"
                 role="option"
+                aria-selected={index === selectedIndex}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="typeahead-suggestion"
+                className={`typeahead-suggestion ${index === selectedIndex ? 'selected' : ''}`}
               >
                 <div className="suggestion-title">{suggestion.title}</div>
                 <div className="suggestion-description">{suggestion.description}</div>

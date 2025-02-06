@@ -3,261 +3,394 @@
  */
 
 import React from 'react';
-import { render, act, fireEvent, screen } from '@testing-library/react';
+import { render, fireEvent, act, waitFor, RenderResult } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { SearchResults } from '../SearchResults';
-import { mockMonitoring } from '../../hooks/testing/mockMonitoring';
+import { QueryProvider } from '../QueryProvider';
+import { MonitoringService } from '../../monitoring/MonitoringService';
+import { IPerformanceMetrics } from '../../monitoring/types';
+
+// Mock MonitoringService
+const mockTrackPerformance = jest.fn();
+const mockTrackError = jest.fn();
+
+jest.mock('../../monitoring/MonitoringService', () => ({
+  MonitoringService: {
+    getInstance: jest.fn(() => ({
+      trackPerformance: mockTrackPerformance,
+      trackError: mockTrackError
+    }))
+  }
+}));
+
+// Mock data
+const mockResults = [
+  { id: '1', title: 'React Hooks', description: 'Guide to React Hooks' },
+  { id: '2', title: 'TypeScript', description: 'TypeScript basics' },
+  { id: '3', title: 'Testing', description: 'Testing React components' }
+];
+
+// Mock search function
+const mockSearch = jest.fn().mockResolvedValue(mockResults);
+
+// Test utilities
+interface RenderOptions {
+  onSearch?: typeof mockSearch;
+  onTypeahead?: jest.Mock;
+  initialQuery?: string;
+  [key: string]: any;
+}
+
+const renderSearchResults = (options: RenderOptions = {}): RenderResult => {
+  const defaultProps = {
+    onSearch: mockSearch,
+    ...options
+  };
+
+  return render(
+    <QueryProvider>
+      <SearchResults {...defaultProps} />
+    </QueryProvider>
+  );
+};
 
 describe('SearchResults', () => {
-  const mockMonitors = mockMonitoring();
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should track render performance', () => {
-    render(<SearchResults results={[]} />);
+  it('should render search input', () => {
+    const { getByRole } = renderSearchResults();
+    expect(getByRole('searchbox')).toBeInTheDocument();
+  });
 
-    expect(mockMonitors.trackPerformance).toHaveBeenCalledWith({
-      operation: 'render',
-      component: 'SearchResults',
-      totalTime: expect.any(Number)
+  it('should handle initial query', async () => {
+    const { getByRole } = renderSearchResults({
+      initialQuery: 'react'
+    });
+
+    await waitFor(() => {
+      expect(mockSearch).toHaveBeenCalledWith('react', expect.any(Object));
     });
   });
 
-  it('should track interaction times', async () => {
-    const { getByTestId } = render(
-      <SearchResults 
-        results={[{ id: 1, title: 'Test' }]} 
-      />
-    );
+  it('should debounce search input', async () => {
+    jest.useFakeTimers();
+    const { getByRole } = renderSearchResults({ debounceMs: 300 });
+    
+    const searchInput = getByRole('searchbox');
+    fireEvent.change(searchInput, { target: { value: 'react' } });
 
-    await act(async () => {
-      getByTestId('result-1').click();
+    // Should not call immediately
+    expect(mockSearch).not.toHaveBeenCalled();
+
+    // Fast forward debounce time
+    act(() => {
+      jest.advanceTimersByTime(300);
     });
 
-    expect(mockMonitors.trackPerformance).toHaveBeenCalledWith({
-      operation: 'interaction',
-      component: 'SearchResults',
-      totalTime: expect.any(Number),
-      metadata: {
-        type: 'result_click',
-        resultId: '1'
-      }
+    expect(mockSearch).toHaveBeenCalledWith('react', expect.any(Object));
+    jest.useRealTimers();
+  });
+
+  it('should display loading state', async () => {
+    const slowSearch = jest.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+    const { getByRole, getByTestId } = renderSearchResults({
+      onSearch: slowSearch
+    });
+
+    fireEvent.change(getByRole('searchbox'), { target: { value: 'react' } });
+    
+    expect(getByTestId('search-loading')).toBeInTheDocument();
+  });
+
+  it('should display results', async () => {
+    const { getByRole, getAllByTestId } = renderSearchResults();
+
+    fireEvent.change(getByRole('searchbox'), { target: { value: 'react' } });
+
+    await waitFor(() => {
+      const results = getAllByTestId('search-result');
+      expect(results).toHaveLength(3);
+      expect(results[0]).toHaveTextContent('React Hooks');
     });
   });
 
-  it('should track result rendering metrics', () => {
-    const results = Array.from({ length: 100 }, (_, i) => ({
-      id: i,
-      title: `Result ${i}`
-    }));
+  it('should handle empty results', async () => {
+    const emptySearch = jest.fn().mockResolvedValue([]);
+    const { getByRole, getByTestId } = renderSearchResults({
+      onSearch: emptySearch
+    });
 
-    render(<SearchResults results={results} />);
+    fireEvent.change(getByRole('searchbox'), { target: { value: 'nonexistent' } });
 
-    expect(mockMonitors.trackPerformance).toHaveBeenCalledWith({
-      operation: 'render',
-      component: 'SearchResults',
-      totalTime: expect.any(Number),
-      metadata: {
-        resultCount: 100
-      }
+    await waitFor(() => {
+      expect(getByTestId('search-empty')).toBeInTheDocument();
     });
   });
 
-  it('should render search results', () => {
-    const results = [
-      { id: 1, title: 'Result 1' },
-      { id: 2, title: 'Result 2' }
-    ];
+  it('should track search performance', async () => {
+    const { getByRole } = renderSearchResults();
 
-    const { getByText } = render(<SearchResults results={results} />);
+    fireEvent.change(getByRole('searchbox'), { target: { value: 'react' } });
 
-    expect(getByText('Result 1')).toBeInTheDocument();
-    expect(getByText('Result 2')).toBeInTheDocument();
-  });
-
-  it('should show loading state', () => {
-    const { getByText } = render(
-      <SearchResults results={[]} isLoading={true} />
-    );
-
-    expect(getByText('Loading...')).toBeInTheDocument();
-  });
-
-  it('should show empty state', () => {
-    const { getByText } = render(<SearchResults results={[]} />);
-
-    expect(getByText('No results found')).toBeInTheDocument();
-  });
-
-  describe('pagination behavior', () => {
-    it('should handle page changes', () => {
-      const onPageChange = jest.fn();
-      const { getByLabelText } = render(
-        <SearchResults 
-          results={Array(20).fill(null)} 
-          pageSize={10}
-          onPageChange={onPageChange}
-        />
+    await waitFor(() => {
+      expect(mockTrackPerformance).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'search_execute',
+          component: 'SearchResults',
+          queryTime: expect.any(Number),
+          resultCount: 3
+        })
       );
-
-      fireEvent.click(getByLabelText('Next page'));
-      
-      expect(onPageChange).toHaveBeenCalledWith(2);
-      expect(mockMonitors.trackInteraction).toHaveBeenCalledWith({
-        operation: 'page_change',
-        component: 'SearchResults',
-        metadata: { page: 2 }
-      });
-    });
-
-    it('should disable pagination buttons appropriately', () => {
-      const { getByLabelText } = render(
-        <SearchResults 
-          results={Array(5).fill(null)}
-          pageSize={10}
-        />
-      );
-
-      expect(getByLabelText('Next page')).toBeDisabled();
-      expect(getByLabelText('Previous page')).toBeDisabled();
     });
   });
 
-  describe('sorting and filtering', () => {
-    it('should handle sort changes', () => {
-      const onSort = jest.fn();
-      const { getByLabelText } = render(
-        <SearchResults 
-          results={[]}
-          onSort={onSort}
-        />
-      );
-
-      fireEvent.click(getByLabelText('Sort by date'));
-      
-      expect(onSort).toHaveBeenCalledWith('date', 'desc');
-      expect(mockMonitors.trackInteraction).toHaveBeenCalledWith({
-        operation: 'sort_change',
-        component: 'SearchResults',
-        metadata: { field: 'date', direction: 'desc' }
-      });
+  it('should handle search errors', async () => {
+    const error = new Error('Search failed');
+    const failedSearch = jest.fn().mockRejectedValue(error);
+    
+    const { getByRole, getByTestId } = renderSearchResults({
+      onSearch: failedSearch
     });
 
-    it('should apply filters', () => {
-      const onFilter = jest.fn();
-      const { getByLabelText } = render(
-        <SearchResults 
-          results={[]}
-          onFilter={onFilter}
-        />
+    fireEvent.change(getByRole('searchbox'), { target: { value: 'react' } });
+
+    await waitFor(() => {
+      expect(getByTestId('search-error')).toBeInTheDocument();
+      expect(mockTrackError).toHaveBeenCalledWith(
+        error,
+        expect.objectContaining({
+          type: 'search_error',
+          component: 'SearchResults'
+        })
       );
-
-      fireEvent.click(getByLabelText('Filter by category'));
-      fireEvent.click(getByLabelText('News'));
-
-      expect(onFilter).toHaveBeenCalledWith({ category: 'news' });
     });
   });
+});
 
-  describe('performance optimization', () => {
-    it('should virtualize long lists', () => {
-      const results = Array.from({ length: 1000 }, (_, i) => ({
-        id: i,
-        title: `Result ${i}`
+describe('SearchResults filters', () => {
+  it('should apply filters to search', async () => {
+    const { getByRole, getByLabelText } = renderSearchResults();
+
+    // Set search query
+    fireEvent.change(getByRole('searchbox'), { target: { value: 'react' } });
+
+    // Apply category filter
+    fireEvent.click(getByLabelText('Filter by category'));
+    fireEvent.click(getByLabelText('Tutorials'));
+
+    // Apply sort
+    fireEvent.click(getByLabelText('Sort by'));
+    fireEvent.click(getByLabelText('Date'));
+
+    await waitFor(() => {
+      expect(mockSearch).toHaveBeenCalledWith('react', expect.objectContaining({
+        categories: ['tutorials'],
+        sortBy: 'date',
+        sortOrder: 'desc'
       }));
-
-      const { container, queryByText } = render(
-        <SearchResults results={results} />
-      );
-
-      // Should only render visible items
-      expect(container.querySelectorAll('.result-item')).toHaveLength(20);
-      expect(queryByText('Result 999')).not.toBeInTheDocument();
-    });
-
-    it('should debounce search input', async () => {
-      const onSearch = jest.fn();
-      const { getByPlaceholderText } = render(
-        <SearchResults 
-          results={[]}
-          onSearch={onSearch}
-        />
-      );
-
-      const input = getByPlaceholderText('Search results...');
-      fireEvent.change(input, { target: { value: 'test' } });
-
-      // Should not call immediately
-      expect(onSearch).not.toHaveBeenCalled();
-
-      // Wait for debounce
-      await act(async () => {
-        await new Promise(r => setTimeout(r, 300));
-      });
-
-      expect(onSearch).toHaveBeenCalledWith('test');
     });
   });
 
-  describe('accessibility', () => {
-    it('should support keyboard navigation', () => {
-      const results = [
-        { id: 1, title: 'Result 1' },
-        { id: 2, title: 'Result 2' }
-      ];
+  it('should track filter interactions', async () => {
+    const { getByLabelText } = renderSearchResults();
 
-      const { getByText } = render(<SearchResults results={results} />);
-      
-      const firstResult = getByText('Result 1');
-      firstResult.focus();
+    fireEvent.click(getByLabelText('Filter by category'));
+    fireEvent.click(getByLabelText('Tutorials'));
 
-      fireEvent.keyDown(firstResult, { key: 'ArrowDown' });
-      expect(document.activeElement).toHaveTextContent('Result 2');
+    expect(mockTrackPerformance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'search_filter',
+        component: 'SearchResults',
+        interaction: 'filter_change',
+        metadata: expect.objectContaining({
+          filterType: 'category',
+          value: 'tutorials'
+        })
+      })
+    );
+  });
+});
+
+describe('SearchResults typeahead', () => {
+  it('should show typeahead suggestions', async () => {
+    const suggestions = [
+      { id: 'react', title: 'React', description: 'React suggestion' },
+      { id: 'redux', title: 'Redux', description: 'Redux suggestion' }
+    ];
+    
+    const mockTypeahead = jest.fn().mockResolvedValue(suggestions);
+    const { getByRole, getAllByTestId } = renderSearchResults({
+      onTypeahead: mockTypeahead
     });
 
-    it('should announce result count', () => {
-      render(
-        <SearchResults 
-          results={Array(5).fill(null)}
-          totalResults={100}
-        />
-      );
+    // Type slowly to trigger typeahead
+    fireEvent.change(getByRole('searchbox'), { target: { value: 're' } });
 
-      expect(screen.getByRole('status'))
-        .toHaveTextContent('Showing 5 of 100 results');
+    await waitFor(() => {
+      const typeaheadResults = getAllByTestId('typeahead-suggestion');
+      expect(typeaheadResults).toHaveLength(2);
+      expect(typeaheadResults[0]).toHaveTextContent('React');
+    });
+
+    // Verify performance tracking
+    expect(mockTrackPerformance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'typeahead_execute',
+        component: 'SearchResults',
+        totalTime: expect.any(Number)
+      })
+    );
+  });
+
+  it('should handle typeahead selection', async () => {
+    const suggestions = [
+      { id: 'react', title: 'React', description: 'React suggestion' }
+    ];
+    
+    const mockTypeahead = jest.fn().mockResolvedValue(suggestions);
+    const mockOnSearch = jest.fn().mockResolvedValue([]);
+    
+    const { getByRole, getByTestId } = renderSearchResults({
+      onTypeahead: mockTypeahead,
+      onSearch: mockOnSearch
+    });
+
+    // Type to trigger typeahead
+    fireEvent.change(getByRole('searchbox'), { target: { value: 're' } });
+
+    await waitFor(() => {
+      const suggestion = getByTestId('typeahead-suggestion');
+      fireEvent.click(suggestion);
+    });
+
+    // Verify the search input was updated
+    expect(getByRole('searchbox')).toHaveValue('React');
+    
+    // Verify full search was triggered
+    expect(mockOnSearch).toHaveBeenCalledWith('React', expect.any(Object));
+
+    // Verify interaction tracking
+    expect(mockTrackPerformance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'typeahead_select',
+        component: 'SearchResults',
+        interaction: 'suggestion_click',
+        metadata: {
+          suggestionId: 'react',
+          value: 'React'
+        }
+      })
+    );
+  });
+
+  it('should debounce typeahead requests', async () => {
+    jest.useFakeTimers();
+    
+    const mockTypeahead = jest.fn().mockResolvedValue([]);
+    const { getByRole } = renderSearchResults({
+      onTypeahead: mockTypeahead,
+      typeaheadDebounceMs: 200
+    });
+
+    // Type quickly
+    fireEvent.change(getByRole('searchbox'), { target: { value: 'r' } });
+    fireEvent.change(getByRole('searchbox'), { target: { value: 're' } });
+    fireEvent.change(getByRole('searchbox'), { target: { value: 'rea' } });
+
+    // Verify no immediate calls
+    expect(mockTypeahead).not.toHaveBeenCalled();
+
+    // Fast forward debounce time
+    act(() => {
+      jest.advanceTimersByTime(200);
+    });
+
+    // Verify only one call with final value
+    expect(mockTypeahead).toHaveBeenCalledTimes(1);
+    expect(mockTypeahead).toHaveBeenCalledWith('rea');
+
+    jest.useRealTimers();
+  });
+
+  it('should hide typeahead on blur', async () => {
+    const suggestions = [
+      { id: 'react', title: 'React', description: 'React suggestion' }
+    ];
+    
+    const mockTypeahead = jest.fn().mockResolvedValue(suggestions);
+    const { getByRole, queryByTestId } = renderSearchResults({
+      onTypeahead: mockTypeahead
+    });
+
+    // Show typeahead
+    fireEvent.change(getByRole('searchbox'), { target: { value: 're' } });
+    
+    await waitFor(() => {
+      expect(queryByTestId('typeahead-suggestions')).toBeInTheDocument();
+    });
+
+    // Blur search input
+    fireEvent.blur(getByRole('searchbox'));
+
+    // Verify typeahead is hidden
+    await waitFor(() => {
+      expect(queryByTestId('typeahead-suggestions')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('SearchResults content visibility', () => {
+  it('should hide main content when typeahead is active', async () => {
+    const suggestions = [
+      { id: 'react', title: 'React', description: 'React suggestion' }
+    ];
+    
+    const mockTypeahead = jest.fn().mockResolvedValue(suggestions);
+    const { getByRole, queryByTestId } = renderSearchResults({
+      onTypeahead: mockTypeahead,
+      initialQuery: 'react' // Pre-load some results
+    });
+
+    // Wait for initial results to load
+    await waitFor(() => {
+      expect(queryByTestId('search-result')).toBeInTheDocument();
+    });
+
+    // Trigger typeahead
+    fireEvent.focus(getByRole('searchbox'));
+    fireEvent.change(getByRole('searchbox'), { target: { value: 're' } });
+
+    // Main content should be hidden when typeahead is shown
+    await waitFor(() => {
+      expect(queryByTestId('typeahead-suggestions')).toBeInTheDocument();
+      expect(queryByTestId('search-results-content')).not.toBeVisible();
     });
   });
 
-  describe('error handling', () => {
-    it('should show error state', () => {
-      const error = new Error('Failed to load results');
-      const { getByText } = render(
-        <SearchResults 
-          results={[]}
-          error={error}
-        />
-      );
-
-      expect(getByText('Error loading results')).toBeInTheDocument();
-      expect(getByText(error.message)).toBeInTheDocument();
+  it('should restore main content visibility when typeahead closes', async () => {
+    const suggestions = [
+      { id: 'react', title: 'React', description: 'React suggestion' }
+    ];
+    
+    const mockTypeahead = jest.fn().mockResolvedValue(suggestions);
+    const { getByRole, queryByTestId } = renderSearchResults({
+      onTypeahead: mockTypeahead,
+      initialQuery: 'react'
     });
 
-    it('should handle retry', async () => {
-      const onRetry = jest.fn();
-      const { getByText } = render(
-        <SearchResults 
-          results={[]}
-          error={new Error('Failed')}
-          onRetry={onRetry}
-        />
-      );
+    // Show typeahead
+    fireEvent.focus(getByRole('searchbox'));
+    fireEvent.change(getByRole('searchbox'), { target: { value: 're' } });
 
-      await act(async () => {
-        fireEvent.click(getByText('Try Again'));
-      });
+    // Hide typeahead
+    fireEvent.blur(getByRole('searchbox'));
 
-      expect(onRetry).toHaveBeenCalled();
+    // Main content should be visible again
+    await waitFor(() => {
+      expect(queryByTestId('typeahead-suggestions')).not.toBeInTheDocument();
+      expect(queryByTestId('search-results-content')).toBeVisible();
     });
   });
 }); 
