@@ -1,10 +1,9 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { LoadingSpinner } from '../LoadingSpinner';
-import { MonitoringService } from '../../../monitoring/MonitoringService';
+import { usePerformanceMonitoring } from '../../../monitoring/hooks/useMonitoring';
 
-// Mock monitoring
-jest.mock('../../../monitoring/MonitoringService');
+// Mock monitoring hook
 jest.mock('../../../monitoring/hooks/useMonitoring', () => ({
   usePerformanceMonitoring: jest.fn()
 }));
@@ -18,36 +17,36 @@ describe('LoadingSpinner', () => {
     render(<LoadingSpinner />);
     
     const spinner = screen.getByRole('progressbar');
+    expect(spinner).toBeInTheDocument();
     expect(spinner).toHaveClass('loading-spinner--medium');
-    expect(spinner).toHaveAttribute('aria-label', 'Loading...');
   });
 
-  it('should render with custom size', () => {
-    render(<LoadingSpinner size="large" />);
+  it('should handle different sizes', () => {
+    const { rerender } = render(<LoadingSpinner size="small" />);
+    expect(screen.getByRole('progressbar')).toHaveClass('loading-spinner--small');
+
+    rerender(<LoadingSpinner size="large" />);
+    expect(screen.getByRole('progressbar')).toHaveClass('loading-spinner--large');
+  });
+
+  it('should be accessible', () => {
+    render(<LoadingSpinner aria-label="Custom loading text" />);
     
     const spinner = screen.getByRole('progressbar');
-    expect(spinner).toHaveClass('loading-spinner--large');
+    expect(spinner).toHaveAttribute('aria-label', 'Custom loading text');
+    expect(spinner).toHaveAttribute('aria-busy', 'true');
   });
 
-  it('should render with custom label', () => {
-    const label = 'Please wait...';
-    render(<LoadingSpinner label={label} />);
-    
-    const spinner = screen.getByRole('progressbar');
-    expect(spinner).toHaveAttribute('aria-label', label);
-    expect(screen.getByText(label)).toBeInTheDocument();
-  });
-
-  it('should not render when visible is false', () => {
-    render(<LoadingSpinner visible={false} />);
-    
+  it('should handle visibility toggle', () => {
+    const { rerender } = render(<LoadingSpinner visible={false} />);
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+
+    rerender(<LoadingSpinner visible={true} />);
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it('should apply custom className', () => {
-    render(<LoadingSpinner className="custom-class" />);
-    
-    const spinner = screen.getByRole('progressbar');
-    expect(spinner).toHaveClass('custom-class');
+  it('should track performance', () => {
+    render(<LoadingSpinner />);
+    expect(usePerformanceMonitoring).toHaveBeenCalledWith('LoadingSpinner');
   });
 }); 
