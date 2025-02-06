@@ -17,101 +17,166 @@
  * ```
  */
 
-import React from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { EndpointPath, RequestBody } from '../../api/types/endpoints';
 import { ErrorDisplay } from '../ErrorDisplay/ErrorDisplay';
-import { logger } from '../../utils/logger';
+import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
+import { Schema } from 'yup';
 
-/**
- * Props passed to the form render function
- */
-interface IFormRenderProps<P extends EndpointPath> {
-  /** Current form data */
-  data: Partial<RequestBody<P>>;
-  /** Validation errors by field */
-  errors: Record<string, string>;
-  /** Whether form is currently submitting */
-  isSubmitting: boolean;
-  /** Update a form field value */
-  setFieldValue: (field: keyof RequestBody<P>, value: unknown) => void;
-  /** Handle form submission */
-  handleSubmit: (e: React.FormEvent) => void;
+export interface IFormConfig<T extends Record<string, unknown>> {
+  /** Initial form values */
+  initialValues: T;
+  /** Validation schema */
+  validationSchema?: Schema<T>;
+  /** Form submission handler */
+  onSubmit: (values: T) => Promise<void>;
+  /** Validate on field change */
+  validateOnChange?: boolean;
+  /** Validate on field blur */
+  validateOnBlur?: boolean;
 }
 
-/**
- * Form container component props
- */
-interface IFormContainerProps<P extends EndpointPath> {
-  /** API endpoint for form submission */
+export interface IFormState<T extends Record<string, unknown>> {
+  /** Form data */
+  data: T;
+  /** Field-level errors */
+  errors: Record<keyof T, string>;
+  /** Field-level touched state */
+  touched: Record<keyof T, boolean>;
+  /** Field-level dirty state */
+  dirty: Record<keyof T, boolean>;
+  /** Form-level submission state */
+  isSubmitting: boolean;
+  /** Form-level validation state */
+  isValid: boolean;
+  /** Form-level error */
+  submitError?: Error;
+}
+
+export interface IFormRenderProps<T extends Record<string, unknown>> extends IFormState<T> {
+  /** Update a field value */
+  setFieldValue: (field: keyof T, value: T[keyof T]) => void;
+  /** Mark a field as touched */
+  setFieldTouched: (field: keyof T) => void;
+  /** Submit the form */
+  handleSubmit: () => Promise<void>;
+  /** Reset the form */
+  resetForm: () => void;
+}
+
+export interface IFormContainerProps<P extends EndpointPath> {
+  /** API endpoint */
   endpoint: P;
-  /** Initial form data */
-  initialData?: Partial<RequestBody<P>>;
-  /** Form validation function */
-  validate?: (data: RequestBody<P>) => Record<string, string> | null;
-  /** Called after successful submission */
-  onSuccess?: () => void;
-  /** Render function for form UI */
-  children: (props: IFormRenderProps<P>) => React.ReactNode;
+  /** Initial form values */
+  initialValues: Partial<RequestBody<P>>;
+  /** Validation schema */
+  validationSchema?: Schema<RequestBody<P>>;
+  /** Success callback */
+  onSubmit: (values: RequestBody<P>) => Promise<void>;
+  /** Form render function */
+  children: (props: IFormRenderProps<RequestBody<P>>) => React.ReactNode;
 }
 
 export function FormContainer<P extends EndpointPath>({
   endpoint,
-  initialData = {},
-  validate,
-  onSuccess,
+  initialValues,
+  validationSchema,
+  onSubmit,
   children
 }: IFormContainerProps<P>): React.ReactElement {
-  const [data, setData] = React.useState<Partial<RequestBody<P>>>(initialData);
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
-  
-  const {
-    loading: isSubmitting,
-    error,
-    errorMessage,
-    request
-  } = useApi<unknown>();
+  usePerformanceMonitoring('FormContainer');
 
-  const setFieldValue = React.useCallback((field: keyof RequestBody<P>, value: unknown) => {
-    setData((prev: Partial<RequestBody<P>>) => ({ ...prev, [field]: value }));
-    setErrors((prev: Record<string, string>) => {
-      const { [field as string]: _, ...rest } = prev;
-      return rest;
-    });
+  const [state, setState] = useState<IFormState<RequestBody<P>>>({
+    data: initialValues as RequestBody<P>,
+    errors: {} as Record<keyof RequestBody<P>, string>,
+    touched: {} as Record<keyof RequestBody<P>, boolean>,
+    dirty: {} as Record<keyof RequestBody<P>, boolean>,
+    isSubmitting: false,
+    isValid: true
+  });
+
+  const validate = useCallback(async (values: RequestBody<P>) => {
+    if (!validationSchema) return {};
+    try {
+      await validationSchema.validate(values, { abortEarly: false });
+      return {};
+    } catch (err) {
+      const errors: Record<string, string> = {};
+      err.inner.forEach((error: any) => {
+        errors[error.path] = error.message;
+      });
+      return errors;
+    }
+  }, [validationSchema]);
+
+  const setFieldValue = useCallback(async (field: keyof RequestBody<P>, value: RequestBody<P>[keyof RequestBody<P>]) => {
+    setState(prev => ({
+      ...prev,
+      data: { ...prev.data, [field]: value },
+      dirty: { ...prev.dirty, [field]: true }
+    }));
   }, []);
 
-  const handleSubmit = React.useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
+  const setFieldTouched = useCallback((field: keyof RequestBody<P>) => {
+    setState(prev => ({
+      ...prev,
+      touched: { ...prev.touched, [field]: true }
+    }));
+  }, []);
 
-    // Validate form data
-    if (validate) {
-      const validationErrors = validate(data as RequestBody<P>);
-      if (validationErrors) {
-        setErrors(validationErrors);
-        return;
-      }
+  const handleSubmit = useCallback(async () => {
+    setState(prev => ({ ...prev, isSubmitting: true }));
+
+    const errors = await validate(state.data);
+    if (Object.keys(errors).length > 0) {
+      setState(prev => ({
+        ...prev,
+        errors,
+        isSubmitting: false,
+        isValid: false
+      }));
+      return;
     }
 
     try {
-      await request(endpoint, { body: data });
-      onSuccess?.();
-      logger.debug('Form submitted successfully:', { endpoint });
-    } catch (err) {
-      if (err instanceof Error) {
-        logger.error('Form submission failed:', err);
-      }
+      await onSubmit(state.data);
+      setState(prev => ({
+        ...prev,
+        isSubmitting: false,
+        isValid: true,
+        submitError: undefined
+      }));
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isSubmitting: false,
+        submitError: error as Error
+      }));
     }
-  }, [data, endpoint, onSuccess, request, validate]);
+  }, [state.data, validate, onSubmit]);
+
+  const resetForm = useCallback(() => {
+    setState({
+      data: initialValues as RequestBody<P>,
+      errors: {} as Record<keyof RequestBody<P>, string>,
+      touched: {} as Record<keyof RequestBody<P>, boolean>,
+      dirty: {} as Record<keyof RequestBody<P>, boolean>,
+      isSubmitting: false,
+      isValid: true,
+      submitError: undefined
+    });
+  }, [initialValues]);
 
   return (
     <>
-      {error && <ErrorDisplay error={errorMessage!} />}
+      {state.submitError && <ErrorDisplay error={state.submitError} />}
       {children({
-        data,
-        errors,
-        isSubmitting,
+        ...state,
         setFieldValue,
-        handleSubmit
+        setFieldTouched,
+        handleSubmit,
+        resetForm
       })}
     </>
   );
