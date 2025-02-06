@@ -1,11 +1,22 @@
 /**
- * Error boundary component for handling component errors gracefully
+ * Error boundary component for gracefully handling React component errors.
+ * Provides fallback UI and error reporting functionality.
+ * 
+ * @example
+ * ```tsx
+ * <ErrorBoundary
+ *   fallback={<CustomError />}
+ *   onError={(error) => logError(error)}
+ * >
+ *   <ChildComponent />
+ * </ErrorBoundary>
+ * ```
  */
 
 import React from 'react';
-import { ErrorDisplay } from '../ErrorDisplay/ErrorDisplay';
 import { logger } from '../../utils/logger';
-import { getErrorMessage } from '../../errors/errorUtils';
+import { MonitoringService } from '../../monitoring/MonitoringService';
+import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
 
 interface IErrorBoundaryProps {
   /** Component to render when error occurs */
@@ -23,6 +34,8 @@ interface IErrorBoundaryState {
 }
 
 export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBoundaryState> {
+  private monitoring = MonitoringService.getInstance();
+
   constructor(props: IErrorBoundaryProps) {
     super(props);
     this.state = { error: null };
@@ -34,6 +47,23 @@ export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBo
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     logger.error('Component error caught by boundary:', error);
+    
+    // Track error with monitoring
+    this.monitoring.trackError(error, {
+      componentStack: errorInfo.componentStack,
+      resetOnChange: this.props.resetOnChange
+    });
+
+    // Track state transition
+    this.monitoring.trackStateTransition({
+      from: 'normal',
+      to: 'error',
+      success: false,
+      duration: 0,
+      error,
+      component: 'ErrorBoundary'
+    });
+
     this.props.onError?.(error, errorInfo);
   }
 
@@ -44,27 +74,24 @@ export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBo
       this.props.children !== prevProps.children
     ) {
       this.setState({ error: null });
+      
+      // Track recovery
+      this.monitoring.trackStateTransition({
+        from: 'error',
+        to: 'normal',
+        success: true,
+        duration: 0,
+        component: 'ErrorBoundary'
+      });
     }
   }
-
-  private handleReset = (): void => {
-    this.setState({ error: null });
-  };
 
   render(): React.ReactNode {
     const { error } = this.state;
     const { fallback, children } = this.props;
 
     if (error) {
-      if (fallback) {
-        return fallback;
-      }
-      return (
-        <ErrorDisplay
-          error={getErrorMessage(error)}
-          onAction={this.handleReset}
-        />
-      );
+      return fallback || <div role="alert">Something went wrong</div>;
     }
 
     return children;
