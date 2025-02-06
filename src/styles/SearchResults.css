@@ -1,0 +1,45 @@
+/* Typeahead animations */
+.typeahead-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.typeahead-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.typeahead-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.typeahead-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Main content animations */
+.content-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.content-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.content-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.content-exit-active {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+} 
