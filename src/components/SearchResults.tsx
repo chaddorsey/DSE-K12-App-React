@@ -277,10 +277,10 @@ export function SearchResults({
           }, 200)}
           placeholder="Search..."
           className="search-input"
-          aria-expanded={showTypeahead && suggestions?.length > 0}
+          aria-expanded={showTypeahead && suggestions && suggestions.length > 0}
           aria-controls="typeahead-suggestions"
           aria-activedescendant={
-            selectedIndex >= 0 ? `suggestion-${suggestions?.[selectedIndex].id}` : undefined
+            selectedIndex >= 0 && suggestions ? `suggestion-${suggestions[selectedIndex].id}` : undefined
           }
         />
         
