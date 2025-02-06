@@ -2,24 +2,24 @@
  * Hook for form state management with validation and monitoring
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { MonitoringService } from '../monitoring/MonitoringService';
-import { Schema } from 'yup';
+import * as yup from 'yup';
+
+interface IFormOptions<T> {
+  initialValues: T;
+  validationSchema?: yup.Schema<T>;
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+  onSubmit?: (values: T, helpers: IFormHelpers<T>) => Promise<void>;
+}
 
 interface IFormState<T> {
   values: T;
   errors: Partial<Record<keyof T, string>>;
   touched: Partial<Record<keyof T, boolean>>;
   isSubmitting: boolean;
-  submitError: Error | null;
-}
-
-interface IFormOptions<T> {
-  initialValues: T;
-  validationSchema?: Schema<T>;
-  validateOnChange?: boolean;
-  validateOnBlur?: boolean;
-  onSubmit?: (values: T, helpers: IFormHelpers<T>) => Promise<void>;
+  submitError?: Error;
 }
 
 interface IFormHelpers<T> {
@@ -32,19 +32,18 @@ interface IFormHelpers<T> {
  * Hook for form state management with validation and monitoring
  * 
  * @param options - Form configuration options
+ * @returns Form state and handlers
  */
 export function useForm<T extends Record<string, any>>(options: IFormOptions<T>) {
   const monitoring = MonitoringService.getInstance();
-  const fieldInteractionStart = useRef<Record<keyof T, number>>({} as Record<keyof T, number>);
-
   const [state, setState] = useState<IFormState<T>>({
     values: options.initialValues,
     errors: {},
     touched: {},
-    isSubmitting: false,
-    submitError: null
+    isSubmitting: false
   });
 
+  // Field-level validation
   const validateField = useCallback(async (
     field: keyof T,
     value: any
@@ -54,32 +53,14 @@ export function useForm<T extends Record<string, any>>(options: IFormOptions<T>)
     try {
       await options.validationSchema.validateAt(field as string, { [field]: value });
     } catch (error) {
-      monitoring.trackError(error as Error, {
-        type: 'validation',
-        field: field as string
-      });
-      return (error as Error).message;
+      if (error instanceof yup.ValidationError) {
+        return error.message;
+      }
     }
   }, [options.validationSchema]);
 
-  const validateForm = useCallback(async (): Promise<Partial<Record<keyof T, string>>> => {
-    if (!options.validationSchema) return {};
-
-    try {
-      await options.validationSchema.validate(state.values, { abortEarly: false });
-      return {};
-    } catch (error: any) {
-      const errors: Partial<Record<keyof T, string>> = {};
-      error.inner.forEach((err: any) => {
-        errors[err.path as keyof T] = err.message;
-      });
-      return errors;
-    }
-  }, [options.validationSchema, state.values]);
-
+  // Handle field changes
   const handleChange = useCallback((field: keyof T) => async (value: any) => {
-    fieldInteractionStart.current[field] = Date.now();
-
     setState(prev => ({
       ...prev,
       values: { ...prev.values, [field]: value }
@@ -99,42 +80,28 @@ export function useForm<T extends Record<string, any>>(options: IFormOptions<T>)
     }
   }, [options.validateOnChange, validateField]);
 
+  // Handle field blur
   const handleBlur = useCallback((field: keyof T) => async () => {
-    const interactionTime = Date.now() - (fieldInteractionStart.current[field] || Date.now());
-    
     setState(prev => ({
       ...prev,
       touched: { ...prev.touched, [field]: true }
     }));
 
-    monitoring.trackPerformance({
-      type: 'field_interaction',
-      field: field as string,
-      totalTime: interactionTime
-    });
+    const error = await validateField(field, state.values[field]);
+    setState(prev => ({
+      ...prev,
+      errors: { ...prev.errors, [field]: error }
+    }));
+  }, [state.values, validateField]);
 
-    if (options.validateOnBlur) {
-      const error = await validateField(field, state.values[field]);
-      setState(prev => ({
-        ...prev,
-        errors: { ...prev.errors, [field]: error }
-      }));
-    }
-  }, [options.validateOnBlur, validateField, state.values]);
-
+  // Form submission
   const handleSubmit = useCallback(async () => {
     const startTime = Date.now();
-    setState(prev => ({ ...prev, isSubmitting: true, submitError: null }));
+    setState(prev => ({ ...prev, isSubmitting: true }));
 
     try {
-      const errors = await validateForm();
-      if (Object.keys(errors).length > 0) {
-        setState(prev => ({
-          ...prev,
-          errors,
-          isSubmitting: false
-        }));
-        return;
+      if (options.validationSchema) {
+        await options.validationSchema.validate(state.values, { abortEarly: false });
       }
 
       if (options.onSubmit) {
@@ -144,7 +111,12 @@ export function useForm<T extends Record<string, any>>(options: IFormOptions<T>)
           setErrors: (errors) => 
             setState(prev => ({ ...prev, errors })),
           resetForm: () => 
-            setState({ ...state, values: options.initialValues })
+            setState({
+              values: options.initialValues,
+              errors: {},
+              touched: {},
+              isSubmitting: false
+            })
         });
       }
 
@@ -153,19 +125,22 @@ export function useForm<T extends Record<string, any>>(options: IFormOptions<T>)
         success: true,
         totalTime: Date.now() - startTime
       });
+
     } catch (error) {
       setState(prev => ({
         ...prev,
-        submitError: error as Error,
-        isSubmitting: false
+        isSubmitting: false,
+        submitError: error as Error
       }));
 
       monitoring.trackError(error as Error, {
-        type: 'submit',
-        values: state.values
+        type: 'form_submit_error',
+        metadata: { values: state.values }
       });
+
+      throw error;
     }
-  }, [state.values, validateForm, options.onSubmit]);
+  }, [state.values, options.validationSchema, options.onSubmit]);
 
   return {
     ...state,
