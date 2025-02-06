@@ -62,4 +62,14 @@ export interface IPerformanceBaseline {
   };
   sampleSize: number;
   lastUpdated: number;
-} 
+}
+
+// Add form events to PerformanceEventType
+export type PerformanceEventType =
+  | 'query_cache_hit'
+  | 'query_cache_miss'
+  // ... existing types ...
+  | 'form_init'
+  | 'form_validation'
+  | 'form_submission'
+  | 'form_interaction'; 
