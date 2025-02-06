@@ -19,7 +19,7 @@ export interface INetworkClientConfig {
   /** Retry policy for this client */
   retryPolicy?: IRetryPolicy;
   /** Cache configuration */
-  cache?: ICacheConfig;
+  cacheConfig?: ICacheConfig;
   /** Batch configuration */
   batch?: IBatchConfig;
 }
@@ -27,13 +27,15 @@ export interface INetworkClientConfig {
 /**
  * Network request initialization options
  */
-export interface INetworkRequestInit extends RequestInit {
+export interface INetworkRequestInit extends Omit<RequestInit, 'cache'> {
   /** Expected response type */
   responseType?: 'json' | 'text' | 'blob';
   /** Cache options for this request */
-  cache?: ICacheConfig;
+  cacheConfig?: ICacheConfig;
   /** Batch options for this request */
   batch?: IBatchConfig | false; // false to disable batching for this request
+  /** Standard fetch cache option */
+  cache?: RequestCache;
 }
 
 export class NetworkClient {
@@ -52,11 +54,11 @@ export class NetworkClient {
     this.config = {
       baseUrl: '',
       retryPolicy: retryPolicies.default,
-      cache: { ttl: 5 * 60 * 1000, maxEntries: 100, storage: 'memory' },
+      cacheConfig: { ttl: 5 * 60 * 1000, maxEntries: 100, storage: 'memory' },
       batch: { maxSize: 10, delay: 50, groupBy: req => req.url },
       ...config
     };
-    this.cache = new CacheManager(this.config.cache);
+    this.cache = new CacheManager(this.config.cacheConfig);
     this.batcher = new RequestBatcher(this.config.batch);
   }
 
@@ -78,16 +80,20 @@ export class NetworkClient {
       : input;
 
     // Try cache first for GET requests
-    if ((!init?.method || init.method === 'GET') && init?.cache !== false) {
+    if ((!init?.method || init.method === 'GET') && init?.cacheConfig !== undefined) {
       const cached = this.cache.get<T>(url.toString());
       if (cached) {
-        logger.info(`Cache hit: ${url}`);
+        console.log(`Cache hit: ${url}`);
         return cached;
       }
     }
 
-    // Create request object
-    const request = new Request(url, init);
+    // Create request object with proper typing
+    const requestInit: RequestInit = {
+      ...init,
+      cache: init?.cache
+    };
+    const request = new Request(url, requestInit);
 
     // Use batching for GET requests unless disabled
     if (request.method === 'GET' && init?.batch !== false) {
@@ -96,8 +102,8 @@ export class NetworkClient {
       const data = await this.parseResponse<T>(response, init?.responseType);
 
       // Cache successful GET responses
-      if (init?.cache !== false) {
-        this.cache.set(url.toString(), data, init?.cache);
+      if (init?.cacheConfig !== undefined) {
+        this.cache.set(url.toString(), data, init.cacheConfig);
       }
 
       return data;
@@ -157,14 +163,14 @@ export class NetworkClient {
    */
   private async withRetry<T>(request: () => Promise<T>): Promise<T> {
     let attempt = 1;
-    let lastError: Error;
+    let lastError: Error = new Error('Unknown error'); // Initialize with default error
 
     while (attempt <= this.config.retryPolicy.maxAttempts) {
       try {
         return await request();
       } catch (err: unknown) {
         lastError = err as Error;
-        logger.error(`Request failed (attempt ${attempt})`, lastError);
+        console.log(`Request failed (attempt ${attempt})`, lastError);
 
         if (!this.config.retryPolicy.shouldRetry(lastError)) {
           break;

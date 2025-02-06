@@ -597,6 +597,302 @@ graph TD
    - State consistency
    - Network resilience
 
+6. **Testing Strategy**
+   ```typescript
+   // src/features/matching/__tests__/MatchingContext.test.tsx
+   describe('MatchingContext', () => {
+     beforeEach(() => {
+       // Setup WebSocket mock
+       mockWebSocket.setup();
+     });
+
+     it('should handle real-time match updates', async () => {
+       const { result } = renderHook(() => useMatching(), {
+         wrapper: MatchingProvider
+       });
+
+       // Simulate match found
+       mockWebSocket.emit('match:found', { matchId: '123', user: mockUser });
+       
+       await waitFor(() => {
+         expect(result.current.activeMatch).toBeDefined();
+         expect(result.current.status).toBe('matched');
+       });
+     });
+
+     it('should handle connection drops', async () => {
+       const { result } = renderHook(() => useMatching());
+       
+       // Simulate disconnect
+       mockWebSocket.disconnect();
+       
+       await waitFor(() => {
+         expect(result.current.status).toBe('reconnecting');
+       });
+
+       // Simulate reconnect
+       mockWebSocket.connect();
+       
+       await waitFor(() => {
+         expect(result.current.status).toBe('idle');
+       });
+     });
+
+     it('should maintain match state during reconnection', async () => {
+       const { result } = renderHook(() => useMatching());
+       
+       // Setup initial match
+       await act(async () => {
+         await result.current.actions.startMatching();
+       });
+
+       const initialMatch = result.current.activeMatch;
+       
+       // Simulate disconnect/reconnect
+       mockWebSocket.disconnect();
+       mockWebSocket.connect();
+       
+       expect(result.current.activeMatch).toEqual(initialMatch);
+     });
+
+     // Add polling tests
+     describe('Polling', () => {
+       it('should poll for match updates at correct intervals', async () => {
+         jest.useFakeTimers();
+         const { result } = renderHook(() => useMatching());
+         
+         await act(async () => {
+           await result.current.actions.startMatching();
+         });
+
+         // Fast-forward past first poll interval
+         act(() => {
+           jest.advanceTimersByTime(5000);
+         });
+
+         expect(mockApi.getMatchStatus).toHaveBeenCalledTimes(2);
+       });
+
+       it('should adjust polling frequency based on match state', async () => {
+         jest.useFakeTimers();
+         const { result } = renderHook(() => useMatching());
+         
+         // During active matching - frequent polls
+         await act(async () => {
+           await result.current.actions.startMatching();
+           jest.advanceTimersByTime(10000);
+         });
+         expect(mockApi.getMatchStatus).toHaveBeenCalledTimes(3);
+
+         // After match found - reduced polling
+         mockWebSocket.emit('match:found', { matchId: '123' });
+         await act(async () => {
+           jest.advanceTimersByTime(10000);
+         });
+         expect(mockApi.getMatchStatus).toHaveBeenCalledTimes(4);
+       });
+     });
+
+     // Add cross-user interaction tests
+     describe('Cross-user Interactions', () => {
+       it('should handle concurrent user actions', async () => {
+         const { result } = renderHook(() => useMatching());
+         
+         // User 1 starts match
+         await act(async () => {
+           await result.current.actions.startMatching();
+         });
+
+         // Simulate User 2 accepting
+         mockWebSocket.emit('match:action', {
+           matchId: '123',
+           userId: 'user2',
+           action: 'accept'
+         });
+
+         await waitFor(() => {
+           expect(result.current.activeMatch?.status).toBe('accepted');
+           expect(result.current.activeMatch?.participants).toHaveLength(2);
+         });
+       });
+
+       it('should handle user disconnections during match', async () => {
+         const { result } = renderHook(() => useMatching());
+         
+         // Setup active match
+         await act(async () => {
+           await result.current.actions.startMatching();
+           mockWebSocket.emit('match:found', { 
+             matchId: '123',
+             participants: [mockUser1, mockUser2]
+           });
+         });
+
+         // Simulate opponent disconnect
+         mockWebSocket.emit('user:disconnect', { userId: mockUser2.id });
+         
+         await waitFor(() => {
+           expect(result.current.activeMatch?.participants[1].status).toBe('disconnected');
+         });
+
+         // Simulate opponent reconnect
+         mockWebSocket.emit('user:reconnect', { userId: mockUser2.id });
+         
+         await waitFor(() => {
+           expect(result.current.activeMatch?.participants[1].status).toBe('active');
+         });
+       });
+
+       it('should handle race conditions in match actions', async () => {
+         const { result } = renderHook(() => useMatching());
+         
+         // Both users try to perform actions simultaneously
+         await act(async () => {
+           // Local user action
+           result.current.actions.submitAnswer({ questionId: '1', answer: 'A' });
+           
+           // Remote user action arrives via websocket
+           mockWebSocket.emit('match:action', {
+             matchId: '123',
+             userId: 'user2',
+             action: 'submit',
+             data: { questionId: '1', answer: 'B' }
+           });
+         });
+
+         // Verify both actions were recorded in correct order
+         expect(result.current.activeMatch?.answers).toEqual({
+           user1: { questionId: '1', answer: 'A', timestamp: expect.any(Number) },
+           user2: { questionId: '1', answer: 'B', timestamp: expect.any(Number) }
+         });
+       });
+     });
+
+     // Add state synchronization tests
+     describe('State Synchronization', () => {
+       it('should reconcile state after reconnection', async () => {
+         const { result } = renderHook(() => useMatching());
+         
+         // Setup initial state
+         await act(async () => {
+           await result.current.actions.startMatching();
+           mockWebSocket.emit('match:found', { matchId: '123' });
+         });
+
+         // Simulate disconnect with state changes
+         mockWebSocket.disconnect();
+         const serverStateChanges = {
+           matchId: '123',
+           updates: [
+             { type: 'answer_submit', data: { userId: 'user2', answer: 'B' } },
+             { type: 'score_update', data: { userId: 'user2', score: 10 } }
+           ]
+         };
+
+         // Reconnect and receive state update
+         mockWebSocket.connect();
+         mockWebSocket.emit('state:reconcile', serverStateChanges);
+
+         await waitFor(() => {
+           expect(result.current.activeMatch?.scores['user2']).toBe(10);
+           expect(result.current.activeMatch?.answers['user2']).toBeDefined();
+         });
+       });
+
+       it('should handle conflicting updates', async () => {
+         const { result } = renderHook(() => useMatching());
+         
+         // Setup match with conflicting updates
+         await act(async () => {
+           await result.current.actions.startMatching();
+           
+           // Local update
+           result.current.actions.submitAnswer({ questionId: '1', answer: 'A' });
+           
+           // Server has different state
+           mockWebSocket.emit('state:update', {
+             matchId: '123',
+             answers: {
+               [mockUser1.id]: { questionId: '1', answer: 'B' }
+             }
+           });
+         });
+
+         // Verify server state takes precedence
+         expect(result.current.activeMatch?.answers[mockUser1.id].answer).toBe('B');
+       });
+     });
+   });
+
+   // src/features/matching/__tests__/MatchList.test.tsx
+   describe('MatchList', () => {
+     it('should render matches with status indicators', () => {
+       const matches = [
+         { id: '1', status: 'active', user: mockUser1 },
+         { id: '2', status: 'pending', user: mockUser2 }
+       ];
+
+       const { getAllByTestId } = renderWithProviders(
+         <MatchList matches={matches} />,
+         { matching: true }
+       );
+
+       const items = getAllByTestId('match-item');
+       expect(items).toHaveLength(2);
+       expect(items[0]).toHaveAttribute('data-status', 'active');
+     });
+
+     it('should handle match selection', async () => {
+       const onSelect = jest.fn();
+       const { getByText } = renderWithProviders(
+         <MatchList onSelect={onSelect} />,
+         { matching: true }
+       );
+
+       await userEvent.click(getByText(mockUser1.name));
+       expect(onSelect).toHaveBeenCalledWith(mockUser1.id);
+     });
+   });
+
+   // src/features/matching/__tests__/HeadToHead.test.tsx
+   describe('HeadToHead', () => {
+     it('should synchronize match state', async () => {
+       const { getByTestId } = renderWithProviders(
+         <HeadToHead matchId="123" />,
+         { matching: true }
+       );
+
+       // Simulate opponent action
+       mockWebSocket.emit('match:action', {
+         matchId: '123',
+         action: 'ready'
+       });
+
+       await waitFor(() => {
+         expect(getByTestId('opponent-status')).toHaveTextContent('Ready');
+       });
+     });
+
+     it('should handle network latency', async () => {
+       server.use(
+         rest.post('/api/matches/:id/action', async (req, res, ctx) => {
+           await delay(1000);
+           return res(ctx.json({ status: 'success' }));
+         })
+       );
+
+       const { getByRole } = renderWithProviders(
+         <HeadToHead matchId="123" />,
+         { matching: true }
+       );
+
+       await userEvent.click(getByRole('button', { name: /ready/i }));
+       expect(getByRole('button')).toBeDisabled();
+       expect(getByRole('progressbar')).toBeInTheDocument();
+     });
+   });
+   ```
+
 ### Phase 5: Quiz Feature (Week 3)
 1. **Extract Quiz Components**
    ```typescript
@@ -679,6 +975,302 @@ graph TD
    - Network resilience
    - State recovery
    - Real-time updates
+
+6. **Testing Strategy**
+   ```typescript
+   // src/features/quiz/__tests__/QuizContext.test.tsx
+   describe('QuizContext', () => {
+     it('should manage quiz session lifecycle', async () => {
+       const { result } = renderHook(() => useQuiz(), {
+         wrapper: QuizProvider
+       });
+
+       await act(async () => {
+         await result.current.actions.startQuiz({ type: 'standard' });
+       });
+
+       expect(result.current.status).toBe('active');
+       expect(result.current.currentQuestion).toBeDefined();
+
+       await act(async () => {
+         await result.current.actions.submitAnswer({
+           questionId: '1',
+           answer: 'test'
+         });
+       });
+
+       expect(result.current.answers['1']).toBeDefined();
+     });
+
+     it('should handle timer expiration', async () => {
+       jest.useFakeTimers();
+       
+       const { result } = renderHook(() => useQuiz());
+       
+       await act(async () => {
+         await result.current.actions.startQuiz({ 
+           type: 'timed',
+           duration: 60 
+         });
+       });
+
+       act(() => {
+         jest.advanceTimersByTime(60000);
+       });
+
+       expect(result.current.status).toBe('completed');
+       expect(result.current.results).toBeDefined();
+     });
+
+     // Add real-time synchronization tests
+     describe('Real-time Quiz Sync', () => {
+       it('should synchronize quiz state between participants', async () => {
+         const { result } = renderHook(() => useQuiz());
+         
+         await act(async () => {
+           await result.current.actions.startQuiz({ type: 'head_to_head' });
+         });
+
+         // Simulate opponent answer
+         mockWebSocket.emit('quiz:answer', {
+           userId: 'opponent',
+           questionId: '1',
+           answer: 'B',
+           timeSpent: 5
+         });
+
+         await waitFor(() => {
+           expect(result.current.opponentProgress).toBe(1);
+           expect(result.current.opponentTimeSpent).toBe(5);
+         });
+       });
+
+       it('should handle answer race conditions', async () => {
+         const { result } = renderHook(() => useQuiz());
+         
+         // Both users answer almost simultaneously
+         await act(async () => {
+           result.current.actions.submitAnswer({
+             questionId: '1',
+             answer: 'A',
+             timestamp: Date.now()
+           });
+
+           // Simulate slightly earlier opponent answer
+           mockWebSocket.emit('quiz:answer', {
+             userId: 'opponent',
+             questionId: '1',
+             answer: 'A',
+             timestamp: Date.now() - 100
+           });
+         });
+
+         expect(result.current.answerOrder).toEqual(['opponent', 'user']);
+       });
+     });
+
+     // Add state recovery tests
+     describe('State Recovery', () => {
+       it('should restore quiz state after disconnection', async () => {
+         const { result } = renderHook(() => useQuiz());
+         
+         // Setup initial quiz state
+         await act(async () => {
+           await result.current.actions.startQuiz({ type: 'standard' });
+           await result.current.actions.submitAnswer({
+             questionId: '1',
+             answer: 'A'
+           });
+         });
+
+         // Simulate disconnect/reconnect
+         mockWebSocket.disconnect();
+         mockWebSocket.connect();
+
+         await waitFor(() => {
+           expect(result.current.answers['1']).toBeDefined();
+           expect(result.current.currentQuestion.id).toBe('2');
+         });
+       });
+
+       it('should handle partial state updates', async () => {
+         const { result } = renderHook(() => useQuiz());
+         
+         await act(async () => {
+           await result.current.actions.startQuiz({ type: 'standard' });
+         });
+
+         // Simulate partial state update
+         mockWebSocket.emit('quiz:state', {
+           answers: { '1': { answer: 'A' } },
+           currentQuestion: { id: '2' }
+         });
+
+         expect(result.current.timeRemaining).toBeDefined();
+       });
+     });
+
+     // Add performance tests
+     describe('Performance', () => {
+       it('should batch state updates', async () => {
+         const { result } = renderHook(() => useQuiz());
+         const renderSpy = jest.spyOn(React, 'createElement');
+         
+         await act(async () => {
+           // Simulate rapid answers
+           for (let i = 0; i < 5; i++) {
+             mockWebSocket.emit('quiz:answer', {
+               userId: `user${i}`,
+               questionId: '1',
+               answer: 'A'
+             });
+           }
+         });
+
+         // Should batch updates
+         expect(renderSpy).toHaveBeenCalledTimes(2);
+       });
+
+       it('should debounce state broadcasts', async () => {
+         const { result } = renderHook(() => useQuiz());
+         const broadcastSpy = jest.spyOn(mockWebSocket, 'send');
+         
+         await act(async () => {
+           // Rapid local state changes
+           for (let i = 0; i < 5; i++) {
+             result.current.actions.updateProgress(i);
+           }
+         });
+
+         // Should debounce to single broadcast
+         expect(broadcastSpy).toHaveBeenCalledTimes(1);
+       });
+     });
+   });
+
+   // Add shared performance tests
+   describe('Performance Tests', () => {
+     describe('Matching Performance', () => {
+       it('should maintain render performance under load', async () => {
+         const { result } = renderHook(() => useMatching());
+         performance.mark('matching-start');
+
+         await act(async () => {
+           // Simulate 100 rapid match updates
+           for (let i = 0; i < 100; i++) {
+             mockWebSocket.emit('match:update', {
+               matchId: '123',
+               participants: generateParticipants(10)
+             });
+           }
+         });
+
+         performance.mark('matching-end');
+         const measure = performance.measure(
+           'matching-updates',
+           'matching-start',
+           'matching-end'
+         );
+
+         expect(measure.duration).toBeLessThan(100); // 100ms budget
+       });
+
+       it('should handle large participant lists efficiently', async () => {
+         const { result } = renderHook(() => useMatching());
+         const participants = generateParticipants(1000);
+
+         performance.mark('participants-start');
+         
+         await act(async () => {
+           mockWebSocket.emit('match:update', {
+             matchId: '123',
+             participants
+           });
+         });
+
+         performance.mark('participants-end');
+         const measure = performance.measure(
+           'participants-render',
+           'participants-start',
+           'participants-end'
+         );
+
+         expect(measure.duration).toBeLessThan(16); // Single frame budget
+       });
+     });
+
+     describe('Quiz Performance', () => {
+       it('should maintain timer accuracy under load', async () => {
+         jest.useFakeTimers();
+         const { result } = renderHook(() => useQuiz());
+         
+         await act(async () => {
+           await result.current.actions.startQuiz({
+             type: 'timed',
+             duration: 60
+           });
+
+           // Simulate heavy load
+           for (let i = 0; i < 100; i++) {
+             mockWebSocket.emit('quiz:update', { /* ... */ });
+           }
+
+           jest.advanceTimersByTime(30000); // 30 seconds
+         });
+
+         expect(result.current.timeRemaining).toBe(30);
+       });
+
+       it('should optimize answer submissions under network latency', async () => {
+         const { result } = renderHook(() => useQuiz());
+         server.use(
+           rest.post('/api/quiz/answer', async (req, res, ctx) => {
+             await delay(1000); // High latency
+             return res(ctx.json({ status: 'success' }));
+           })
+         );
+
+         performance.mark('answer-start');
+         
+         await act(async () => {
+           // Submit multiple answers rapidly
+           for (let i = 0; i < 5; i++) {
+             result.current.actions.submitAnswer({
+               questionId: String(i),
+               answer: 'A'
+             });
+           }
+         });
+
+         performance.mark('answer-end');
+         const measure = performance.measure(
+           'answer-submissions',
+           'answer-start',
+           'answer-end'
+         );
+
+         // Should handle high latency gracefully
+         expect(measure.duration).toBeLessThan(1200); // 1.2s budget
+       });
+     });
+
+     describe('Memory Usage', () => {
+       it('should clean up resources properly', async () => {
+         const { unmount } = renderHook(() => useMatching());
+         const initialMemory = performance.memory?.usedJSHeapSize;
+
+         // Create and cleanup 100 matches
+         for (let i = 0; i < 100; i++) {
+           const { unmount } = renderHook(() => useMatching());
+           unmount();
+         }
+
+         const finalMemory = performance.memory?.usedJSHeapSize;
+         expect(finalMemory - initialMemory).toBeLessThan(1000000); // 1MB budget
+       });
+     });
+   });
+   ```
 
 ## Verification Strategy
 
