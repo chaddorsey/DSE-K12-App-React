@@ -1,0 +1,60 @@
+.settings-form {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.settings-form__field {
+  margin-bottom: 1.5rem;
+}
+
+.settings-form__field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.settings-form__field select,
+.settings-form__field input[type="text"] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.settings-form__field input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+.settings-form__field .error {
+  display: block;
+  margin-top: 0.25rem;
+  color: #dc3545;
+  font-size: 0.875rem;
+}
+
+.settings-form__submit {
+  width: 100%;
+  padding: 0.75rem;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.settings-form__submit:hover {
+  background: #0052a3;
+}
+
+.settings-form__submit:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+} 
