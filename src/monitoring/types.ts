@@ -2,38 +2,43 @@
  * Core monitoring types for application-wide tracking
  */
 
+import { PerformanceEventType } from './MonitoringService';
+
 export interface IPerformanceMetrics {
-  componentRender: number;
-  stateUpdate: number;
-  apiCall: number;
+  type: PerformanceEventType;
+  component?: string;
+  timestamp?: number;
   totalTime: number;
-  timestamp: number;
+  queryKey?: string;
+  duration?: number;
+  componentRender?: number;
+  stateUpdate?: number;
+  apiCall?: number;
+  metadata?: Record<string, any>;
 }
 
 export interface IStateTransition {
   from: string;
   to: string;
+  action: string;
   timestamp: number;
-  duration: number;
-  success: boolean;
-  component?: string;
-  error?: Error;
+  metadata?: Record<string, any>;
 }
 
 export interface IErrorReport {
   error: Error;
-  componentStack?: string;
   context: Record<string, unknown>;
   timestamp: number;
   handled: boolean;
 }
 
 export interface IAnalyticsEvent {
-  category: 'ui' | 'error' | 'performance' | 'state';
+  type: string;
+  category: string;
   action: string;
   label?: string;
   value?: number;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, any>;
 }
 
 export interface IPerformanceBaseline {

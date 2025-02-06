@@ -9,6 +9,21 @@ import {
   IAnalyticsEvent 
 } from './types';
 
+/**
+ * Types for performance metrics
+ */
+export type PerformanceEventType = 
+  | 'query_cache_hit'
+  | 'query_cache_miss'
+  | 'query_error'
+  | 'query_start'
+  | 'query_complete'
+  | 'query_dedupe'
+  | 'query_execute'
+  | 'query_invalidate'
+  | 'query_cache_init'
+  | 'cache_update';
+
 export class MonitoringService {
   private static instance: MonitoringService;
   private transitions: IStateTransition[] = [];
@@ -44,11 +59,10 @@ export class MonitoringService {
     this.checkHealthMetrics();
   }
 
-  public trackPerformance(metrics: Omit<IPerformanceMetrics, 'totalTime'>): void {
-    const totalTime = metrics.componentRender + metrics.stateUpdate + metrics.apiCall;
+  public trackPerformance(metrics: IPerformanceMetrics): void {
     this.metrics.push({
       ...metrics,
-      totalTime
+      timestamp: metrics.timestamp || Date.now()
     });
     this.checkHealthMetrics();
   }

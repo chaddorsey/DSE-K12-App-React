@@ -3,7 +3,7 @@
  */
 
 import React, { createContext, useCallback, useRef, useMemo } from 'react';
-import { MonitoringService } from '../monitoring/MonitoringService';
+import { MonitoringService, PerformanceEventType } from '../monitoring/MonitoringService';
 
 interface IQueryCache {
   [key: string]: {
@@ -24,6 +24,16 @@ export const QueryContext = createContext<IQueryContext | null>(null);
 interface IQueryProviderProps {
   children: React.ReactNode;
   maxAge?: number; // Cache TTL in ms
+}
+
+type QueryEventType = PerformanceEventType;
+
+interface IQueryEvent {
+  type: QueryEventType;
+  queryKey: string;
+  duration?: number;
+  error?: Error;
+  data?: any;
 }
 
 export function QueryProvider({ 
@@ -50,6 +60,7 @@ export function QueryProvider({
           type: 'query_cache_hit',
           component: 'QueryProvider',
           totalTime: 0,
+          queryKey: key,
           metadata: { key }
         });
         return data;
@@ -62,6 +73,7 @@ export function QueryProvider({
         type: 'query_dedupe',
         component: 'QueryProvider',
         totalTime: 0,
+        queryKey: key,
         metadata: { key }
       });
       return cache[key].promise;
@@ -74,12 +86,15 @@ export function QueryProvider({
       cache[key] = { ...cache[key], promise };
 
       const data = await promise;
+      const queryDuration = Date.now() - queryStart;
       cache[key] = { data, timestamp: now };
 
       monitoring.trackPerformance({
         type: 'query_execute',
         component: 'QueryProvider',
-        totalTime: Date.now() - queryStart,
+        totalTime: queryDuration,
+        queryKey: key,
+        duration: queryDuration,
         metadata: { key, success: true }
       });
 
@@ -89,6 +104,7 @@ export function QueryProvider({
       monitoring.trackError(error as Error, {
         type: 'query_execute',
         component: 'QueryProvider',
+        queryKey: key,
         metadata: { key }
       });
       throw error;
@@ -102,6 +118,7 @@ export function QueryProvider({
       type: 'query_invalidate',
       component: 'QueryProvider',
       totalTime: 0,
+      queryKey: key,
       metadata: { key }
     });
   }, []);
@@ -119,6 +136,21 @@ export function QueryProvider({
       type: 'query_cache_init',
       component: 'QueryProvider',
       totalTime: Date.now() - startTime.current
+    });
+  }, []);
+
+  const trackQueryEvent = useCallback((event: IQueryEvent) => {
+    monitoring.trackPerformance({
+      type: event.type,
+      component: 'QueryProvider',
+      totalTime: event.duration || 0,
+      queryKey: event.queryKey,
+      duration: event.duration,
+      metadata: {
+        cacheSize: Object.keys(cacheRef.current).length,
+        error: event.error,
+        data: event.data
+      }
     });
   }, []);
 
