@@ -1,0 +1,41 @@
+name: Bundle Status
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build and analyze
+        run: |
+          npm run build
+          npm run track-size
+      
+      - name: Update status badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: bundle-size-status
+          filename: bundle-status.json
+          label: bundle size
+          message: ${{ env.BUNDLE_SIZE }}KB
+          color: ${{ env.BUNDLE_COLOR }}
+        env:
+          BUNDLE_SIZE: ${{ steps.analyze.outputs.size }}
+          BUNDLE_COLOR: ${{ steps.analyze.outputs.color }} 

@@ -1,0 +1,67 @@
+name: Bundle Size Check
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'webpack.config.ts'
+      - 'package.json'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build production bundle
+        run: npm run build
+      
+      - name: Check bundle size
+        id: size
+        run: npm run check-size
+      
+      - name: Comment PR
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const stats = JSON.parse(fs.readFileSync('bundle-stats.json', 'utf8'));
+            const latest = stats[stats.length - 1];
+            
+            let body = '## Bundle Size Analysis\n\n';
+            body += '| Chunk | Size |\n';
+            body += '|-------|------|\n';
+            
+            latest.chunks.forEach(chunk => {
+              const size = (chunk.size / 1024).toFixed(2);
+              body += `| ${chunk.name} | ${size}KB |\n`;
+            });
+            
+            const total = (latest.totalSize / 1024).toFixed(2);
+            body += `\n**Total Size:** ${total}KB\n`;
+            
+            if (stats.length > 1) {
+              const prev = stats[stats.length - 2];
+              const diff = latest.totalSize - prev.totalSize;
+              const change = (diff / 1024).toFixed(2);
+              const symbol = diff > 0 ? '📈' : '📉';
+              body += `\n**Change:** ${symbol} ${change}KB\n`;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            }); 
