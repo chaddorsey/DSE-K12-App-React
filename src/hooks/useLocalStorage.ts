@@ -48,13 +48,12 @@ export function useLocalStorage<T>(
       return parsed;
     } catch (error) {
       monitoring.trackError(error as Error, {
-        operation: 'storage_read',
+        type: 'storage_read',
         key,
-        ...(error instanceof Error && error.name === 'SyntaxError' 
-          ? { type: 'parse_error' } 
-          : { type: 'validation_error' })
+        metadata: {
+          errorType: error instanceof SyntaxError ? 'parse_error' : 'validation_error'
+        }
       });
-
       options.onError?.(error as Error);
       return initialValue;
     }
@@ -74,16 +73,17 @@ export function useLocalStorage<T>(
       monitoring.trackPerformance({
         type: 'storage_write',
         key,
+        totalTime: 0,
         success: true
       });
     } catch (error) {
       monitoring.trackError(error as Error, {
-        operation: 'storage_write',
+        type: 'storage_write',
         key
       });
       options.onError?.(error as Error);
     }
-  }, [key, options.onError]);
+  }, [key]);
 
   // Listen for changes across tabs/windows
   useEffect(() => {
@@ -105,11 +105,12 @@ export function useLocalStorage<T>(
           monitoring.trackPerformance({
             type: 'storage_sync',
             key,
+            totalTime: 0,
             success: true
           });
         } catch (error) {
           monitoring.trackError(error as Error, {
-            operation: 'storage_sync',
+            type: 'storage_sync',
             key
           });
           options.onError?.(error as Error);
@@ -119,7 +120,7 @@ export function useLocalStorage<T>(
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [key, options.schema, options.onError]);
+  }, [key, options.schema]);
 
   return [storedValue, setValue];
 } 

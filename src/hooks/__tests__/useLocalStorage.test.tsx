@@ -2,7 +2,7 @@
  * Tests for useLocalStorage hook
  */
 
-import { renderHook, act } from '../testing/renderHook';
+import { renderHook, act } from '@testing-library/react';
 import { useLocalStorage } from '../useLocalStorage';
 import { mockMonitoring } from '../testing/mockMonitoring';
 
@@ -14,79 +14,75 @@ describe('useLocalStorage', () => {
     jest.clearAllMocks();
   });
 
-  describe('basic functionality', () => {
-    it('should get initial value from localStorage', () => {
-      localStorage.setItem('test-key', JSON.stringify('stored value'));
-      
-      const { result } = renderHook(() => 
-        useLocalStorage('test-key', 'default')
-      );
+  it('should get initial value from localStorage', () => {
+    localStorage.setItem('test-key', JSON.stringify('stored value'));
+    
+    const { result } = renderHook(() => 
+      useLocalStorage('test-key', 'default')
+    );
 
-      expect(result.current[0]).toBe('stored value');
-    });
-
-    it('should use default value if nothing in storage', () => {
-      const { result } = renderHook(() => 
-        useLocalStorage('test-key', 'default')
-      );
-
-      expect(result.current[0]).toBe('default');
-    });
-
-    it('should update value in localStorage', () => {
-      const { result } = renderHook(() => 
-        useLocalStorage('test-key', 'initial')
-      );
-
-      act(() => {
-        result.current[1]('updated');
-      });
-
-      expect(result.current[0]).toBe('updated');
-      expect(JSON.parse(localStorage.getItem('test-key')!)).toBe('updated');
-    });
+    expect(result.current[0]).toBe('stored value');
   });
 
-  describe('error handling', () => {
-    it('should handle invalid JSON in storage', () => {
-      localStorage.setItem('test-key', 'invalid json');
-      
-      const { result } = renderHook(() => 
-        useLocalStorage('test-key', 'default')
-      );
+  it('should use default value if nothing in storage', () => {
+    const { result } = renderHook(() => 
+      useLocalStorage('test-key', 'default')
+    );
 
-      expect(result.current[0]).toBe('default');
-      expect(mockMonitors.trackError).toHaveBeenCalledWith(
-        expect.any(Error),
-        expect.objectContaining({
-          operation: 'storage_read',
-          key: 'test-key'
-        })
-      );
+    expect(result.current[0]).toBe('default');
+  });
+
+  it('should update value in localStorage', () => {
+    const { result } = renderHook(() => 
+      useLocalStorage('test-key', 'initial')
+    );
+
+    act(() => {
+      result.current[1]('updated');
     });
 
-    it('should handle storage errors', () => {
-      const error = new Error('Storage quota exceeded');
-      jest.spyOn(localStorage, 'setItem').mockImplementation(() => {
-        throw error;
-      });
+    expect(result.current[0]).toBe('updated');
+    expect(JSON.parse(localStorage.getItem('test-key')!)).toBe('updated');
+  });
 
-      const { result } = renderHook(() => 
-        useLocalStorage('test-key', 'initial')
-      );
+  it('should handle invalid JSON in storage', () => {
+    localStorage.setItem('test-key', 'invalid json');
+    
+    const { result } = renderHook(() => 
+      useLocalStorage('test-key', 'default')
+    );
 
-      act(() => {
-        result.current[1]('updated');
-      });
+    expect(result.current[0]).toBe('default');
+    expect(mockMonitors.trackError).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        type: 'storage_read',
+        key: 'test-key'
+      })
+    );
+  });
 
-      expect(mockMonitors.trackError).toHaveBeenCalledWith(
-        error,
-        expect.objectContaining({
-          operation: 'storage_write',
-          key: 'test-key'
-        })
-      );
+  it('should handle storage errors', () => {
+    const error = new Error('Storage quota exceeded');
+    jest.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw error;
     });
+
+    const { result } = renderHook(() => 
+      useLocalStorage('test-key', 'initial')
+    );
+
+    act(() => {
+      result.current[1]('updated');
+    });
+
+    expect(mockMonitors.trackError).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({
+        type: 'storage_write',
+        key: 'test-key'
+      })
+    );
   });
 
   describe('type safety', () => {
