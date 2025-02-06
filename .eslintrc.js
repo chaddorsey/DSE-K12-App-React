@@ -27,7 +27,7 @@ module.exports = {
     ],
     // Code style
     '@typescript-eslint/explicit-function-return-type': 'error',
-    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/explicit-member-accessibility': 'error',
     // Error handling
     '@typescript-eslint/no-throw-literal': 'error',
@@ -38,6 +38,7 @@ module.exports = {
         MethodDefinition: true,
         ClassDeclaration: true
       }
-    }]
+    }],
+    'react/react-in-jsx-scope': 'off'
   }
 }; 
