@@ -1,11 +1,14 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { NetworkStatusIndicator } from '../NetworkStatusIndicator';
-import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+import { useNetworkStatus } from '../../../hooks';
 import { usePerformanceMonitoring } from '../../../monitoring/hooks/useMonitoring';
 
 // Mock hooks
-jest.mock('../../../hooks/useNetworkStatus');
+jest.mock('../../../hooks/useNetworkStatus', () => ({
+  useNetworkStatus: jest.fn()
+}));
+
 jest.mock('../../../monitoring/hooks/useMonitoring', () => ({
   usePerformanceMonitoring: jest.fn()
 }));

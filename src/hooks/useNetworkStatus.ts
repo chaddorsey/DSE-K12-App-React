@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NetworkClient } from '../utils/NetworkClient';
 import { NetworkMonitor } from '../utils/NetworkMonitor';
-import type { INetworkStatus } from '../utils/NetworkMonitor';
 
-export interface NetworkStatusHook {
+export interface NetworkStatus {
   online: boolean;
   loading: boolean;
   lastChecked: string;
@@ -13,8 +12,8 @@ export interface NetworkStatusHook {
 const networkMonitor = new NetworkMonitor();
 const networkClient = new NetworkClient(networkMonitor);
 
-export const useNetworkStatus = (): NetworkStatusHook => {
-  const [status, setStatus] = useState<NetworkStatusHook>({
+export const useNetworkStatus = (): NetworkStatus => {
+  const [status, setStatus] = useState<NetworkStatus>({
     online: networkMonitor.getStatus().isOnline,
     loading: true,
     lastChecked: new Date().toISOString()
@@ -39,7 +38,7 @@ export const useNetworkStatus = (): NetworkStatusHook => {
       }
     };
 
-    const handleStatusChange = (newStatus: INetworkStatus) => {
+    const handleStatusChange = (newStatus: { isOnline: boolean }) => {
       setStatus(prev => ({
         ...prev,
         online: newStatus.isOnline,
@@ -47,13 +46,9 @@ export const useNetworkStatus = (): NetworkStatusHook => {
       }));
     };
 
-    // Subscribe to network status changes
     networkMonitor.subscribe(handleStatusChange);
-    
-    // Initial check
     checkStatus();
 
-    // Poll every 30 seconds
     const interval = setInterval(checkStatus, 30000);
 
     return () => {

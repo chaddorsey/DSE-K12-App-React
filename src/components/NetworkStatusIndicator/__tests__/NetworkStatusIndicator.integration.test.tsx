@@ -11,12 +11,21 @@ jest.mock('../../../utils/NetworkMonitor');
 
 // Create properly typed mock for NetworkMonitor
 const mockNetworkMonitor = {
-  getStatus: jest.fn().mockReturnValue({ isOnline: true } as INetworkStatus),
+  getStatus: jest.fn().mockReturnValue({ isOnline: true }),
   detectPortalRedirect: jest.fn().mockReturnValue(false),
   subscribe: jest.fn(),
-  checkConnection: jest.fn().mockResolvedValue({ isOnline: true } as INetworkStatus),
-  destroy: jest.fn()
-} as jest.Mocked<NetworkMonitor>;
+  checkConnection: jest.fn().mockResolvedValue({ isOnline: true }),
+  destroy: jest.fn(),
+  status: { isOnline: true },
+  listeners: new Set(),
+  pingEndpoint: 'https://api.example.com/ping',
+  checkInterval: 30000,
+  maxRetries: 3,
+  retryDelay: 1000,
+  timeoutMs: 5000,
+  portalCheckEnabled: true,
+  portalCheckUrl: 'http://detectportal.firefox.com'
+} as unknown as jest.Mocked<NetworkMonitor>;
 
 // Create NetworkClient instance with mock
 const mockNetworkClient = new NetworkClient(mockNetworkMonitor);
