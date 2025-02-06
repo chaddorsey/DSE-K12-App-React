@@ -22,10 +22,11 @@ export function FormProvider<T extends Record<string, unknown>>({
 
   useEffect(() => {
     monitoring.trackPerformance({
-      type: 'form_init',
-      formId: formId || 'unknown',
+      type: 'interaction',
       success: true,
-      duration: Date.now() - startTime
+      totalTime: Date.now() - startTime,
+      duration: Date.now() - startTime,
+      metadata: { type: 'submit' }
     });
   }, [formId, monitoring, startTime]);
 
