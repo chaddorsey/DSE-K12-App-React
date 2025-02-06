@@ -1,15 +1,41 @@
 /**
- * Hook for monitoring component performance
+ * Hook for monitoring component performance including renders, interactions, and custom measurements.
+ * Integrates with the global monitoring service to track performance metrics.
+ *
+ * @example
+ * ```tsx
+ * function MyComponent() {
+ *   const { trackInteraction, mark, measure } = usePerformanceMonitoring('MyComponent');
+ *
+ *   const handleClick = async () => {
+ *     await trackInteraction('button_click', async () => {
+ *       // Async operation here
+ *     });
+ *   };
+ *
+ *   return <button onClick={handleClick}>Click Me</button>;
+ * }
+ * ```
+ *
+ * @param componentName - Unique identifier for the component
+ * @param options - Configuration options
+ * @param options.tags - Custom tags to include with all performance metrics
+ * @returns Object containing performance tracking utilities
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { MonitoringService } from '../monitoring/MonitoringService';
 
 interface IPerformanceMonitoringOptions {
+  /** Custom tags to include with all performance metrics */
   tags?: Record<string, string>;
 }
 
+/**
+ * Metadata for tracking interactions
+ */
 interface IInteractionMetadata {
+  /** Custom key-value pairs for additional context */
   [key: string]: string;
 }
 

@@ -13,6 +13,7 @@ import {
  * Types for performance metrics
  */
 export type PerformanceEventType = 
+  // Query events
   | 'query_cache_hit'
   | 'query_cache_miss'
   | 'query_error'
@@ -22,7 +23,14 @@ export type PerformanceEventType =
   | 'query_execute'
   | 'query_invalidate'
   | 'query_cache_init'
-  | 'cache_update';
+  | 'cache_update'
+  // Component events
+  | 'render'
+  | 'interaction'
+  | 'measure'
+  // Performance events
+  | 'performance_mark'
+  | 'performance_measure';
 
 export class MonitoringService {
   private static instance: MonitoringService;

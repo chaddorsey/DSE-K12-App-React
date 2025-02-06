@@ -14,6 +14,14 @@ export interface IPerformanceMetrics {
   componentRender?: number;
   stateUpdate?: number;
   apiCall?: number;
+  // Performance monitoring fields
+  isInitial?: boolean;
+  interaction?: string;
+  name?: string;
+  tags?: string[] | Record<string, string>;
+  success?: boolean;
+  error?: Error;
+  // Keep metadata for additional properties
   metadata?: Record<string, any>;
 }
 
