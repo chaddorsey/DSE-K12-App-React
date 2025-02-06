@@ -1,212 +1,322 @@
 /**
- * Search results component with virtualization and monitoring
+ * SearchResults component for handling search input, results display, and error states
  */
 
-import React, { useCallback, useMemo } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { usePerformanceMonitoring } from '../hooks/usePerformanceMonitoring';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '../hooks/useQuery';
 import { useDebounce } from '../hooks/useDebounce';
+import { MonitoringService } from '../monitoring/MonitoringService';
 
-interface ISearchResult {
-  id: number;
+interface SearchResult {
+  id: string;
   title: string;
+  description: string;
+  metadata?: Record<string, any>;
 }
 
-interface ISearchResultsProps {
-  results: ISearchResult[];
-  isLoading?: boolean;
-  error?: Error;
-  pageSize?: number;
-  totalResults?: number;
-  onPageChange?: (page: number) => void;
-  onSort?: (field: string, direction: 'asc' | 'desc') => void;
-  onFilter?: (filters: Record<string, string>) => void;
-  onSearch?: (query: string) => void;
-  onRetry?: () => void;
+interface SearchFilters {
+  sortBy?: 'relevance' | 'date' | 'title';
+  sortOrder?: 'asc' | 'desc';
+  categories?: string[];
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
 }
+
+interface FilterOption {
+  id: string;
+  label: string;
+  value: string;
+}
+
+interface FilterGroup {
+  id: string;
+  label: string;
+  options: FilterOption[];
+}
+
+interface SearchResultsProps {
+  initialQuery?: string;
+  onSearch: (query: string, filters: SearchFilters) => Promise<SearchResult[]>;
+  onResultSelect?: (result: SearchResult) => void;
+  viewMode?: 'grid' | 'list';
+  pageSize?: number;
+  debounceMs?: number;
+  renderResult?: (result: SearchResult) => React.ReactNode;
+  filterGroups?: FilterGroup[];
+  onTypeahead?: (query: string) => Promise<SearchResult[]>;
+  typeaheadDebounceMs?: number;
+  minTypeaheadLength?: number;
+}
+
+const defaultFilters: FilterGroup[] = [
+  {
+    id: 'category',
+    label: 'Category',
+    options: [
+      { id: 'tutorials', label: 'Tutorials', value: 'tutorials' },
+      { id: 'articles', label: 'Articles', value: 'articles' },
+      { id: 'videos', label: 'Videos', value: 'videos' }
+    ]
+  },
+  {
+    id: 'sort',
+    label: 'Sort by',
+    options: [
+      { id: 'relevance', label: 'Relevance', value: 'relevance' },
+      { id: 'date', label: 'Date', value: 'date' },
+      { id: 'title', label: 'Title', value: 'title' }
+    ]
+  }
+];
 
 export function SearchResults({
-  results,
-  isLoading,
-  error,
-  pageSize = 10,
-  totalResults = results.length,
-  onPageChange,
-  onSort,
-  onFilter,
+  initialQuery = '',
   onSearch,
-  onRetry
-}: ISearchResultsProps) {
-  const { trackInteraction } = usePerformanceMonitoring('SearchResults', {
-    tags: { resultCount: results.length.toString() }
-  });
+  onResultSelect,
+  viewMode = 'list',
+  pageSize = 10,
+  debounceMs = 300,
+  renderResult,
+  filterGroups = defaultFilters,
+  onTypeahead,
+  typeaheadDebounceMs = 200,
+  minTypeaheadLength = 2,
+}: SearchResultsProps) {
+  const monitoring = MonitoringService.getInstance();
+  const [query, setQuery] = useState(initialQuery);
+  const debouncedQuery = useDebounce<string>(query, debounceMs);
+  const [filters, setFilters] = useState<SearchFilters>({});
+  const [showTypeahead, setShowTypeahead] = useState(false);
+  const debouncedTypeaheadQuery = useDebounce<string>(query, typeaheadDebounceMs);
 
-  // Virtual list setup
-  const parentRef = React.useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: results.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 50,
-    overscan: 5
-  });
-
-  // Debounced search
-  const debouncedSearch = useDebounce(onSearch, 300, {
-    monitoringKey: 'search_input'
-  });
-
-  // Pagination
-  const currentPage = Math.ceil(results.length / pageSize);
-  const totalPages = Math.ceil(totalResults / pageSize);
-  const hasNextPage = currentPage < totalPages;
-  const hasPrevPage = currentPage > 1;
-
-  const handlePageChange = useCallback((page: number) => {
-    onPageChange?.(page);
-    trackInteraction('page_change', {
-      metadata: { page }
-    });
-  }, [onPageChange, trackInteraction]);
-
-  // Sorting
-  const handleSort = useCallback((field: string, direction: 'asc' | 'desc') => {
-    onSort?.(field, direction);
-    trackInteraction('sort_change', {
-      metadata: { field, direction }
-    });
-  }, [onSort, trackInteraction]);
-
-  // Result click handling
-  const handleResultClick = useCallback((result: ISearchResult) => {
-    trackInteraction('result_click', {
-      metadata: { resultId: result.id.toString() }
-    });
-  }, [trackInteraction]);
-
-  // Keyboard navigation
-  const handleKeyDown = useCallback((event: React.KeyboardEvent, index: number) => {
-    if (event.key === 'ArrowDown' && index < results.length - 1) {
-      const nextElement = document.querySelector(`[data-index="${index + 1}"]`);
-      (nextElement as HTMLElement)?.focus();
-    } else if (event.key === 'ArrowUp' && index > 0) {
-      const prevElement = document.querySelector(`[data-index="${index - 1}"]`);
-      (prevElement as HTMLElement)?.focus();
+  // Use QueryProvider for caching
+  const { data: results, error, isLoading } = useQuery(
+    `search:${debouncedQuery}:${JSON.stringify(filters)}`,
+    async () => {
+      const startTime = Date.now();
+      try {
+        const results = await onSearch(debouncedQuery, filters);
+        monitoring.trackPerformance({
+          type: 'search_execute',
+          component: 'SearchResults',
+          totalTime: Date.now() - startTime,
+          queryTime: Date.now() - startTime,
+          resultCount: results.length
+        });
+        return results;
+      } catch (error) {
+        monitoring.trackError(error as Error, {
+          type: 'search_error',
+          component: 'SearchResults'
+        });
+        throw error;
+      }
     }
-  }, [results.length]);
+  );
 
-  // Status message for screen readers
-  const statusMessage = useMemo(() => {
-    if (isLoading) return 'Loading results...';
-    if (error) return 'Error loading results';
-    return `Showing ${results.length} of ${totalResults} results`;
-  }, [isLoading, error, results.length, totalResults]);
+  // Add typeahead query
+  const { data: suggestions } = useQuery(
+    `typeahead:${debouncedTypeaheadQuery}`,
+    async () => {
+      if (!onTypeahead || debouncedTypeaheadQuery.length < minTypeaheadLength) {
+        return [];
+      }
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+      const startTime = Date.now();
+      try {
+        const results = await onTypeahead(debouncedTypeaheadQuery);
+        monitoring.trackPerformance({
+          type: 'typeahead_execute',
+          component: 'SearchResults',
+          totalTime: Date.now() - startTime,
+          resultCount: results.length
+        });
+        return results;
+      } catch (error) {
+        monitoring.trackError(error as Error, {
+          type: 'typeahead_error',
+          component: 'SearchResults'
+        });
+        return [];
+      }
+    }
+  );
+
+  const handleSearchInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+  }, []);
+
+  const handleResultClick = useCallback((result: SearchResult) => {
+    onResultSelect?.(result);
+  }, [onResultSelect]);
+
+  const handleFilterChange = useCallback((groupId: string, value: string) => {
+    const startTime = Date.now();
+    setFilters(prev => {
+      const newFilters = { ...prev };
+      
+      if (groupId === 'sort') {
+        newFilters.sortBy = value as 'relevance' | 'date' | 'title';
+        newFilters.sortOrder = 'desc';
+      } else if (groupId === 'category') {
+        newFilters.categories = [...(prev.categories || [])];
+        if (newFilters.categories.includes(value)) {
+          newFilters.categories = newFilters.categories.filter(c => c !== value);
+        } else {
+          newFilters.categories.push(value);
+        }
+      }
+
+      monitoring.trackPerformance({
+        type: 'search_filter',
+        component: 'SearchResults',
+        totalTime: Date.now() - startTime,
+        interaction: 'filter_change',
+        metadata: {
+          filterType: groupId,
+          value
+        }
+      });
+
+      return newFilters;
+    });
+  }, [monitoring]);
+
+  const handleSuggestionClick = useCallback((suggestion: SearchResult) => {
+    setQuery(suggestion.title);
+    setShowTypeahead(false);
+    monitoring.trackPerformance({
+      type: 'typeahead_select',
+      component: 'SearchResults',
+      totalTime: 0,
+      interaction: 'suggestion_click',
+      metadata: {
+        suggestionId: suggestion.id,
+        value: suggestion.title
+      }
+    });
+  }, [monitoring]);
+
+  // Handle initial query
+  useEffect(() => {
+    if (initialQuery) {
+      setQuery(initialQuery);
+    }
+  }, [initialQuery]);
 
   if (error) {
     return (
-      <div role="alert">
-        <h2>Error loading results</h2>
+      <div data-testid="search-error" role="alert">
+        <h3>Error performing search</h3>
         <p>{error.message}</p>
-        <button onClick={onRetry}>Try Again</button>
       </div>
     );
   }
 
-  if (!results.length) {
-    return <div>No results found</div>;
-  }
-
   return (
-    <div>
-      {/* Search input */}
-      <input
-        type="search"
-        placeholder="Search results..."
-        onChange={e => debouncedSearch(e.target.value)}
-      />
-
-      {/* Filters */}
-      <div role="group" aria-label="Filters">
-        <button
-          aria-label="Filter by category"
-          onClick={() => onFilter?.({ category: 'news' })}
-        >
-          Filter
-        </button>
-      </div>
-
-      {/* Sort controls */}
-      <button
-        aria-label="Sort by date"
-        onClick={() => handleSort('date', 'desc')}
-      >
-        Sort
-      </button>
-
-      {/* Results list */}
-      <div
-        ref={parentRef}
-        style={{ height: '400px', overflow: 'auto' }}
-      >
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative'
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map(virtualRow => {
-            const result = results[virtualRow.index];
-            return (
+    <div className="search-results">
+      <div className="search-input-container">
+        <input
+          type="search"
+          value={query}
+          onChange={handleSearchInput}
+          onFocus={() => setShowTypeahead(true)}
+          onBlur={() => setTimeout(() => setShowTypeahead(false), 200)}
+          placeholder="Search..."
+          className="search-input"
+        />
+        
+        {showTypeahead && suggestions && suggestions.length > 0 && (
+          <div 
+            className="typeahead-suggestions"
+            data-testid="typeahead-suggestions"
+            role="listbox"
+          >
+            {suggestions.map(suggestion => (
               <div
-                key={result.id}
-                data-index={virtualRow.index}
-                className="result-item"
-                data-testid={`result-${result.id}`}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: `${virtualRow.size}px`,
-                  transform: `translateY(${virtualRow.start}px)`
-                }}
-                tabIndex={0}
-                onClick={() => handleResultClick(result)}
-                onKeyDown={e => handleKeyDown(e, virtualRow.index)}
+                key={suggestion.id}
+                data-testid="typeahead-suggestion"
+                role="option"
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="typeahead-suggestion"
               >
-                {result.title}
+                <div className="suggestion-title">{suggestion.title}</div>
+                <div className="suggestion-description">{suggestion.description}</div>
               </div>
-            );
-          })}
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="search-filters" role="group" aria-label="Search filters">
+        {filterGroups.map(group => (
+          <div key={group.id} className="filter-group">
+            <button
+              aria-label={`Filter by ${group.label.toLowerCase()}`}
+              aria-haspopup="listbox"
+              aria-expanded="false"
+            >
+              {group.label}
+            </button>
+            <div role="listbox" aria-label={group.label}>
+              {group.options.map(option => (
+                <div
+                  key={option.id}
+                  role="option"
+                  aria-selected={
+                    group.id === 'sort'
+                      ? filters.sortBy === option.value
+                      : filters.categories?.includes(option.value)
+                  }
+                >
+                  <button
+                    aria-label={option.label}
+                    onClick={() => handleFilterChange(group.id, option.value)}
+                  >
+                    {option.label}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {isLoading && (
+        <div data-testid="search-loading" role="status">
+          Loading results...
         </div>
-      </div>
+      )}
 
-      {/* Pagination */}
-      <div>
-        <button
-          aria-label="Previous page"
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={!hasPrevPage}
-        >
-          Previous
-        </button>
-        <button
-          aria-label="Next page"
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={!hasNextPage}
-        >
-          Next
-        </button>
-      </div>
+      {!isLoading && results?.length === 0 && (
+        <div data-testid="search-empty" role="status">
+          No results found
+        </div>
+      )}
 
-      {/* Status message */}
-      <div role="status" aria-live="polite">
-        {statusMessage}
-      </div>
+      {results && results.length > 0 && (
+        <div className={`results-${viewMode}`}>
+          {results.map(result => (
+            <div
+              key={result.id}
+              data-testid="search-result"
+              onClick={() => handleResultClick(result)}
+              role="listitem"
+            >
+              {renderResult ? (
+                renderResult(result)
+              ) : (
+                <div className="result-item">
+                  <h3>{result.title}</h3>
+                  <p>{result.description}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 } 
