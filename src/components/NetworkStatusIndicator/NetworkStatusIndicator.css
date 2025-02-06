@@ -1,3 +1,48 @@
+.network-status {
+  position: fixed;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 14px;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+.network-status--top {
+  top: 0;
+  transform: translateY(0);
+}
+
+.network-status--bottom {
+  bottom: 0;
+  transform: translateY(0);
+}
+
+.network-status__indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.network-status__indicator.is-online {
+  background-color: #2ecc71;
+}
+
+.network-status__indicator.is-offline {
+  background-color: #e74c3c;
+}
+
+.network-status__latency {
+  opacity: 0.8;
+  font-size: 12px;
+}
+
 .network-status-indicator {
   position: fixed;
   left: 50%;

@@ -1,78 +1,60 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { NetworkStatusIndicator } from '../NetworkStatusIndicator';
-import { NetworkStatus } from '../../../utils/NetworkMonitor';
+import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+
+// Mock hooks and monitoring
+jest.mock('../../../hooks/useNetworkStatus');
+jest.mock('../../../monitoring/hooks/useMonitoring', () => ({
+  usePerformanceMonitoring: jest.fn()
+}));
 
 describe('NetworkStatusIndicator', () => {
-  const createMockMonitor = () => {
-    let currentCallback: ((status: NetworkStatus) => void) | null = null;
-    
-    return {
-      subscribe: jest.fn((cb: (status: NetworkStatus) => void) => {
-        currentCallback = cb;
-        return () => { currentCallback = null; };
-      }),
-      triggerStatusChange: (status: NetworkStatus) => {
-        if (currentCallback) {
-          currentCallback(status);
-        }
-      }
-    };
-  };
+  const mockUseNetworkStatus = useNetworkStatus as jest.Mock;
 
-  it('renders offline status correctly', () => {
-    const mockMonitor = createMockMonitor();
-    
-    render(
-      <NetworkStatusIndicator 
-        monitor={mockMonitor}
-        position="top"
-        showLatency={false}
-      />
-    );
-
-    mockMonitor.triggerStatusChange({
-      isOnline: false,
-      lastChecked: new Date()
-    });
-
-    expect(screen.getByText('Offline')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveClass('offline');
-  });
-
-  it('shows latency when enabled', () => {
-    const mockMonitor = createMockMonitor();
-    
-    render(
-      <NetworkStatusIndicator 
-        monitor={mockMonitor}
-        position="top"
-        showLatency={true}
-      />
-    );
-
-    mockMonitor.triggerStatusChange({
+  beforeEach(() => {
+    mockUseNetworkStatus.mockReturnValue({
       isOnline: true,
-      connectionType: '4g',
       latency: 100,
-      lastChecked: new Date()
+      connectionType: '4g'
     });
-
-    expect(screen.getByText('Good Connection')).toBeInTheDocument();
-    expect(screen.getByText('(100ms)')).toBeInTheDocument();
   });
 
-  it('unsubscribes on unmount', () => {
-    const mockMonitor = createMockMonitor();
-    const { unmount } = render(
-      <NetworkStatusIndicator 
-        monitor={mockMonitor}
-        position="top"
-        showLatency={false}
-      />
-    );
+  it('should render online status', () => {
+    render(<NetworkStatusIndicator />);
+    
+    expect(screen.getByText('Online')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveClass('network-status--top');
+  });
 
-    unmount();
-    expect(mockMonitor.subscribe).toHaveBeenCalled();
+  it('should render offline status', () => {
+    mockUseNetworkStatus.mockReturnValue({
+      isOnline: false,
+      latency: 0,
+      connectionType: 'none'
+    });
+
+    render(<NetworkStatusIndicator />);
+    
+    expect(screen.getByText('Offline')).toBeInTheDocument();
+  });
+
+  it('should show latency when enabled', () => {
+    render(<NetworkStatusIndicator showLatency />);
+    
+    expect(screen.getByText(/100ms/)).toBeInTheDocument();
+    expect(screen.getByText(/4g/)).toBeInTheDocument();
+  });
+
+  it('should render at bottom position', () => {
+    render(<NetworkStatusIndicator position="bottom" />);
+    
+    expect(screen.getByRole('status')).toHaveClass('network-status--bottom');
+  });
+
+  it('should apply custom className', () => {
+    render(<NetworkStatusIndicator className="custom-class" />);
+    
+    expect(screen.getByRole('status')).toHaveClass('custom-class');
   });
 }); 

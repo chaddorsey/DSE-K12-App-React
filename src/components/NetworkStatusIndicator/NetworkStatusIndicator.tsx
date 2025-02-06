@@ -1,63 +1,54 @@
-import React, { useEffect, useState } from 'react';
-import { NetworkStatus } from '../../utils/NetworkMonitor';
-import './NetworkStatusIndicator.css';
+/**
+ * Network status indicator with monitoring
+ */
 
-interface NetworkStatusIndicatorProps {
+import React from 'react';
+import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
+import { NetworkStatusView } from './NetworkStatusView';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { MonitoringService } from '../../monitoring/MonitoringService';
+
+export interface INetworkStatusIndicatorProps {
+  /** Position of the indicator */
   position?: 'top' | 'bottom';
+  /** Whether to show latency information */
   showLatency?: boolean;
-  monitor: {
-    subscribe: (callback: (status: NetworkStatus) => void) => () => void;
-  };
+  /** Custom className */
+  className?: string;
 }
 
-/**
- * NetworkStatusIndicator displays the current network connection status
- * and optionally shows connection latency. Designed for use in conference/hotel
- * environments with potentially unstable WiFi.
- */
-export const NetworkStatusIndicator: React.FC<NetworkStatusIndicatorProps> = ({
+export const NetworkStatusIndicator: React.FC<INetworkStatusIndicatorProps> = ({
   position = 'top',
   showLatency = false,
-  monitor
+  className = ''
 }) => {
-  const [status, setStatus] = useState<NetworkStatus>({
-    isOnline: true,
-    lastChecked: new Date()
-  });
+  usePerformanceMonitoring('NetworkStatusIndicator');
+  const monitoring = MonitoringService.getInstance();
+  
+  const { 
+    isOnline, 
+    latency, 
+    connectionType 
+  } = useNetworkStatus();
 
-  useEffect(() => {
-    // Subscribe to network status updates
-    const unsubscribe = monitor.subscribe(setStatus);
-    return () => unsubscribe();
-  }, [monitor]);
-
-  const getStatusClass = () => {
-    if (!status.isOnline) return 'offline';
-    if (status.connectionType === 'slow-2g' || status.connectionType === '2g') return 'poor';
-    if (status.connectionType === '3g') return 'fair';
-    return 'good';
-  };
-
-  const getStatusText = () => {
-    if (!status.isOnline) return 'Offline';
-    if (status.connectionType === 'slow-2g') return 'Very Slow Connection';
-    if (status.connectionType === '2g') return 'Slow Connection';
-    if (status.connectionType === '3g') return 'Fair Connection';
-    return 'Good Connection';
-  };
+  React.useEffect(() => {
+    monitoring.trackStateTransition({
+      from: 'unknown',
+      to: isOnline ? 'online' : 'offline',
+      success: true,
+      duration: 0,
+      component: 'NetworkStatusIndicator'
+    });
+  }, [isOnline]);
 
   return (
-    <div 
-      className={`network-status-indicator ${position} ${getStatusClass()}`}
-      role="status"
-      aria-live="polite"
-    >
-      <span className="status-text">{getStatusText()}</span>
-      {showLatency && status.latency && (
-        <span className="latency-text">
-          ({Math.round(status.latency)}ms)
-        </span>
-      )}
-    </div>
+    <NetworkStatusView
+      isOnline={isOnline}
+      latency={latency}
+      connectionType={connectionType}
+      position={position}
+      showLatency={showLatency}
+      className={className}
+    />
   );
 }; 
