@@ -6,9 +6,10 @@ import React from 'react';
 import { useApi } from '../../hooks/useApi';
 import { EndpointPath, ResponseType } from '../../api/types/endpoints';
 import { ErrorDisplay } from '../ErrorDisplay/ErrorDisplay';
-import { LoadingSpinner } from '../LoadingSpinner/LoadingSpinner';
+import { LoadingSpinner } from '../LoadingSpinner';
+import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
 
-interface IDataContainerProps<P extends EndpointPath> {
+export interface IDataContainerProps<P extends EndpointPath> {
   /** API endpoint path */
   endpoint: P;
   /** Loading component override */
@@ -24,18 +25,10 @@ export function DataContainer<P extends EndpointPath>({
   loadingFallback,
   errorFallback,
   children
-}: IDataContainerProps<P>): React.ReactElement {
-  const {
-    data,
-    loading,
-    error,
-    errorMessage,
-    request
-  } = useApi<ResponseType<P>>();
-
-  React.useEffect(() => {
-    request(endpoint);
-  }, [endpoint, request]);
+}: IDataContainerProps<P>): React.ReactElement | null {
+  usePerformanceMonitoring('DataContainer');
+  
+  const { data, loading, error, errorMessage, request } = useApi<ResponseType<P>>(endpoint);
 
   if (loading) {
     return loadingFallback ? 
@@ -53,7 +46,7 @@ export function DataContainer<P extends EndpointPath>({
   }
 
   if (!data) {
-    return <></>;
+    return null;
   }
 
   return <>{children(data)}</>;
