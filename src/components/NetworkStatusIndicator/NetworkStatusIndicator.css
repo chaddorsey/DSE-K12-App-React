@@ -15,12 +15,10 @@
 
 .network-status--top {
   top: 0;
-  transform: translateY(0);
 }
 
 .network-status--bottom {
   bottom: 0;
-  transform: translateY(0);
 }
 
 .network-status__indicator {
@@ -30,17 +28,17 @@
   margin-right: 8px;
 }
 
-.network-status__indicator.is-online {
-  background-color: #2ecc71;
+.is-online .network-status__indicator {
+  background-color: #4caf50;
 }
 
-.network-status__indicator.is-offline {
-  background-color: #e74c3c;
+.is-offline .network-status__indicator {
+  background-color: #f44336;
 }
 
 .network-status__latency {
   opacity: 0.8;
-  font-size: 12px;
+  margin-left: 4px;
 }
 
 .network-status-indicator {

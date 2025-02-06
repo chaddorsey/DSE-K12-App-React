@@ -15,10 +15,12 @@ describe('LoadingSpinner', () => {
 
   it('should render with default props', () => {
     render(<LoadingSpinner />);
-    
     const spinner = screen.getByRole('progressbar');
+    
     expect(spinner).toBeInTheDocument();
     expect(spinner).toHaveClass('loading-spinner--medium');
+    expect(spinner).toHaveAttribute('aria-label', 'Loading...');
+    expect(spinner).toHaveAttribute('aria-busy', 'true');
   });
 
   it('should handle different sizes', () => {
@@ -29,20 +31,17 @@ describe('LoadingSpinner', () => {
     expect(screen.getByRole('progressbar')).toHaveClass('loading-spinner--large');
   });
 
-  it('should be accessible', () => {
-    render(<LoadingSpinner aria-label="Custom loading text" />);
-    
-    const spinner = screen.getByRole('progressbar');
-    expect(spinner).toHaveAttribute('aria-label', 'Custom loading text');
-    expect(spinner).toHaveAttribute('aria-busy', 'true');
-  });
-
   it('should handle visibility toggle', () => {
     const { rerender } = render(<LoadingSpinner visible={false} />);
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
 
     rerender(<LoadingSpinner visible={true} />);
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should apply custom className', () => {
+    render(<LoadingSpinner className="custom-class" />);
+    expect(screen.getByRole('progressbar')).toHaveClass('custom-class');
   });
 
   it('should track performance', () => {

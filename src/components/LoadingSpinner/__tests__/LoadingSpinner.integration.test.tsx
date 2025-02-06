@@ -14,22 +14,6 @@ describe('LoadingSpinner Integration', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it('should work with dynamic loading states', () => {
-    const TestComponent = () => {
-      const [loading, setLoading] = React.useState(true);
-
-      React.useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 100);
-        return () => clearTimeout(timer);
-      }, []);
-
-      return <LoadingSpinner visible={loading} />;
-    };
-
-    render(<TestComponent />);
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-  });
-
   it('should handle multiple instances', () => {
     render(
       <div>
@@ -42,5 +26,25 @@ describe('LoadingSpinner Integration', () => {
     expect(spinners).toHaveLength(2);
     expect(spinners[0]).toHaveClass('loading-spinner--small');
     expect(spinners[1]).toHaveClass('loading-spinner--large');
+  });
+
+  it('should work with dynamic visibility changes', () => {
+    const { rerender } = render(
+      <div>
+        <LoadingSpinner visible={false} />
+        <div>Content</div>
+      </div>
+    );
+
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+
+    rerender(
+      <div>
+        <LoadingSpinner visible={true} />
+        <div>Content</div>
+      </div>
+    );
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 }); 

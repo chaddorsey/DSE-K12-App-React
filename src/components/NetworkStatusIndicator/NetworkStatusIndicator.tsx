@@ -4,9 +4,8 @@
 
 import React from 'react';
 import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
-import { NetworkStatusView } from './NetworkStatusView';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
-import { MonitoringService } from '../../monitoring/MonitoringService';
+import './NetworkStatusIndicator.css';
 
 export interface INetworkStatusIndicatorProps {
   /** Position of the indicator */
@@ -23,32 +22,26 @@ export const NetworkStatusIndicator: React.FC<INetworkStatusIndicatorProps> = ({
   className = ''
 }) => {
   usePerformanceMonitoring('NetworkStatusIndicator');
-  const monitoring = MonitoringService.getInstance();
-  
-  const { 
-    isOnline, 
-    latency, 
-    connectionType 
-  } = useNetworkStatus();
+  const { isOnline, latency, connectionType } = useNetworkStatus();
 
-  React.useEffect(() => {
-    monitoring.trackStateTransition({
-      from: 'unknown',
-      to: isOnline ? 'online' : 'offline',
-      success: true,
-      duration: 0,
-      component: 'NetworkStatusIndicator'
-    });
-  }, [isOnline]);
+  const statusText = isOnline ? 'Online' : 'Offline';
+  const latencyText = `${latency}ms`;
 
   return (
-    <NetworkStatusView
-      isOnline={isOnline}
-      latency={latency}
-      connectionType={connectionType}
-      position={position}
-      showLatency={showLatency}
-      className={className}
-    />
+    <div 
+      className={`network-status network-status--${position} ${isOnline ? 'is-online' : 'is-offline'} ${className}`.trim()}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="network-status__indicator" />
+      <span className="network-status__text">
+        {statusText}
+        {showLatency && isOnline && (
+          <span className="network-status__latency">
+            {` - ${latencyText} (${connectionType})`}
+          </span>
+        )}
+      </span>
+    </div>
   );
 }; 

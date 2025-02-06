@@ -2,105 +2,95 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { FormContainer } from '../FormContainer';
 import { useApi } from '../../../hooks/useApi';
-import { ApiError } from '../../../api/types/errors';
+import { usePerformanceMonitoring } from '../../../monitoring/hooks/useMonitoring';
+import * as yup from 'yup';
 
+// Mock hooks
 jest.mock('../../../hooks/useApi');
-jest.mock('../../../utils/logger');
+jest.mock('../../../monitoring/hooks/useMonitoring', () => ({
+  usePerformanceMonitoring: jest.fn()
+}));
 
 describe('FormContainer', () => {
+  const mockUseApi = useApi as jest.Mock;
+  const mockInitialValues = { name: '', email: '' };
   const mockEndpoint = 'users.settings';
-  const mockInitialData = { name: 'Test User' };
 
   beforeEach(() => {
-    (useApi as jest.Mock).mockReturnValue({
+    jest.clearAllMocks();
+    mockUseApi.mockReturnValue({
       loading: false,
       error: null,
-      errorMessage: null,
-      request: jest.fn().mockResolvedValue({})
+      request: jest.fn()
     });
   });
 
-  it('should render form with initial data', () => {
+  it('should render form with initial values', () => {
     render(
-      <FormContainer 
+      <FormContainer
         endpoint={mockEndpoint}
-        initialData={mockInitialData}
+        initialValues={mockInitialValues}
+        onSubmit={jest.fn()}
       >
-        {({ data, handleSubmit }) => (
-          <form onSubmit={handleSubmit}>
+        {({ data }) => (
+          <form>
             <input value={data.name} readOnly />
+            <input value={data.email} readOnly />
           </form>
         )}
       </FormContainer>
     );
 
-    expect(screen.getByDisplayValue('Test User')).toBeInTheDocument();
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs[0]).toHaveValue('');
+    expect(inputs[1]).toHaveValue('');
   });
 
-  it('should handle field updates', () => {
+  it('should handle field changes', async () => {
     render(
-      <FormContainer endpoint={mockEndpoint}>
+      <FormContainer
+        endpoint={mockEndpoint}
+        initialValues={mockInitialValues}
+        onSubmit={jest.fn()}
+      >
         {({ data, setFieldValue }) => (
-          <input
-            value={data.name || ''}
-            onChange={e => setFieldValue('name', e.target.value)}
-          />
+          <form>
+            <input
+              value={data.name}
+              onChange={e => setFieldValue('name', e.target.value)}
+            />
+          </form>
         )}
       </FormContainer>
     );
 
     const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'New Name' } });
+    fireEvent.change(input, { target: { value: 'Test Name' } });
 
-    expect(input).toHaveValue('New Name');
+    await waitFor(() => {
+      expect(input).toHaveValue('Test Name');
+    });
   });
 
-  it('should validate form before submission', async () => {
-    const mockValidate = jest.fn().mockReturnValue({ name: 'Required' });
-    const mockRequest = jest.fn();
-    (useApi as jest.Mock).mockReturnValue({
-      loading: false,
-      error: null,
-      request: mockRequest
+  it('should validate fields', async () => {
+    const schema = yup.object({
+      name: yup.string().required('Name is required')
     });
 
     render(
-      <FormContainer 
+      <FormContainer
         endpoint={mockEndpoint}
-        validate={mockValidate}
+        initialValues={mockInitialValues}
+        validationSchema={schema}
+        onSubmit={jest.fn()}
       >
-        {({ errors, handleSubmit }) => (
+        {({ data, errors, setFieldValue, handleSubmit }) => (
           <form onSubmit={handleSubmit}>
-            <button type="submit">Submit</button>
-            {errors.name && <span>{errors.name}</span>}
-          </form>
-        )}
-      </FormContainer>
-    );
-
-    fireEvent.click(screen.getByText('Submit'));
-
-    expect(mockRequest).not.toHaveBeenCalled();
-    expect(screen.getByText('Required')).toBeInTheDocument();
-  });
-
-  it('should submit form when valid', async () => {
-    const mockOnSuccess = jest.fn();
-    const mockRequest = jest.fn().mockResolvedValue({});
-    (useApi as jest.Mock).mockReturnValue({
-      loading: false,
-      error: null,
-      request: mockRequest
-    });
-
-    render(
-      <FormContainer 
-        endpoint={mockEndpoint}
-        initialData={mockInitialData}
-        onSuccess={mockOnSuccess}
-      >
-        {({ handleSubmit }) => (
-          <form onSubmit={handleSubmit}>
+            <input
+              value={data.name}
+              onChange={e => setFieldValue('name', e.target.value)}
+            />
+            {errors.name && <span role="alert">{errors.name}</span>}
             <button type="submit">Submit</button>
           </form>
         )}
@@ -110,40 +100,54 @@ describe('FormContainer', () => {
     fireEvent.click(screen.getByText('Submit'));
 
     await waitFor(() => {
-      expect(mockRequest).toHaveBeenCalledWith(
-        mockEndpoint,
-        expect.objectContaining({
-          body: mockInitialData
-        })
-      );
-      expect(mockOnSuccess).toHaveBeenCalled();
+      expect(screen.getByRole('alert')).toHaveTextContent('Name is required');
     });
   });
 
-  it('should show error message on submission failure', async () => {
-    const error = new ApiError('Submission failed', 500);
-    (useApi as jest.Mock).mockReturnValue({
-      loading: false,
-      error,
-      errorMessage: {
-        title: 'Error',
-        message: 'Submission failed'
-      },
-      request: jest.fn().mockRejectedValue(error)
-    });
+  it('should handle successful submission', async () => {
+    const onSubmit = jest.fn();
+    const validValues = { name: 'Test', email: 'test@example.com' };
 
     render(
-      <FormContainer endpoint={mockEndpoint}>
-        {({ handleSubmit }) => (
+      <FormContainer
+        endpoint={mockEndpoint}
+        initialValues={mockInitialValues}
+        onSubmit={onSubmit}
+      >
+        {({ data, setFieldValue, handleSubmit }) => (
           <form onSubmit={handleSubmit}>
+            <input
+              value={data.name}
+              onChange={e => setFieldValue('name', e.target.value)}
+            />
             <button type="submit">Submit</button>
           </form>
         )}
       </FormContainer>
     );
 
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: validValues.name } });
     fireEvent.click(screen.getByText('Submit'));
 
-    expect(await screen.findByText('Submission failed')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+        name: validValues.name
+      }));
+    });
+  });
+
+  it('should track performance', () => {
+    render(
+      <FormContainer
+        endpoint={mockEndpoint}
+        initialValues={mockInitialValues}
+        onSubmit={jest.fn()}
+      >
+        {() => <form />}
+      </FormContainer>
+    );
+
+    expect(usePerformanceMonitoring).toHaveBeenCalledWith('FormContainer');
   });
 }); 

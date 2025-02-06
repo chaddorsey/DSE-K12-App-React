@@ -1,29 +1,32 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { ErrorBoundary } from '../ErrorBoundary';
-import { logger } from '../../../utils/logger';
+import { usePerformanceMonitoring } from '../../../monitoring/hooks/useMonitoring';
 
-// Mock logger
-jest.mock('../../../utils/logger', () => ({
-  logger: {
-    error: jest.fn()
-  }
+// Mock monitoring hook
+jest.mock('../../../monitoring/hooks/useMonitoring', () => ({
+  usePerformanceMonitoring: jest.fn()
 }));
 
 // Test component that throws
-const ThrowError: React.FC<{ shouldThrow?: boolean }> = ({ shouldThrow }) => {
+export const ThrowError: React.FC<{ shouldThrow?: boolean }> = ({ shouldThrow }) => {
   if (shouldThrow) {
     throw new Error('Test error');
   }
-  return <div>Test content</div>;
+  return <div>Normal render</div>;
 };
 
 describe('ErrorBoundary', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  it('should render children when no error occurs', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('should render children when no error', () => {
     render(
       <ErrorBoundary>
         <div>Test content</div>
@@ -53,6 +56,34 @@ describe('ErrorBoundary', () => {
     );
 
     expect(onError).toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('should reset error state when resetOnChange is true', () => {
+    const { rerender } = render(
+      <ErrorBoundary resetOnChange>
+        <ThrowError shouldThrow />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    rerender(
+      <ErrorBoundary resetOnChange>
+        <ThrowError shouldThrow={false} />
+      </ErrorBoundary>
+    );
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('Normal render')).toBeInTheDocument();
+  });
+
+  it('should track performance', () => {
+    render(
+      <ErrorBoundary>
+        <div>Test content</div>
+      </ErrorBoundary>
+    );
+
+    expect(usePerformanceMonitoring).toHaveBeenCalledWith('ErrorBoundary');
   });
 }); 

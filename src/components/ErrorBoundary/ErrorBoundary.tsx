@@ -17,19 +17,23 @@ import React from 'react';
 import { logger } from '../../utils/logger';
 import { MonitoringService } from '../../monitoring/MonitoringService';
 import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
+import './ErrorBoundary.css';
 
 interface IErrorBoundaryProps {
-  /** Component to render when error occurs */
+  /** Child components */
+  children: React.ReactNode;
+  /** Custom error UI */
   fallback?: React.ReactNode;
-  /** Called when error is caught */
+  /** Called when error occurs */
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
   /** Whether to reset error state when children change */
   resetOnChange?: boolean;
-  /** Child components */
-  children: React.ReactNode;
+  /** Called when error state is reset */
+  onReset?: () => void;
 }
 
 interface IErrorBoundaryState {
+  hasError: boolean;
   error: Error | null;
 }
 
@@ -38,11 +42,11 @@ export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBo
 
   constructor(props: IErrorBoundaryProps) {
     super(props);
-    this.state = { error: null };
+    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error: Error): IErrorBoundaryState {
-    return { error };
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
@@ -69,11 +73,11 @@ export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBo
 
   componentDidUpdate(prevProps: IErrorBoundaryProps): void {
     if (
-      this.props.resetOnChange && 
-      this.state.error && 
-      this.props.children !== prevProps.children
+      this.props.resetOnChange &&
+      this.state.hasError &&
+      prevProps.children !== this.props.children
     ) {
-      this.setState({ error: null });
+      this.setState({ hasError: false, error: null });
       
       // Track recovery
       this.monitoring.trackStateTransition({
@@ -86,12 +90,23 @@ export class ErrorBoundary extends React.Component<IErrorBoundaryProps, IErrorBo
     }
   }
 
-  render(): React.ReactNode {
-    const { error } = this.state;
-    const { fallback, children } = this.props;
+  private handleReset = (): void => {
+    this.setState({ hasError: false, error: null });
+    this.props.onReset?.();
+  };
 
-    if (error) {
-      return fallback || <div role="alert">Something went wrong</div>;
+  render(): React.ReactNode {
+    const { hasError, error } = this.state;
+    const { children, fallback } = this.props;
+
+    if (hasError) {
+      return fallback || (
+        <div role="alert" className="error-boundary">
+          <h3>Something went wrong</h3>
+          <p>{error?.message}</p>
+          <button onClick={this.handleReset}>Try Again</button>
+        </div>
+      );
     }
 
     return children;
