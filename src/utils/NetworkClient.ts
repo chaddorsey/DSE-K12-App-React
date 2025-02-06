@@ -1,0 +1,237 @@
+/**
+ * NetworkClient: Handles network requests with retry logic and network status monitoring.
+ * Designed for hotel/conference environments with unreliable WiFi.
+ */
+
+import { NetworkMonitor } from './NetworkMonitor';
+import { IRetryPolicy, retryPolicies } from './retryPolicy';
+import { RequestBatcher, IBatchConfig } from './batch/RequestBatcher';
+import { CacheManager, ICacheConfig } from './cache/CacheManager';
+import { logger } from './logger';
+import { OfflineError, PortalRedirectError, HttpError } from '../errors/NetworkError';
+
+/**
+ * Network client configuration interface
+ */
+export interface INetworkClientConfig {
+  /** Base URL for all requests */
+  baseUrl?: string;
+  /** Retry policy for this client */
+  retryPolicy?: IRetryPolicy;
+  /** Cache configuration */
+  cache?: ICacheConfig;
+  /** Batch configuration */
+  batch?: IBatchConfig;
+}
+
+/**
+ * Network request initialization options
+ */
+export interface INetworkRequestInit extends RequestInit {
+  /** Expected response type */
+  responseType?: 'json' | 'text' | 'blob';
+  /** Cache options for this request */
+  cache?: ICacheConfig;
+  /** Batch options for this request */
+  batch?: IBatchConfig | false; // false to disable batching for this request
+}
+
+export class NetworkClient {
+  private monitor: NetworkMonitor;
+  private config: Required<INetworkClientConfig>;
+  private cache: CacheManager;
+  private batcher: RequestBatcher;
+
+  /**
+   * Creates a new NetworkClient instance
+   * @param monitor - Network monitor instance for status tracking
+   * @param config - Client configuration options
+   */
+  constructor(monitor: NetworkMonitor, config: INetworkClientConfig = {}) {
+    this.monitor = monitor;
+    this.config = {
+      baseUrl: '',
+      retryPolicy: retryPolicies.default,
+      cache: { ttl: 5 * 60 * 1000, maxEntries: 100, storage: 'memory' },
+      batch: { maxSize: 10, delay: 50, groupBy: req => req.url },
+      ...config
+    };
+    this.cache = new CacheManager(this.config.cache);
+    this.batcher = new RequestBatcher(this.config.batch);
+  }
+
+  /**
+   * Make a fetch request with retry logic
+   * @param input - Request URL or info
+   * @param init - Request initialization options
+   * @returns Promise resolving to the parsed response
+   * @throws {OfflineError} When network is offline
+   * @throws {PortalRedirectError} When portal redirect is detected
+   * @throws {HttpError} When server returns an error status
+   */
+  public async fetch<T>(
+    input: RequestInfo,
+    init?: INetworkRequestInit
+  ): Promise<T> {
+    const url = typeof input === 'string' 
+      ? `${this.config.baseUrl}${input}`
+      : input;
+
+    // Try cache first for GET requests
+    if ((!init?.method || init.method === 'GET') && init?.cache !== false) {
+      const cached = this.cache.get<T>(url.toString());
+      if (cached) {
+        logger.info(`Cache hit: ${url}`);
+        return cached;
+      }
+    }
+
+    // Create request object
+    const request = new Request(url, init);
+
+    // Use batching for GET requests unless disabled
+    if (request.method === 'GET' && init?.batch !== false) {
+      const batchConfig = { ...this.config.batch, ...init?.batch };
+      const response = await this.batcher.add(request);
+      const data = await this.parseResponse<T>(response, init?.responseType);
+
+      // Cache successful GET responses
+      if (init?.cache !== false) {
+        this.cache.set(url.toString(), data, init?.cache);
+      }
+
+      return data;
+    }
+
+    // For non-GET or non-batched requests, use normal fetch with retry
+    return this.withRetry<T>(() => this.doFetch(request, init));
+  }
+
+  /**
+   * Make a GET request with retry logic
+   * @param url - Request URL
+   * @param init - Request initialization options
+   * @returns Promise resolving to the parsed response
+   * @throws {OfflineError} When network is offline
+   * @throws {PortalRedirectError} When portal redirect is detected
+   * @throws {HttpError} When server returns an error status
+   */
+  public async get<T>(
+    url: string,
+    init?: Omit<INetworkRequestInit, 'method'>
+  ): Promise<T> {
+    return this.fetch<T>(url, { ...init, method: 'GET' });
+  }
+
+  /**
+   * Make a POST request with retry logic
+   * @param url - Request URL
+   * @param data - Request body data
+   * @param init - Request initialization options
+   * @returns Promise resolving to the parsed response
+   * @throws {OfflineError} When network is offline
+   * @throws {PortalRedirectError} When portal redirect is detected
+   * @throws {HttpError} When server returns an error status
+   */
+  public async post<T>(
+    url: string,
+    data?: unknown,
+    init?: Omit<INetworkRequestInit, 'method' | 'body'>
+  ): Promise<T> {
+    return this.fetch<T>(url, {
+      ...init,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+      headers: {
+        'Content-Type': 'application/json',
+        ...init?.headers
+      }
+    });
+  }
+
+  /**
+   * Execute request with retry logic
+   * @param request - Function that returns a Promise
+   * @returns Promise resolving to the request result
+   * @private
+   */
+  private async withRetry<T>(request: () => Promise<T>): Promise<T> {
+    let attempt = 1;
+    let lastError: Error;
+
+    while (attempt <= this.config.retryPolicy.maxAttempts) {
+      try {
+        return await request();
+      } catch (err: unknown) {
+        lastError = err as Error;
+        logger.error(`Request failed (attempt ${attempt})`, lastError);
+
+        if (!this.config.retryPolicy.shouldRetry(lastError)) {
+          break;
+        }
+
+        if (attempt < this.config.retryPolicy.maxAttempts) {
+          const delay = this.calculateDelay(attempt);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        attempt++;
+      }
+    }
+
+    throw lastError;
+  }
+
+  private calculateDelay(attempt: number): number {
+    const { initialDelay, maxDelay } = this.config.retryPolicy;
+    const delay = Math.min(
+      initialDelay * Math.pow(2, attempt - 1),
+      maxDelay
+    );
+    // Add jitter to prevent thundering herd
+    return delay * (0.8 + Math.random() * 0.4);
+  }
+
+  /**
+   * Execute fetch request with common error handling
+   * @param request - Request object
+   * @param init - Request initialization options
+   * @returns Promise resolving to the parsed response
+   * @private
+   */
+  private async doFetch<T>(
+    request: Request,
+    init?: INetworkRequestInit
+  ): Promise<T> {
+    if (!this.monitor.getStatus().isOnline) {
+      throw new OfflineError();
+    }
+
+    const response = await fetch(request);
+
+    if (this.monitor.detectPortalRedirect(response)) {
+      throw new PortalRedirectError();
+    }
+
+    if (!response.ok) {
+      throw new HttpError(`HTTP error! status: ${response.status}`, response.status);
+    }
+
+    return this.parseResponse<T>(response, init?.responseType);
+  }
+
+  private async parseResponse<T>(
+    response: Response,
+    responseType: INetworkRequestInit['responseType'] = 'json'
+  ): Promise<T> {
+    switch (responseType) {
+      case 'text':
+        return response.text() as Promise<T>;
+      case 'blob':
+        return response.blob() as Promise<T>;
+      case 'json':
+      default:
+        return response.json();
+    }
+  }
+} 

@@ -1,0 +1,11 @@
+.app-layout {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure space for the network status indicator */
+.app-layout {
+  padding-top: 48px; /* Adjust based on your NetworkStatusIndicator height */
+} 
