@@ -3,76 +3,150 @@
  */
 
 import React from 'react';
-import { render, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { FormProvider } from '../FormProvider';
 import { useForm } from '../../../hooks/useForm';
-import { mockMonitoring } from '../../../hooks/testing/mockMonitoring';
-import * as yup from 'yup';
+import { MonitoringService } from '../../../monitoring/MonitoringService';
 
-// Mock monitoring
-const mockMonitors = mockMonitoring();
+// Mock MonitoringService
+jest.mock('../../../monitoring/MonitoringService', () => ({
+  MonitoringService: {
+    getInstance: jest.fn(() => ({
+      trackPerformance: jest.fn()
+    }))
+  }
+}));
 
-// Update TestForm to satisfy Record<string, unknown>
-type TestForm = Record<string, unknown> & {
+interface TestForm {
   name: string;
   email: string;
+  [key: string]: unknown;
+}
+
+const mockInitialValues: TestForm = {
+  name: '',
+  email: ''
 };
 
-const schema = yup.object({
-  name: yup.string().required(),
-  email: yup.string().email().required()
-});
+const mockOnSubmit = async (values: TestForm) => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 100));
+  console.log('Submitted:', values);
+};
+
+const TestComponent = () => {
+  const {
+    values,
+    errors,
+    isSubmitting,
+    handleChange,
+    handleSubmit
+  } = useForm<TestForm>({
+    initialValues: mockInitialValues,
+    onSubmit: mockOnSubmit
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="text"
+        name="name"
+        value={values.name}
+        onChange={e => handleChange('name', e.target.value)}
+        data-testid="name-input"
+      />
+      {errors?.name && <span data-testid="name-error">{errors.name}</span>}
+      
+      <input
+        type="email"
+        name="email"
+        value={values.email}
+        onChange={e => handleChange('email', e.target.value)}
+        data-testid="email-input"
+      />
+      {errors?.email && <span data-testid="email-error">{errors.email}</span>}
+      
+      <button type="submit" disabled={isSubmitting}>
+        Submit
+      </button>
+    </form>
+  );
+};
 
 describe('FormProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should provide form context', () => {
-    const TestComponent = () => {
-      const form = useForm<TestForm>({
-        initialValues: { name: '', email: '' },
-        validationSchema: schema
-      });
-      return (
-        <div>
-          <span>Valid: {form.isValid.toString()}</span>
-          <span>Values: {JSON.stringify(form.values)}</span>
-        </div>
-      );
-    };
-
-    const { getByText } = render(
-      <FormProvider<TestForm>
-        initialValues={{ name: '', email: '' }}
-        validationSchema={schema}
-        onSubmit={jest.fn()}
+  it('provides form context to children', () => {
+    render(
+      <FormProvider
+        initialValues={mockInitialValues}
+        onSubmit={mockOnSubmit}
       >
         <TestComponent />
       </FormProvider>
     );
 
-    expect(getByText('Valid: true')).toBeInTheDocument();
-    expect(getByText('Values: {"name":"","email":""}')).toBeInTheDocument();
+    expect(screen.getByTestId('name-input')).toBeInTheDocument();
+    expect(screen.getByTestId('email-input')).toBeInTheDocument();
   });
 
-  it('should track form initialization', () => {
+  it('handles form submission', async () => {
+    const onSubmit = jest.fn(mockOnSubmit);
+    
     render(
-      <FormProvider<TestForm>
-        formId="test-form"
-        initialValues={{ name: '', email: '' }}
-        validationSchema={schema}
-        onSubmit={jest.fn()}
+      <FormProvider
+        initialValues={mockInitialValues}
+        onSubmit={onSubmit}
       >
-        <div />
+        <TestComponent />
       </FormProvider>
     );
 
-    expect(mockMonitors.trackPerformance).toHaveBeenCalledWith({
-      type: 'form_init',
-      formId: 'test-form',
-      success: true,
-      duration: expect.any(Number)
+    fireEvent.change(screen.getByTestId('name-input'), {
+      target: { value: 'John Doe' }
     });
+
+    fireEvent.change(screen.getByTestId('email-input'), {
+      target: { value: 'john@example.com' }
+    });
+
+    fireEvent.submit(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button')).not.toBeDisabled();
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'John Doe',
+        email: 'john@example.com'
+      }));
+    });
+  });
+
+  it('tracks form performance', async () => {
+    const trackPerformance = jest.fn();
+    (MonitoringService.getInstance as jest.Mock).mockReturnValue({
+      trackPerformance
+    });
+
+    render(
+      <FormProvider
+        initialValues={mockInitialValues}
+        onSubmit={mockOnSubmit}
+      >
+        <TestComponent />
+      </FormProvider>
+    );
+
+    fireEvent.change(screen.getByTestId('name-input'), {
+      target: { value: 'John Doe' }
+    });
+
+    expect(trackPerformance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'form_field_change',
+        totalTime: expect.any(Number)
+      })
+    );
   });
 }); 

@@ -2,52 +2,86 @@
  * Generic container component for data fetching and error handling
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
-import { EndpointPath, ResponseType } from '../../api/types/endpoints';
-import { ErrorDisplay } from '../ErrorDisplay/ErrorDisplay';
+import { EndpointPath, ApiResponse, IUseApiOptions } from '../../api/types/endpoints';
+import { ErrorDisplay } from '../ErrorDisplay';
 import { LoadingSpinner } from '../LoadingSpinner';
-import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
+import { usePerformanceMonitoring } from '../../hooks/usePerformanceMonitoring';
+import './DataContainer.css';
 
-export interface IDataContainerProps<P extends EndpointPath> {
-  /** API endpoint path */
+interface IDataContainerProps<P extends EndpointPath> {
   endpoint: P;
-  /** Loading component override */
-  loadingFallback?: React.ReactNode;
-  /** Error component override */
-  errorFallback?: React.ReactNode;
-  /** Render function for data */
-  children: (data: ResponseType<P>) => React.ReactNode;
+  children: (data: ApiResponse<P>) => React.ReactNode;
+  loadingComponent?: React.ReactNode;
+  errorComponent?: React.ReactNode;
+  apiOptions?: IUseApiOptions<ApiResponse<P>>;
 }
 
 export function DataContainer<P extends EndpointPath>({
   endpoint,
-  loadingFallback,
-  errorFallback,
-  children
-}: IDataContainerProps<P>): React.ReactElement | null {
-  usePerformanceMonitoring('DataContainer');
-  
-  const { data, loading, error, errorMessage, request } = useApi<ResponseType<P>>(endpoint);
+  children,
+  loadingComponent = <LoadingSpinner />,
+  errorComponent,
+  apiOptions
+}: IDataContainerProps<P>): React.ReactElement {
+  const { data, error, loading, request, reset } = useApi<ApiResponse<P>>(endpoint, apiOptions);
+  const { trackEvent } = usePerformanceMonitoring('DataContainer');
+
+  // Initial fetch
+  useEffect(() => {
+    request(endpoint);
+  }, [endpoint, request]);
 
   if (loading) {
-    return loadingFallback ? 
-      <>{loadingFallback}</> : 
-      <LoadingSpinner />;
+    return (
+      <div className="data-container data-container--loading">
+        {loadingComponent}
+      </div>
+    );
   }
 
   if (error) {
-    return errorFallback ? 
-      <>{errorFallback}</> : 
-      <ErrorDisplay 
-        error={errorMessage!}
-        onAction={() => request(endpoint)}
-      />;
+    const errorDisplay = errorComponent || (
+      <ErrorDisplay
+        error={{
+          title: 'Error Loading Data',
+          message: error.message,
+          details: error.stack,
+          code: error.name
+        }}
+        onRetry={async () => {
+          trackEvent({
+            type: 'api_call',
+            totalTime: 0,
+            data: {
+              endpoint,
+              action: 'retry'
+            }
+          });
+          await request(endpoint);
+        }}
+      />
+    );
+
+    return (
+      <div className="data-container data-container--error">
+        {errorDisplay}
+      </div>
+    );
   }
 
   if (!data) {
-    return null;
+    return (
+      <div className="data-container data-container--empty">
+        No data available
+      </div>
+    );
   }
 
-  return <>{children(data)}</>;
+  return (
+    <div className="data-container">
+      {children(data)}
+    </div>
+  );
 } 

@@ -1,0 +1,27 @@
+.signup-form {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.signup-form__name-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  color: var(--error-color, #dc3545);
+  margin: 1rem 0;
+  padding: 0.5rem;
+  border-radius: 4px;
+  background-color: var(--error-bg-color, #f8d7da);
+  border: 1px solid var(--error-border-color, #f5c6cb);
+}
+
+@media (max-width: 480px) {
+  .signup-form__name-fields {
+    grid-template-columns: 1fr;
+  }
+} 

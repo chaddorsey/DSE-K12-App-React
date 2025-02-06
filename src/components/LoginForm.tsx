@@ -3,93 +3,90 @@
  */
 
 import React from 'react';
-import { useForm } from '../hooks/useForm';
-import { useAuth } from '../hooks/useAuth';
-import { MonitoringService } from '../monitoring/MonitoringService';
 import * as yup from 'yup';
-
-interface ILoginFormProps {
-  onSuccess?: () => void;
-}
+import { useForm } from '../hooks/useForm';
+import { TextField } from './Form/Field/TextField';
+import { Button } from '../components/Button';
+import './LoginForm.css';
 
 interface ILoginFormValues {
   email: string;
   password: string;
+  [key: string]: unknown; // Add index signature to satisfy Record<string, unknown>
 }
 
-const validationSchema = yup.object({
+const validationSchema = yup.object().shape({
   email: yup.string().email('Invalid email').required('Email is required'),
   password: yup.string().required('Password is required')
 });
 
-export function LoginForm({ onSuccess }: ILoginFormProps) {
-  const { login, isLoading } = useAuth();
-  const monitoring = MonitoringService.getInstance();
+export const LoginForm: React.FC = () => {
+  const initialValues: ILoginFormValues = {
+    email: '',
+    password: ''
+  };
 
-  const form = useForm<ILoginFormValues>({
-    initialValues: {
-      email: '',
-      password: ''
-    },
-    validationSchema,
+  const {
+    values,
+    errors,
+    isSubmitting,
+    handleSubmit,
+    handleChange
+  } = useForm<ILoginFormValues>({
+    initialValues,
     onSubmit: async (values) => {
+      // Handle submission
+      console.log('Form submitted:', values);
+    },
+    validate: (values) => {
       try {
-        await login(values);
-        onSuccess?.();
-      } catch (error) {
-        monitoring.trackError(error as Error, {
-          type: 'form_error',
-          operation: 'login'
-        });
-        throw error; // Let useForm handle the error state
+        validationSchema.validateSync(values, { abortEarly: false });
+        return null;
+      } catch (err) {
+        const yupError = err as yup.ValidationError;
+        return yupError.inner.reduce((acc, curr) => ({
+          ...acc,
+          [curr.path!]: curr.message
+        }), {} as Record<keyof ILoginFormValues, string>);
       }
     }
   });
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleChange(e.target.name as keyof ILoginFormValues, e.target.value);
+  };
+
   return (
-    <form onSubmit={form.handleSubmit} noValidate>
-      <div>
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          value={form.values.email}
-          onChange={form.handleChange('email')}
-          onBlur={form.handleBlur('email')}
-          aria-invalid={!!form.errors.email}
-          disabled={isLoading}
-        />
-        {form.touched.email && form.errors.email && (
-          <div role="alert">{form.errors.email}</div>
-        )}
-      </div>
+    <form onSubmit={handleSubmit} className="login-form">
+      <TextField
+        name="email"
+        label="Email"
+        type="email"
+        value={values.email}
+        onChange={handleInputChange}
+        error={errors?.email}
+      />
 
-      <div>
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={form.values.password}
-          onChange={form.handleChange('password')}
-          onBlur={form.handleBlur('password')}
-          aria-invalid={!!form.errors.password}
-          disabled={isLoading}
-        />
-        {form.touched.password && form.errors.password && (
-          <div role="alert">{form.errors.password}</div>
-        )}
-      </div>
+      <TextField
+        name="password"
+        label="Password"
+        type="password"
+        value={values.password}
+        onChange={handleInputChange}
+        error={errors?.password}
+      />
 
-      {form.submitError && (
-        <div role="alert">{form.submitError.message}</div>
+      {errors?.submit && (
+        <div className="error-message">{errors.submit}</div>
       )}
 
-      <button 
-        type="submit" 
-        disabled={isLoading || form.isSubmitting}
+      <Button 
+        type="submit"
+        disabled={isSubmitting}
+        loading={isSubmitting}
       >
-        {isLoading ? 'Logging in...' : 'Log In'}
-      </button>
+        {isSubmitting ? 'Logging in...' : 'Log In'}
+      </Button>
     </form>
   );
-} 
+}; 

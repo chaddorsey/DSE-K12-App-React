@@ -2,7 +2,44 @@
  * Core monitoring types for application-wide tracking
  */
 
-import { PerformanceEventType } from './MonitoringService';
+export type PerformanceEventType = 
+  // Page and Component Events
+  | 'page_load'
+  | 'api_call'
+  | 'component_mount'
+  | 'component_unmount'
+  | 'state_update'
+  | 'render'
+  | 'interaction'
+  | 'measure'
+  | 'performance_mark'
+  | 'performance_measure'
+  // Form Events
+  | 'form_submit_start'
+  | 'form_submit_success'
+  | 'form_submit_error'
+  | 'form_field_change'
+  // Network Events
+  | 'network_status_change'
+  | 'error_boundary_catch'
+  // Query Events
+  | 'query_cache_hit'
+  | 'query_cache_miss'
+  | 'query_error'
+  | 'query_start'
+  | 'query_complete'
+  | 'query_dedupe'
+  | 'query_execute'
+  | 'query_invalidate'
+  | 'query_cache_init'
+  | 'cache_update'
+  // Search Events
+  | 'search_execute'
+  | 'search_error'
+  | 'search_filter'
+  | 'typeahead_execute'
+  | 'typeahead_select'
+  | 'typeahead_error';
 
 export interface IPerformanceMetrics {
   type: PerformanceEventType;
@@ -21,11 +58,24 @@ export interface IPerformanceMetrics {
   tags?: string[] | Record<string, string>;
   success?: boolean;
   error?: Error;
-  // Add new metrics fields
+  // Query-specific metrics
   queryTime?: number;
   resultCount?: number;
+  cacheStatus?: 'hit' | 'miss' | 'stale';
+  dedupeCount?: number;
+  // Search-specific metrics
+  searchTerm?: string;
+  filterCount?: number;
+  suggestionCount?: number;
+  selectedIndex?: number;
+  // Component-specific metrics
+  renderCount?: number;
+  interactionType?: string;
+  measureName?: string;
+  markName?: string;
   // Keep metadata for additional properties
   metadata?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export interface IStateTransition {
@@ -62,14 +112,4 @@ export interface IPerformanceBaseline {
   };
   sampleSize: number;
   lastUpdated: number;
-}
-
-// Add form events to PerformanceEventType
-export type PerformanceEventType =
-  | 'query_cache_hit'
-  | 'query_cache_miss'
-  // ... existing types ...
-  | 'form_init'
-  | 'form_validation'
-  | 'form_submission'
-  | 'form_interaction'; 
+} 

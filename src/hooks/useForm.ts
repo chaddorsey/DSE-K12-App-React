@@ -2,158 +2,127 @@
  * Hook for form state management and validation
  */
 
-import { useContext, useCallback, useState, useEffect } from 'react';
+import { useContext, useCallback, useState } from 'react';
 import { FormContext } from '../components/Form/FormProvider';
 import { IFormConfig, IFormState } from '../components/Form/types';
 import { MonitoringService } from '../monitoring/MonitoringService';
+import { usePerformanceMonitoring } from '../monitoring/hooks/useMonitoring';
+import type { PerformanceEventType } from '../monitoring/types';
+import { logger } from '../utils/logger';
 
-export function useForm<T extends Record<string, unknown>>(
-  config?: IFormConfig<T>
-): IFormState<T> & {
-  handleChange: (field: keyof T) => (value: T[keyof T]) => Promise<void>;
-  handleBlur: (field: keyof T) => () => Promise<void>;
-  handleSubmit: () => Promise<void>;
-  resetForm: () => void;
-  submitError?: Error;
-} {
+interface UseFormOptions<T> {
+  initialValues: T;
+  onSubmit: (values: T) => Promise<void>;
+  validate?: (values: T) => Record<keyof T, string> | null;
+}
+
+interface UseFormResult<T> {
+  values: T;
+  errors: Record<keyof T, string> | null;
+  isSubmitting: boolean;
+  handleSubmit: (e: React.FormEvent) => Promise<void>;
+  handleChange: (name: keyof T, value: string) => void;
+}
+
+export function useForm<T extends Record<string, unknown>>({
+  initialValues,
+  onSubmit,
+  validate
+}: UseFormOptions<T>): UseFormResult<T> {
   const context = useContext(FormContext);
   const monitoring = MonitoringService.getInstance();
+  const { trackEvent } = usePerformanceMonitoring('useForm');
 
-  if (!context && !config) {
-    throw new Error('useForm must be used within a FormProvider or with config');
+  if (!context && !initialValues) {
+    throw new Error('useForm must be used within a FormProvider or with initialValues');
   }
 
   // Use context if available, otherwise create local state
-  const [state, setState] = useState<IFormState<T>>(() => ({
-    values: (context?.values ?? config?.initialValues) as T,
-    errors: {} as Record<keyof T, string | undefined>,
-    touched: {} as Record<keyof T, boolean>,
-    dirty: {} as Record<keyof T, boolean>,
-    isSubmitting: false,
-    isValid: true,
-    submitError: undefined
-  }));
+  const [values, setValues] = useState<T>(initialValues);
+  const [errors, setErrors] = useState<Record<keyof T, string> | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const validate = useCallback(async (values: T): Promise<Record<keyof T, string | undefined>> => {
-    if (!config?.validationSchema) return {} as Record<keyof T, string | undefined>;
-
-    try {
-      await config.validationSchema.validate(values, { abortEarly: false });
-      return {} as Record<keyof T, string | undefined>;
-    } catch (err) {
-      const errors = {} as Record<keyof T, string | undefined>;
-      if (err.inner) {
-        err.inner.forEach((error: any) => {
-          errors[error.path as keyof T] = error.message;
-        });
-      }
-      return errors;
-    }
-  }, [config?.validationSchema]);
-
-  const handleChange = useCallback((field: keyof T) => async (value: T[keyof T]) => {
-    const newValues = { ...state.values, [field]: value };
-    const newDirty = { ...state.dirty, [field]: true };
-    
-    setState(prev => ({
-      ...prev,
-      values: newValues,
-      dirty: newDirty
-    }));
-
-    if (config?.validateOnChange) {
-      const errors = await validate(newValues);
-      setState(prev => ({
-        ...prev,
-        errors,
-        isValid: Object.keys(errors).length === 0
-      }));
-    }
-  }, [state.values, state.dirty, config?.validateOnChange, validate]);
-
-  const handleBlur = useCallback((field: keyof T) => async () => {
-    const newTouched = { ...state.touched, [field]: true };
-    
-    setState(prev => ({
-      ...prev,
-      touched: newTouched
-    }));
-
-    if (config?.validateOnBlur) {
-      const errors = await validate(state.values);
-      setState(prev => ({
-        ...prev,
-        errors,
-        isValid: Object.keys(errors).length === 0
-      }));
-    }
-  }, [state.values, state.touched, config?.validateOnBlur, validate]);
-
-  const handleSubmit = useCallback(async () => {
-    if (!config?.onSubmit) return;
-
-    setState(prev => ({ ...prev, isSubmitting: true }));
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
     const startTime = Date.now();
-
+    
     try {
-      const errors = await validate(state.values);
-      if (Object.keys(errors).length > 0) {
-        setState(prev => ({
-          ...prev,
-          errors,
-          isValid: false,
-          isSubmitting: false
-        }));
-        return;
+      trackEvent({ 
+        type: 'form_submit_start',
+        totalTime: 0,
+        data: { formId: e.currentTarget.id }
+      });
+
+      // Validate if needed
+      if (validate) {
+        const validationErrors = validate(values);
+        if (validationErrors) {
+          setErrors(validationErrors);
+          return;
+        }
       }
 
-      await config.onSubmit(state.values);
+      await onSubmit(values);
       
-      monitoring.trackPerformance({
-        type: 'form_submission',
-        formId: config.formId || 'unknown',
-        success: true,
-        duration: Date.now() - startTime
+      const endTime = Date.now();
+      trackEvent({ 
+        type: 'form_submit_success',
+        totalTime: endTime - startTime,
+        data: { 
+          formId: e.currentTarget.id,
+          duration: endTime - startTime
+        }
       });
 
-      setState(prev => ({
-        ...prev,
-        isSubmitting: false,
-        submitError: undefined
-      }));
     } catch (error) {
-      monitoring.trackPerformance({
-        type: 'form_submission',
-        formId: config.formId || 'unknown',
-        success: false,
-        duration: Date.now() - startTime
+      const err = error as Error;
+      logger.error('Form submission failed:', err);
+      
+      const endTime = Date.now();
+      setErrors({ 
+        submit: err.message 
+      } as Record<keyof T, string>);
+
+      trackEvent({ 
+        type: 'form_submit_error',
+        totalTime: endTime - startTime,
+        data: { 
+          formId: e.currentTarget.id,
+          error: err.message,
+          duration: endTime - startTime
+        }
       });
 
-      setState(prev => ({
-        ...prev,
-        isSubmitting: false,
-        submitError: error as Error
-      }));
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [state.values, config, validate, monitoring]);
+  }, [values, onSubmit, validate, trackEvent]);
 
-  const resetForm = useCallback(() => {
-    setState({
-      values: config?.initialValues as T,
-      errors: {} as Record<keyof T, string | undefined>,
-      touched: {} as Record<keyof T, boolean>,
-      dirty: {} as Record<keyof T, boolean>,
-      isSubmitting: false,
-      isValid: true,
-      submitError: undefined
+  const handleChange = useCallback((name: keyof T, value: string) => {
+    const startTime = Date.now();
+    setValues(prev => ({ ...prev, [name]: value }));
+    // Clear errors for this field if any
+    if (errors && errors[name]) {
+      setErrors(prev => prev ? { ...prev, [name]: '' } : null);
+    }
+
+    const endTime = Date.now();
+    trackEvent({
+      type: 'form_field_change',
+      totalTime: endTime - startTime,
+      data: {
+        field: name,
+        duration: endTime - startTime
+      }
     });
-  }, [config?.initialValues]);
+  }, [errors, trackEvent]);
 
   return {
-    ...state,
-    handleChange,
-    handleBlur,
+    values,
+    errors,
+    isSubmitting,
     handleSubmit,
-    resetForm
+    handleChange
   };
 } 

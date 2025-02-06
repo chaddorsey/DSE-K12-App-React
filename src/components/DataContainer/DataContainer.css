@@ -1,0 +1,17 @@
+.data-container {
+  position: relative;
+  min-height: 100px;
+}
+
+.data-container--loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.data-container--error {
+  padding: 1rem;
+  border: 1px solid var(--error-border-color, #f5c6cb);
+  border-radius: 4px;
+  background-color: var(--error-bg-color, #f8d7da);
+} 

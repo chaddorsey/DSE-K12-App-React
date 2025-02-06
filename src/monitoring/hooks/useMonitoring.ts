@@ -5,13 +5,26 @@
 import { useEffect, useRef } from 'react';
 import { MonitoringService } from '../MonitoringService';
 import { PerformanceBaseline } from '../PerformanceBaseline';
+import type { IPerformanceMetrics, PerformanceEventType } from '../types';
 
-export function usePerformanceMonitoring(componentName: string): void {
+interface UsePerformanceMonitoringResult {
+  trackEvent: (event: Omit<IPerformanceMetrics, 'timestamp'>) => void;
+}
+
+export function usePerformanceMonitoring(
+  componentName: string
+): UsePerformanceMonitoringResult {
   const startTime = useRef(Date.now());
   const monitoring = MonitoringService.getInstance();
   const baseline = PerformanceBaseline.getInstance();
 
   useEffect(() => {
+    monitoring.trackPerformance({
+      type: 'page_load',
+      component: componentName,
+      timestamp: Date.now()
+    });
+
     return () => {
       const renderTime = Date.now() - startTime.current;
       const metrics = {
@@ -41,6 +54,16 @@ export function usePerformanceMonitoring(componentName: string): void {
       }
     };
   }, [componentName]);
+
+  const trackEvent = (event: Omit<IPerformanceMetrics, 'timestamp'>) => {
+    monitoring.trackPerformance({
+      ...event,
+      component: componentName,
+      timestamp: Date.now()
+    });
+  };
+
+  return { trackEvent };
 }
 
 export function useStateTransitionMonitoring(stateName: string): {

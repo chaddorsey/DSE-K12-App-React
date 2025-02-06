@@ -4,36 +4,46 @@
  */
 
 import React from 'react';
-import { IErrorMessageTemplate } from '../../errors/types';
 import './ErrorDisplay.css';
 
-interface IErrorDisplayProps {
-  /** Error message template */
-  error: IErrorMessageTemplate;
-  /** Called when action button is clicked */
-  onAction?: () => void;
-  /** Additional CSS class names */
-  className?: string;
+export interface IErrorMessageTemplate {
+  title: string;
+  message: string;
+  details?: string;
+  code?: string;
 }
 
-export const ErrorDisplay: React.FC<IErrorDisplayProps> = ({
-  error,
-  onAction,
-  className = ''
-}) => {
+export interface IErrorDisplayProps {
+  error: IErrorMessageTemplate;
+  onRetry?: () => void;
+}
+
+export const ErrorDisplay: React.FC<IErrorDisplayProps> = ({ error, onRetry }) => {
   return (
-    <div className={`error-display ${className}`} role="alert">
-      <h3 className="error-display__title">{error.title}</h3>
-      <p className="error-display__message">{error.message}</p>
-      {error.action && onAction && (
-        <button
-          className="error-display__action"
-          onClick={onAction}
-          type="button"
-        >
-          {error.action}
-        </button>
-      )}
+    <div className="error-display">
+      <div className="error-display__content">
+        <h3 className="error-display__title">{error.title}</h3>
+        <p className="error-display__message">{error.message}</p>
+        {error.details && (
+          <pre className="error-display__details">
+            {error.details}
+          </pre>
+        )}
+        {error.code && (
+          <p className="error-display__code">
+            Error code: {error.code}
+          </p>
+        )}
+        {onRetry && (
+          <button 
+            className="error-display__retry-button"
+            onClick={onRetry}
+            type="button"
+          >
+            Try Again
+          </button>
+        )}
+      </div>
     </div>
   );
 }; 

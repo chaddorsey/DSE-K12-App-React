@@ -20,9 +20,12 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { EndpointPath, RequestBody } from '../../api/types/endpoints';
-import { ErrorDisplay } from '../ErrorDisplay/ErrorDisplay';
-import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
+import { ErrorDisplay } from '../ErrorDisplay';
+import { LoadingSpinner } from '../LoadingSpinner';
+import { usePerformanceMonitoring } from '../../hooks/usePerformanceMonitoring';
 import { Schema } from 'yup';
+import { logger } from '../../utils/logger';
+import './FormContainer.css';
 
 export interface IFormConfig<T extends Record<string, unknown>> {
   /** Initial form values */
@@ -54,28 +57,46 @@ export interface IFormState<T extends Record<string, unknown>> {
   submitError?: Error;
 }
 
-export interface IFormRenderProps<T extends Record<string, unknown>> extends IFormState<T> {
-  /** Update a field value */
-  setFieldValue: (field: keyof T, value: T[keyof T]) => void;
-  /** Mark a field as touched */
-  setFieldTouched: (field: keyof T) => void;
-  /** Submit the form */
-  handleSubmit: () => Promise<void>;
-  /** Reset the form */
-  resetForm: () => void;
+export interface IFormRenderProps<T> {
+  data: T;
+  errors: Record<keyof T, string>;
+  isSubmitting: boolean;
+  handleChange: (field: keyof T, value: string) => void;
+  handleSubmit: (e: React.FormEvent) => Promise<void>;
 }
 
 export interface IFormContainerProps<P extends EndpointPath> {
   /** API endpoint */
   endpoint: P;
   /** Initial form values */
-  initialValues: Partial<RequestBody<P>>;
+  initialValues: Record<string, unknown>;
   /** Validation schema */
   validationSchema?: Schema<RequestBody<P>>;
   /** Success callback */
-  onSubmit: (values: RequestBody<P>) => Promise<void>;
+  onSubmit: (values: Record<string, unknown>) => Promise<void>;
   /** Form render function */
-  children: (props: IFormRenderProps<RequestBody<P>>) => React.ReactNode;
+  children: (props: IFormRenderProps<Record<string, unknown>>) => React.ReactNode;
+  title?: string;
+  subtitle?: string;
+  isLoading?: boolean;
+  error?: Error;
+  onRetry?: () => void;
+}
+
+interface IFormError {
+  title: string;
+  message: string;
+  details?: string;
+  code?: string;
+  stack?: string;
+  name?: string;
+}
+
+interface ValidationError {
+  inner: Array<{
+    path?: string;
+    message: string;
+  }>;
 }
 
 export function FormContainer<P extends EndpointPath>({
@@ -83,10 +104,13 @@ export function FormContainer<P extends EndpointPath>({
   initialValues,
   validationSchema,
   onSubmit,
-  children
+  children,
+  title,
+  subtitle,
+  isLoading = false,
+  error,
+  onRetry
 }: IFormContainerProps<P>): React.ReactElement {
-  usePerformanceMonitoring('FormContainer');
-
   const [state, setState] = useState<IFormState<RequestBody<P>>>({
     data: initialValues as RequestBody<P>,
     errors: {} as Record<keyof RequestBody<P>, string>,
@@ -96,19 +120,39 @@ export function FormContainer<P extends EndpointPath>({
     isValid: true
   });
 
+  const [localError, setLocalError] = useState<IFormError | null>(null);
+  const { trackEvent } = usePerformanceMonitoring('FormContainer');
+
   const validate = useCallback(async (values: RequestBody<P>) => {
     if (!validationSchema) return {};
     try {
       await validationSchema.validate(values, { abortEarly: false });
       return {};
-    } catch (err) {
-      const errors: Record<string, string> = {};
-      err.inner.forEach((error: any) => {
-        errors[error.path] = error.message;
-      });
-      return errors;
+    } catch (err: unknown) {
+      if (isValidationError(err)) {
+        return handleValidationError(err);
+      }
+      return {};
     }
   }, [validationSchema]);
+
+  // Type guard for validation error
+  const isValidationError = (error: unknown): error is ValidationError => {
+    return (
+      error !== null &&
+      typeof error === 'object' &&
+      'inner' in error &&
+      Array.isArray((error as ValidationError).inner) &&
+      (error as ValidationError).inner.every(
+        (item) =>
+          typeof item === 'object' &&
+          item !== null &&
+          'message' in item &&
+          typeof item.message === 'string' &&
+          (!('path' in item) || typeof item.path === 'string')
+      )
+    );
+  };
 
   const setFieldValue = useCallback(async (field: keyof RequestBody<P>, value: RequestBody<P>[keyof RequestBody<P>]) => {
     setState(prev => ({
@@ -168,16 +212,84 @@ export function FormContainer<P extends EndpointPath>({
     });
   }, [initialValues]);
 
+  const handleValidationError = (validationErr: ValidationError): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    validationErr.inner.forEach((error) => {
+      if (error.path) {
+        errors[error.path] = error.message;
+      }
+    });
+    return errors;
+  };
+
+  const handleError = (err: unknown): IFormError => {
+    if (err instanceof Error) {
+      return {
+        title: 'Error',
+        message: err.message,
+        details: err.stack,
+        name: err.name
+      };
+    }
+
+    if (typeof err === 'string') {
+      return {
+        title: 'Error',
+        message: err
+      };
+    }
+
+    return {
+      title: 'Error',
+      message: 'An unexpected error occurred',
+      details: JSON.stringify(err, null, 2)
+    };
+  };
+
+  const handleRetry = () => {
+    setLocalError(null);
+    onRetry?.();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="form-container form-container--loading">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  const errorToDisplay = error || localError;
+  if (errorToDisplay) {
+    const formattedError = handleError(errorToDisplay);
+    return (
+      <div className="form-container form-container--error">
+        <ErrorDisplay
+          error={{
+            title: formattedError.title,
+            message: formattedError.message,
+            ...(formattedError.details && { details: formattedError.details }),
+            ...(formattedError.code && { code: formattedError.code })
+          }}
+          onRetry={handleRetry}
+        />
+      </div>
+    );
+  }
+
   return (
-    <>
-      {state.submitError && <ErrorDisplay error={state.submitError} />}
-      {children({
-        ...state,
-        setFieldValue,
-        setFieldTouched,
-        handleSubmit,
-        resetForm
-      })}
-    </>
+    <div className="form-container">
+      {title && <h2 className="form-container__title">{title}</h2>}
+      {subtitle && <p className="form-container__subtitle">{subtitle}</p>}
+      <div className="form-container__content">
+        {children({
+          data: state.data,
+          errors: state.errors,
+          isSubmitting: state.isSubmitting,
+          handleChange: setFieldValue,
+          handleSubmit
+        })}
+      </div>
+    </div>
   );
 } 

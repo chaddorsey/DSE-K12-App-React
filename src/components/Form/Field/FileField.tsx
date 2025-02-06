@@ -2,190 +2,157 @@
  * File input field component with form integration
  */
 
-import React, { useId, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useForm } from '../../../hooks/useForm';
-import { IFileFieldProps } from './types';
 import { MonitoringService } from '../../../monitoring/MonitoringService';
 import './Field.css';
+
+interface IFileFieldProps<T extends Record<string, unknown>> {
+  name: keyof T;
+  label: string;
+  accept?: string;
+  multiple?: boolean;
+  maxSize?: number;
+  required?: boolean;
+  error?: string;
+  onChange?: (files: FileList | null) => void;
+}
 
 export function FileField<T extends Record<string, unknown>>({
   name,
   label,
-  required,
-  error,
   accept,
-  multiple,
+  multiple = false,
   maxSize,
-  validateFile,
-  className,
-  onChange,
-  onBlur,
-  'aria-describedby': ariaDescribedby
-}: IFileFieldProps<T>) {
+  required = false,
+  error: propError,
+  onChange: propOnChange
+}: IFileFieldProps<T>): React.ReactElement {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const errorId = `${String(name)}-error`;
+  const monitoring = MonitoringService.getInstance();
+
   const {
     values,
     errors,
-    touched,
-    handleChange,
-    handleBlur
-  } = useForm<T>();
+    handleChange
+  } = useForm<T>({
+    initialValues: {} as T,
+    onSubmit: async () => {
+      // File submission handled by parent form
+    }
+  });
 
-  const [customError, setCustomError] = useState<string>();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const monitoring = MonitoringService.getInstance();
-  const fieldId = useId();
-  const errorId = `${fieldId}-error`;
-  const hasError = error || customError || (touched[name] && errors[name]);
-  const errorMessage = error || customError || errors[name];
-  const currentFiles = values[name] as File | File[] | null;
+  const hasError = Boolean(errors?.[String(name)] || propError);
+  const errorMessage = errors?.[String(name)] || propError;
 
-  const validateFiles = (files: FileList): string | undefined => {
+  const validateFiles = (files: FileList | null): string | null => {
+    if (!files || files.length === 0) {
+      if (required) {
+        return 'Please select a file';
+      }
+      return null;
+    }
+
     if (maxSize) {
       for (let i = 0; i < files.length; i++) {
         if (files[i].size > maxSize) {
-          const sizeMB = Math.round(maxSize / (1024 * 1024));
-          return `File size must be less than ${sizeMB}MB`;
+          return `File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`;
         }
       }
     }
 
-    if (accept) {
-      const acceptedTypes = accept.split(',').map(type => type.trim());
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const isValidType = acceptedTypes.some(type => {
-          if (type.startsWith('.')) {
-            return file.name.toLowerCase().endsWith(type.toLowerCase());
-          }
-          if (type.includes('/*')) {
-            const [baseType] = type.split('/');
-            return file.type.startsWith(baseType);
-          }
-          return file.type === type;
-        });
+    return null;
+  };
 
-        if (!isValidType) {
-          return 'Invalid file type';
+  const handleFileChange = (files: FileList | null) => {
+    const error = validateFiles(files);
+    if (error) {
+      handleChange(String(name), '');  // Empty string instead of null
+      monitoring.trackPerformance({
+        type: 'form_field_change',
+        totalTime: 0,
+        data: {
+          field: String(name),
+          error
         }
+      });
+      return;
+    }
+
+    // Convert FileList to string representation
+    const fileValue = files ? Array.from(files).map(f => f.name).join(', ') : '';
+    handleChange(String(name), fileValue);
+    propOnChange?.(files);
+
+    monitoring.trackPerformance({
+      type: 'form_field_change',
+      totalTime: 0,
+      data: {
+        field: String(name),
+        fileCount: files?.length
       }
-    }
-
-    if (validateFile && files.length === 1) {
-      return validateFile(files[0]);
-    }
-
-    return undefined;
+    });
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const startTime = Date.now();
-    try {
-      const files = e.target.files;
-      if (!files?.length) return;
-
-      const validationError = validateFiles(files);
-      if (validationError) {
-        setCustomError(validationError);
-        return;
-      }
-
-      setCustomError(undefined);
-      const value = multiple ? Array.from(files) : files[0];
-      await handleChange(name)(value as T[keyof T]);
-      onChange?.(e);
-
-      const endTime = Date.now();
-      monitoring.trackPerformance({
-        type: 'interaction',
-        success: true,
-        totalTime: endTime - startTime,
-        duration: endTime - startTime,
-        metadata: { field: name, type: 'change' }
-      });
-    } catch (error) {
-      const endTime = Date.now();
-      monitoring.trackPerformance({
-        type: 'interaction',
-        success: false,
-        totalTime: endTime - startTime,
-        duration: endTime - startTime,
-        metadata: { field: name, type: 'change', error }
-      });
-    }
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileChange(event.target.files);
   };
 
-  const handleFileBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
-    const startTime = Date.now();
-    try {
-      await handleBlur(name)();
-      onBlur?.(e);
-
-      const endTime = Date.now();
-      monitoring.trackPerformance({
-        type: 'interaction',
-        success: true,
-        totalTime: endTime - startTime,
-        duration: endTime - startTime,
-        metadata: { field: name, type: 'blur' }
-      });
-    } catch (error) {
-      const endTime = Date.now();
-      monitoring.trackPerformance({
-        type: 'interaction',
-        success: false,
-        totalTime: endTime - startTime,
-        duration: endTime - startTime,
-        metadata: { field: name, type: 'blur', error }
-      });
-    }
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragActive(false);
+    handleFileChange(event.dataTransfer.files);
   };
 
-  const handleButtonClick = () => {
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragActive(false);
+  };
+
+  const handleClick = () => {
     fileInputRef.current?.click();
   };
 
-  const getFileNames = (): string => {
-    if (!currentFiles) return 'No file chosen';
-    if (Array.isArray(currentFiles)) {
-      return currentFiles.length === 1
-        ? currentFiles[0].name
-        : `${currentFiles.length} files selected`;
-    }
-    return currentFiles.name;
-  };
-
   return (
-    <div className={`field ${className || ''} ${hasError ? 'field--error' : ''}`}>
-      <label htmlFor={fieldId} className="field__label">
+    <div className="field">
+      <label className="field__label" htmlFor={String(name)}>
         {label}
-        {required && <span className="field__required"> *</span>}
+        {required && <span className="field__required">*</span>}
       </label>
-      <div className="field__file-wrapper">
+
+      <div
+        className={`field__file-drop-zone ${dragActive ? 'field__file-drop-zone--active' : ''} ${
+          hasError ? 'field__file-drop-zone--error' : ''
+        }`}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={handleClick}
+      >
         <input
           ref={fileInputRef}
-          id={fieldId}
           type="file"
+          id={String(name)}
+          name={String(name)}
           accept={accept}
           multiple={multiple}
-          onChange={handleFileChange}
-          onBlur={handleFileBlur}
+          onChange={handleInputChange}
           className="field__file-input"
-          data-testid="file-input"
           required={required}
-          tabIndex={-1}
-          aria-hidden="true"
+          aria-invalid={hasError}
+          aria-describedby={hasError ? errorId : undefined}
         />
-        <button
-          type="button"
-          onClick={handleButtonClick}
-          className="field__file-button"
-          aria-invalid={Boolean(hasError)}
-          aria-describedby={`${errorId} ${ariaDescribedby || ''}`.trim()}
-        >
-          Choose file
-        </button>
-        <span className="field__file-name">{getFileNames()}</span>
+        <div className="field__file-placeholder">
+          {dragActive ? 'Drop files here' : 'Click or drag files to upload'}
+        </div>
       </div>
+
       {hasError && (
         <div id={errorId} className="field__error" role="alert">
           {errorMessage}

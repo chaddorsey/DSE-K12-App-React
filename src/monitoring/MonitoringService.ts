@@ -2,42 +2,13 @@
  * Core monitoring service for tracking application health and performance
  */
 
-import { 
+import type { 
   IPerformanceMetrics, 
   IStateTransition, 
   IErrorReport,
-  IAnalyticsEvent 
+  IAnalyticsEvent,
+  PerformanceEventType
 } from './types';
-
-/**
- * Types for performance metrics
- */
-export type PerformanceEventType = 
-  // Query events
-  | 'query_cache_hit'
-  | 'query_cache_miss'
-  | 'query_error'
-  | 'query_start'
-  | 'query_complete'
-  | 'query_dedupe'
-  | 'query_execute'
-  | 'query_invalidate'
-  | 'query_cache_init'
-  | 'cache_update'
-  // Search events
-  | 'search_execute'
-  | 'search_error'
-  | 'search_filter'
-  | 'typeahead_execute'
-  | 'typeahead_select'
-  | 'typeahead_error'
-  // Component events
-  | 'render'
-  | 'interaction'
-  | 'measure'
-  // Performance events
-  | 'performance_mark'
-  | 'performance_measure';
 
 export class MonitoringService {
   private static instance: MonitoringService;
@@ -117,4 +88,13 @@ export class MonitoringService {
     // Implementation for alerting
     console.error('Health metrics exceeded thresholds');
   }
-} 
+}
+
+// Remove any local type definitions and export everything from types.ts
+export type { 
+  IPerformanceMetrics,
+  IStateTransition,
+  IErrorReport,
+  IAnalyticsEvent,
+  PerformanceEventType
+}; 

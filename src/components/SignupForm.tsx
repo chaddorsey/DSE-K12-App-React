@@ -3,55 +3,71 @@
  */
 
 import React from 'react';
+import * as yup from 'yup';
 import { useForm } from '../hooks/useForm';
 import { useAuth } from '../hooks/useAuth';
+import { TextField } from './Form/Field/TextField';
+import { Button } from '../components/Button';
+import './SignupForm.css';
 import { MonitoringService } from '../monitoring/MonitoringService';
-import * as yup from 'yup';
-
-interface ISignupFormProps {
-  onSuccess?: () => void;
-}
 
 interface ISignupFormValues {
   email: string;
   password: string;
   confirmPassword: string;
+  firstName: string;
+  lastName: string;
+  [key: string]: unknown; // Add index signature to satisfy Record<string, unknown>
 }
 
-const validationSchema = yup.object({
-  email: yup
-    .string()
-    .email('Invalid email')
+const validationSchema = yup.object().shape({
+  email: yup.string()
+    .email('Invalid email address')
     .required('Email is required'),
-  password: yup
-    .string()
+  password: yup.string()
+    .required('Password is required')
     .min(8, 'Password must be at least 8 characters')
-    .matches(/[0-9]/, 'Password must contain at least one number')
-    .required('Password is required'),
-  confirmPassword: yup
-    .string()
-    .oneOf([yup.ref('password')], 'Passwords must match')
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+    ),
+  confirmPassword: yup.string()
     .required('Please confirm your password')
+    .oneOf([yup.ref('password')], 'Passwords must match'),
+  firstName: yup.string()
+    .required('First name is required')
+    .min(2, 'First name must be at least 2 characters'),
+  lastName: yup.string()
+    .required('Last name is required')
+    .min(2, 'Last name must be at least 2 characters')
 });
 
-export function SignupForm({ onSuccess }: ISignupFormProps) {
+export const SignupForm: React.FC = () => {
   const { signup, isLoading } = useAuth();
   const monitoring = MonitoringService.getInstance();
 
-  const form = useForm<ISignupFormValues>({
-    initialValues: {
-      email: '',
-      password: '',
-      confirmPassword: ''
-    },
-    validationSchema,
+  const initialValues: ISignupFormValues = {
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    lastName: ''
+  };
+
+  const {
+    values,
+    errors,
+    isSubmitting,
+    handleSubmit,
+    handleChange
+  } = useForm<ISignupFormValues>({
+    initialValues,
     onSubmit: async (values) => {
       try {
         await signup({
           email: values.email,
           password: values.password
         });
-        onSuccess?.();
       } catch (error) {
         monitoring.trackError(error as Error, {
           type: 'form_error',
@@ -59,69 +75,83 @@ export function SignupForm({ onSuccess }: ISignupFormProps) {
         });
         throw error; // Let useForm handle the error state
       }
+    },
+    validate: (values) => {
+      try {
+        validationSchema.validateSync(values, { abortEarly: false });
+        return null;
+      } catch (err) {
+        const yupError = err as yup.ValidationError;
+        return yupError.inner.reduce((acc, curr) => ({
+          ...acc,
+          [curr.path!]: curr.message
+        }), {} as Record<keyof ISignupFormValues, string>);
+      }
     }
   });
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleChange(e.target.name as keyof ISignupFormValues, e.target.value);
+  };
+
   return (
-    <form onSubmit={form.handleSubmit} noValidate>
-      <div>
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          value={form.values.email}
-          onChange={form.handleChange('email')}
-          onBlur={form.handleBlur('email')}
-          aria-invalid={!!form.errors.email}
-          disabled={isLoading}
+    <form onSubmit={handleSubmit} className="signup-form">
+      <div className="signup-form__name-fields">
+        <TextField
+          name="firstName"
+          label="First Name"
+          value={values.firstName}
+          onChange={handleInputChange}
+          error={errors?.firstName}
         />
-        {form.touched.email && form.errors.email && (
-          <div role="alert">{form.errors.email}</div>
-        )}
+
+        <TextField
+          name="lastName"
+          label="Last Name"
+          value={values.lastName}
+          onChange={handleInputChange}
+          error={errors?.lastName}
+        />
       </div>
 
-      <div>
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={form.values.password}
-          onChange={form.handleChange('password')}
-          onBlur={form.handleBlur('password')}
-          aria-invalid={!!form.errors.password}
-          disabled={isLoading}
-        />
-        {form.touched.password && form.errors.password && (
-          <div role="alert">{form.errors.password}</div>
-        )}
-      </div>
+      <TextField
+        name="email"
+        label="Email"
+        type="email"
+        value={values.email}
+        onChange={handleInputChange}
+        error={errors?.email}
+      />
 
-      <div>
-        <label htmlFor="confirmPassword">Confirm Password</label>
-        <input
-          id="confirmPassword"
-          type="password"
-          value={form.values.confirmPassword}
-          onChange={form.handleChange('confirmPassword')}
-          onBlur={form.handleBlur('confirmPassword')}
-          aria-invalid={!!form.errors.confirmPassword}
-          disabled={isLoading}
-        />
-        {form.touched.confirmPassword && form.errors.confirmPassword && (
-          <div role="alert">{form.errors.confirmPassword}</div>
-        )}
-      </div>
+      <TextField
+        name="password"
+        label="Password"
+        type="password"
+        value={values.password}
+        onChange={handleInputChange}
+        error={errors?.password}
+      />
 
-      {form.submitError && (
-        <div role="alert">{form.submitError.message}</div>
+      <TextField
+        name="confirmPassword"
+        label="Confirm Password"
+        type="password"
+        value={values.confirmPassword}
+        onChange={handleInputChange}
+        error={errors?.confirmPassword}
+      />
+
+      {errors?.submit && (
+        <div className="error-message">{errors.submit}</div>
       )}
 
-      <button 
-        type="submit" 
-        disabled={isLoading || form.isSubmitting}
+      <Button 
+        type="submit"
+        disabled={isSubmitting || isLoading}
+        loading={isSubmitting}
       >
-        {isLoading ? 'Signing up...' : 'Sign Up'}
-      </button>
+        {isLoading ? 'Creating Account...' : 'Create Account'}
+      </Button>
     </form>
   );
-} 
+}; 

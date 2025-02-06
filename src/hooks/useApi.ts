@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { EndpointPath, ResponseType, RequestBody } from '../api/types/endpoints';
+import { EndpointPath, ResponseType, RequestBody, ApiResponse, IUseApiResult, IUseApiOptions } from '../api/types/endpoints';
 import { IRequestOptions } from '../api/ApiClient';
 import { ApiError } from '../api/types/errors';
 import { apiClient } from '../services/api';
@@ -49,12 +49,13 @@ interface IUseApiResult<T> extends IApiState<T> {
 /**
  * Hook for making API requests with automatic state management
  * @template T Type of the response data
+ * @param endpoint Endpoint path
  * @param options Hook configuration options
  * @returns API state and request methods
  */
-export function useApi<T>(options: IUseApiOptions<T> = {}): IUseApiResult<T> {
+export function useApi<T>(endpoint: EndpointPath, options?: IUseApiOptions<T>): IUseApiResult<T> {
   const [state, setState] = useState<IApiState<T>>({
-    data: options.initialData ?? null,
+    data: options?.initialData ?? null,
     loading: false,
     error: null,
     errorMessage: null
@@ -62,12 +63,12 @@ export function useApi<T>(options: IUseApiOptions<T> = {}): IUseApiResult<T> {
 
   const reset = useCallback(() => {
     setState({
-      data: options.initialData ?? null,
+      data: options?.initialData ?? null,
       loading: false,
       error: null,
       errorMessage: null
     });
-  }, [options.initialData]);
+  }, [options?.initialData]);
 
   const request = useCallback(async <P extends EndpointPath>(
     path: P,
@@ -78,7 +79,7 @@ export function useApi<T>(options: IUseApiOptions<T> = {}): IUseApiResult<T> {
     try {
       logger.info(`API Request started: ${path}`);
       const response = await apiClient.request(path, {
-        ...options.requestOptions,
+        ...options?.requestOptions,
         ...requestOptions
       });
 
@@ -90,7 +91,7 @@ export function useApi<T>(options: IUseApiOptions<T> = {}): IUseApiResult<T> {
         errorMessage: null
       }));
 
-      options.onSuccess?.(response as T);
+      options?.onSuccess?.(response as T);
       logger.info(`API Request succeeded: ${path}`);
       return response;
     } catch (err) {
@@ -106,7 +107,7 @@ export function useApi<T>(options: IUseApiOptions<T> = {}): IUseApiResult<T> {
         data: requestOptions?.body ? null : prev.data
       }));
 
-      options.onError?.(error);
+      options?.onError?.(error);
       logger.error(`API Request failed: ${path}`, error);
       throw error;
     }

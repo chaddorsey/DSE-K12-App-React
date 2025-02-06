@@ -25,6 +25,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { MonitoringService } from '../monitoring/MonitoringService';
+import type { IPerformanceMetrics, PerformanceEventType } from '../monitoring/types';
 
 interface IPerformanceMonitoringOptions {
   /** Custom tags to include with all performance metrics */
@@ -39,13 +40,25 @@ interface IInteractionMetadata {
   [key: string]: string;
 }
 
+interface UsePerformanceMonitoringResult {
+  trackEvent: (event: Omit<IPerformanceMetrics, 'timestamp'>) => void;
+  trackInteraction: <T>(
+    interactionType: string,
+    callback: () => Promise<T>,
+    metadata?: IInteractionMetadata
+  ) => Promise<T>;
+  mark: (markName: string) => string;
+  measure: (measureName: string, startMark: string, endMark: string) => void;
+}
+
 export function usePerformanceMonitoring(
   componentName: string,
   options: IPerformanceMonitoringOptions = {}
-) {
+): UsePerformanceMonitoringResult {
   const monitoring = MonitoringService.getInstance();
   const isInitialRender = useRef(true);
   const renderStartTime = useRef(Date.now());
+  const startTime = useRef(Date.now());
 
   // Track render time
   useEffect(() => {
@@ -145,7 +158,39 @@ export function usePerformanceMonitoring(
     };
   }, [componentName]);
 
+  useEffect(() => {
+    const mountTime = Date.now() - startTime.current;
+    
+    monitoring.trackPerformance({
+      type: 'component_mount',
+      component: componentName,
+      timestamp: Date.now(),
+      totalTime: mountTime,
+      duration: mountTime
+    });
+
+    return () => {
+      const unmountTime = Date.now() - startTime.current;
+      monitoring.trackPerformance({
+        type: 'component_unmount',
+        component: componentName,
+        timestamp: Date.now(),
+        totalTime: unmountTime,
+        duration: unmountTime
+      });
+    };
+  }, [componentName]);
+
+  const trackEvent = (event: Omit<IPerformanceMetrics, 'timestamp'>) => {
+    monitoring.trackPerformance({
+      ...event,
+      component: componentName,
+      timestamp: Date.now()
+    });
+  };
+
   return {
+    trackEvent,
     trackInteraction,
     mark,
     measure
