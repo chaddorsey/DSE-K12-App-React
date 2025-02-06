@@ -21,6 +21,9 @@ export interface IPerformanceMetrics {
   tags?: string[] | Record<string, string>;
   success?: boolean;
   error?: Error;
+  // Add new metrics fields
+  queryTime?: number;
+  resultCount?: number;
   // Keep metadata for additional properties
   metadata?: Record<string, any>;
 }

@@ -24,6 +24,13 @@ export type PerformanceEventType =
   | 'query_invalidate'
   | 'query_cache_init'
   | 'cache_update'
+  // Search events
+  | 'search_execute'
+  | 'search_error'
+  | 'search_filter'
+  | 'typeahead_execute'
+  | 'typeahead_select'
+  | 'typeahead_error'
   // Component events
   | 'render'
   | 'interaction'
