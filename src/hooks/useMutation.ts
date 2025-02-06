@@ -1,131 +1,116 @@
 /**
- * Hook for handling data mutations with optimistic updates and monitoring
+ * Hook for managing mutations with optimistic updates and monitoring
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useContext } from 'react';
+import { QueryContext } from '../components/QueryProvider';
 import { MonitoringService } from '../monitoring/MonitoringService';
-import { queryCache } from './useQuery';
 
 interface IMutationState<TData> {
-  data: TData | null;
-  error: Error | null;
+  data?: TData;
+  error?: Error;
   isLoading: boolean;
 }
 
-interface IOptimisticUpdate<TData, TVariables> {
-  queryKey: string;
-  update: (oldData: TData, variables: TVariables) => TData;
-}
-
 interface IMutationOptions<TData, TVariables> {
+  optimisticUpdate?: (variables: TVariables) => TData;
+  invalidateQueries?: string[];
   onSuccess?: (data: TData, variables: TVariables) => void | Promise<void>;
   onError?: (error: Error, variables: TVariables) => void | Promise<void>;
-  optimisticUpdate?: (variables: TVariables) => IOptimisticUpdate<any, TVariables>;
-  invalidateQueries?: string[];
+}
+
+interface IMutationResult<TData, TVariables> extends IMutationState<TData> {
+  mutate: (variables: TVariables) => Promise<TData>;
+  reset: () => void;
 }
 
 /**
- * Hook for handling data mutations with optimistic updates and monitoring
+ * Hook for managing mutations with optimistic updates and monitoring
  * 
- * @param operationType - Type of mutation operation for monitoring
  * @param mutationFn - Function that performs the mutation
  * @param options - Configuration options
+ * @returns Mutation state and controls
  */
-export function useMutation<TData, TVariables>(
-  operationType: string,
+export function useMutation<TData = unknown, TVariables = unknown>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options: IMutationOptions<TData, TVariables> = {}
-) {
+): IMutationResult<TData, TVariables> {
+  const context = useContext(QueryContext);
   const monitoring = MonitoringService.getInstance();
+
+  if (!context) {
+    throw new Error('useMutation must be used within a QueryProvider');
+  }
+
+  const { invalidateQuery } = context;
   const [state, setState] = useState<IMutationState<TData>>({
-    data: null,
-    error: null,
     isLoading: false
   });
 
-  const mutate = useCallback(async (variables: TVariables) => {
+  const reset = useCallback(() => {
+    setState({ isLoading: false });
+  }, []);
+
+  const mutate = useCallback(async (variables: TVariables): Promise<TData> => {
     const startTime = Date.now();
-    setState({ data: null, error: null, isLoading: true });
+    setState({ isLoading: true });
 
-    // Handle optimistic update
-    let optimisticSnapshot: { key: string; data: unknown } | null = null;
+    // Apply optimistic update if configured
     if (options.optimisticUpdate) {
-      const update = options.optimisticUpdate(variables);
-      const cached = queryCache.get(update.queryKey);
-      
-      if (cached) {
-        optimisticSnapshot = {
-          key: update.queryKey,
-          data: cached.data
-        };
-
-        const optimisticData = update.update(cached.data, variables);
-        queryCache.set(update.queryKey, {
-          data: optimisticData,
-          timestamp: Date.now()
-        });
-
-        monitoring.trackPerformance({
-          type: 'optimistic_update',
-          operation: operationType,
-          success: true,
-          totalTime: Date.now() - startTime
-        });
-      }
+      const optimisticData = options.optimisticUpdate(variables);
+      setState({
+        data: optimisticData,
+        isLoading: true
+      });
     }
 
     try {
       const data = await mutationFn(variables);
-      
-      setState({ data, error: null, isLoading: false });
 
-      // Handle success side effects
-      if (options.onSuccess) {
-        await options.onSuccess(data, variables);
-      }
+      // Handle success
+      setState({
+        data,
+        isLoading: false
+      });
 
       // Invalidate related queries
       if (options.invalidateQueries) {
-        options.invalidateQueries.forEach(key => {
-          queryCache.delete(key);
+        options.invalidateQueries.forEach(queryKey => {
+          invalidateQuery(queryKey);
         });
       }
 
+      // Track performance
       monitoring.trackPerformance({
-        type: 'mutation',
-        operation: operationType,
-        success: true,
-        totalTime: Date.now() - startTime
+        type: 'mutation_execute',
+        totalTime: Date.now() - startTime,
+        success: true
       });
 
+      await options.onSuccess?.(data, variables);
       return data;
+
     } catch (error) {
-      setState({ data: null, error: error as Error, isLoading: false });
-
-      // Rollback optimistic update
-      if (optimisticSnapshot) {
-        queryCache.set(optimisticSnapshot.key, {
-          data: optimisticSnapshot.data,
-          timestamp: Date.now()
-        });
-      }
-
-      // Handle error side effects
-      if (options.onError) {
-        await options.onError(error as Error, variables);
-      }
-
-      monitoring.trackError(error as Error, {
-        operation: 'mutation',
-        type: operationType
+      // Handle error
+      setState({
+        error: error as Error,
+        isLoading: false
       });
 
+      // Track error
+      monitoring.trackError(error as Error, {
+        type: 'mutation_error',
+        metadata: { variables }
+      });
+
+      await options.onError?.(error as Error, variables);
       throw error;
     }
-  }, [operationType, mutationFn, options, monitoring]);
+  }, [mutationFn, options, invalidateQuery]);
 
   return {
     ...state,
-    mutate
+    mutate,
+    reset
   };
 } 
