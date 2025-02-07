@@ -10,6 +10,11 @@ import type {
   PerformanceEventType
 } from './types';
 
+export interface IInteractionEvent {
+  type: string;
+  metadata?: Record<string, unknown>;
+}
+
 export class MonitoringService {
   private static instance: MonitoringService;
   private transitions: IStateTransition[] = [];
@@ -58,6 +63,14 @@ export class MonitoringService {
     console.log('Analytics event:', event);
   }
 
+  public trackInteraction(event: IInteractionEvent): void {
+    this.track({
+      category: 'interaction',
+      ...event,
+      timestamp: new Date()
+    });
+  }
+
   private checkHealthMetrics(): void {
     const recentErrors = this.getRecentErrors();
     const recentPerformance = this.getRecentPerformance();
@@ -87,6 +100,11 @@ export class MonitoringService {
   private triggerHealthAlert(): void {
     // Implementation for alerting
     console.error('Health metrics exceeded thresholds');
+  }
+
+  private track(event: { category: string } & Record<string, unknown>): void {
+    console.log('Tracking:', event);
+    // Implementation for actual tracking would go here
   }
 }
 
