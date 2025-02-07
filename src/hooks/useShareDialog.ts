@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from '../utils/logger';
 import type { IShareableContent } from '../components/sharing/types';
 
 /**
@@ -9,11 +10,13 @@ export function useShareDialog() {
   const [content, setContent] = useState<IShareableContent | null>(null);
 
   const openShare = useCallback((shareContent: IShareableContent) => {
+    logger.info('Opening share dialog', { content: shareContent });
     setContent(shareContent);
     setIsOpen(true);
   }, []);
 
   const closeShare = useCallback(() => {
+    logger.info('Closing share dialog');
     setIsOpen(false);
     setContent(null);
   }, []);

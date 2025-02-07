@@ -1,7 +1,7 @@
 import React from 'react';
-import { useShareDialog } from '../../hooks/useShareDialog';
 import { Button } from '../Button';
 import { logger } from '../../utils/logger';
+import { useShareDialogContext } from './ShareDialogProvider';
 import type { IShareableContent } from './types';
 
 interface IShareButtonProps {
@@ -10,7 +10,7 @@ interface IShareButtonProps {
 }
 
 export const ShareButton: React.FC<IShareButtonProps> = ({ content, className = '' }) => {
-  const { openShare } = useShareDialog();
+  const { openShare } = useShareDialogContext();
 
   const handleClick = () => {
     logger.info('Share button clicked', { contentType: content.type });

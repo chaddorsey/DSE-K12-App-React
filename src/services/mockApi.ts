@@ -1,6 +1,8 @@
 import type { IDashboardData, IUser, IUserSettings } from '../api/types/models';
+import { logger } from '../utils/logger';
 
 const MOCK_DELAY = 1000;
+const ERROR_RATE = 0.0; // Set to 0 to disable random errors during development
 
 const mockData = {
   'dashboard.overview': {
@@ -50,16 +52,21 @@ export const mockApi = {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
 
-    // Simulate random failures
-    if (Math.random() < 0.1) {
-      throw new Error('Random API error');
+    // Simulate random failures (disabled for now)
+    if (Math.random() < ERROR_RATE) {
+      const error = new Error('Random API error');
+      logger.error('Mock API error', { endpoint, error });
+      throw error;
     }
 
     const data = mockData[endpoint as keyof typeof mockData];
     if (!data) {
-      throw new Error(`No mock data for endpoint: ${endpoint}`);
+      const error = new Error(`No mock data for endpoint: ${endpoint}`);
+      logger.error('Mock API error', { endpoint, error });
+      throw error;
     }
 
+    logger.info('Mock API request successful', { endpoint });
     return data as T;
   }
 }; 

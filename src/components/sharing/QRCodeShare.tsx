@@ -1,36 +1,40 @@
-import React, { useMemo } from 'react';
-import QRCodeReact from 'qrcode.react';
-import { generateShareCode } from '../../utils/sharing';
+import React from 'react';
+import QRCode from 'react-qr-code';
+import { logger } from '../../utils/logger';
 import type { IShareableContent } from './types';
 import './QRCodeShare.css';
 
 interface IQRCodeShareProps {
   content: IShareableContent;
   size?: number;
-  includeCode?: boolean;
 }
 
-export const QRCodeShare: React.FC<IQRCodeShareProps> = ({
+export const QRCodeShare: React.FC<IQRCodeShareProps> = ({ 
   content,
-  size = 200,
-  includeCode = false
+  size = 200
 }) => {
-  const shareCode = useMemo(() => generateShareCode(), []);
-  const qrData = useMemo(() => JSON.stringify({ ...content, code: shareCode }), [content, shareCode]);
+  if (!content.url) {
+    logger.warn('QRCodeShare: No URL provided for content', { content });
+    return null;
+  }
 
   return (
-    <div className="qr-share" style={{ width: size, height: size }}>
-      <QRCodeReact 
-        value={qrData}
-        size={size}
-        level="M"
-        renderAs="svg"
-      />
-      {includeCode && (
-        <div className="qr-share__code">
-          <span>Share code: {shareCode}</span>
-        </div>
-      )}
+    <div className="qr-code-share">
+      <div className="qr-code-share__code">
+        <QRCode
+          value={content.url}
+          size={size}
+          level="H"
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div className="qr-code-share__info">
+        <h3 className="qr-code-share__title">{content.title}</h3>
+        {content.description && (
+          <p className="qr-code-share__description">{content.description}</p>
+        )}
+        <p className="qr-code-share__url">{content.url}</p>
+      </div>
     </div>
   );
 }; 
