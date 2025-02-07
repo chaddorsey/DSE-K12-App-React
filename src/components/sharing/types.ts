@@ -1,8 +1,18 @@
+export type ShareContentType = 'url' | 'image';
+
 export interface IShareableContent {
-  type: 'profile' | 'contact' | 'event' | 'link';
-  title: string;
-  data: Record<string, unknown>;
+  type: ShareContentType;
   url?: string;
+  title: string;
+  imageUrl?: string;
+}
+
+export interface IShareMethod {
+  id: string;
+  label: string;
+  icon: string;
+  isAvailable: () => Promise<boolean>;
+  share: (content: IShareableContent) => Promise<void>;
 }
 
 export interface IShareOptions {

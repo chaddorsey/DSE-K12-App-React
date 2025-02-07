@@ -6,42 +6,30 @@ import type { IShareableContent } from './types';
 
 interface IShareButtonProps {
   content: IShareableContent;
-  onShare?: () => void;
   className?: string;
 }
 
-export const ShareButton: React.FC<IShareButtonProps> = ({
+export const ShareButton: React.FC<IShareButtonProps> = ({ 
   content,
-  onShare,
   className
 }) => {
   const { openShare } = useShareDialog();
-  const monitoring = MonitoringService.getInstance();
 
-  const handleShare = async (): Promise<void> => {
-    try {
-      monitoring.trackInteraction({
-        type: 'share_initiated',
-        metadata: {
-          contentType: content.type,
-          title: content.title
-        }
-      });
-
-      await openShare(content);
-      onShare?.();
-    } catch (error) {
-      monitoring.trackError(error as Error, {
-        component: 'ShareButton',
-        content
-      });
-      throw error;
-    }
+  const handleClick = () => {
+    MonitoringService.getInstance().trackPerformance({
+      type: 'share_method_selected',
+      metadata: {
+        contentType: content.type,
+        title: content.title
+      }
+    });
+    
+    openShare(content);
   };
 
   return (
-    <Button 
-      onClick={handleShare}
+    <Button
+      onClick={handleClick}
       className={className}
       aria-label={`Share ${content.title}`}
     >

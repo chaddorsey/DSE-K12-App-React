@@ -1,0 +1,47 @@
+.share-sheet {
+  padding: 1rem;
+}
+
+.share-sheet__loading {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.share-sheet__error {
+  color: #d32f2f;
+  padding: 1rem;
+  text-align: center;
+}
+
+.share-sheet__methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.share-sheet__method {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.share-sheet__method:hover {
+  background-color: #f5f5f5;
+}
+
+.share-sheet__method-icon {
+  font-size: 24px;
+  margin-bottom: 0.5rem;
+}
+
+.share-sheet__method-label {
+  font-size: 0.875rem;
+  color: #333;
+} 

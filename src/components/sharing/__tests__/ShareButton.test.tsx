@@ -1,62 +1,70 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { ShareButton } from '../ShareButton';
 import { useShareDialog } from '../../../hooks';
-import { mockMonitoring } from '../../../hooks/testing/mockMonitoring';
+import { MonitoringService } from '../../../monitoring/MonitoringService';
+import type { IShareableContent } from '../types';
 
-// Mock hooks
-jest.mock('../../../hooks', () => ({
-  useShareDialog: jest.fn()
-}));
-const mockUseShareDialog = useShareDialog as jest.Mock;
+jest.mock('../../../hooks/useShareDialog');
+jest.mock('../../../monitoring/MonitoringService');
 
 describe('ShareButton', () => {
-  const mockContent = {
-    type: 'profile' as const,
-    title: 'Test Profile',
-    data: { id: '123', name: 'Test User' }
+  const mockContent: IShareableContent = {
+    type: 'url',
+    url: 'https://example.com',
+    title: 'Test Content'
   };
 
+  const mockUseShareDialog = useShareDialog as jest.Mock;
   const mockOpenShare = jest.fn();
-  const mockOnShare = jest.fn();
-  const mockMonitors = mockMonitoring();
 
   beforeEach(() => {
-    mockUseShareDialog.mockReturnValue({ openShare: mockOpenShare });
+    mockUseShareDialog.mockReturnValue({
+      isOpen: false,
+      content: null,
+      openShare: mockOpenShare,
+      closeShare: jest.fn()
+    });
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders share button with correct label', () => {
-    render(<ShareButton content={mockContent} />);
+  it('renders share button', () => {
+    const { getByRole } = render(
+      <ShareButton content={mockContent} />
+    );
     
-    const button = screen.getByRole('button', { name: /share test profile/i });
-    expect(button).toBeInTheDocument();
+    expect(getByRole('button')).toHaveTextContent('Share');
   });
 
-  it('opens share dialog when clicked', async () => {
-    render(<ShareButton content={mockContent} onShare={mockOnShare} />);
-    
-    const button = screen.getByRole('button');
-    await fireEvent.click(button);
+  it('opens share dialog on click', () => {
+    const { getByRole } = render(
+      <ShareButton content={mockContent} />
+    );
 
+    fireEvent.click(getByRole('button'));
     expect(mockOpenShare).toHaveBeenCalledWith(mockContent);
-    expect(mockOnShare).toHaveBeenCalled();
   });
 
-  it('tracks share button interactions', async () => {
-    render(<ShareButton content={mockContent} />);
-    
-    const button = screen.getByRole('button');
-    await fireEvent.click(button);
+  it('tracks share button clicks', () => {
+    const mockTrackPerformance = jest.fn();
+    MonitoringService.getInstance = jest.fn().mockReturnValue({
+      trackPerformance: mockTrackPerformance
+    });
 
-    expect(mockMonitors.trackInteraction).toHaveBeenCalledWith({
-      type: 'share_initiated',
+    const { getByRole } = render(
+      <ShareButton content={mockContent} />
+    );
+
+    fireEvent.click(getByRole('button'));
+
+    expect(mockTrackPerformance).toHaveBeenCalledWith({
+      type: 'share_method_selected',
       metadata: {
-        contentType: 'profile',
-        title: 'Test Profile'
+        contentType: 'url',
+        title: 'Test Content'
       }
     });
   });
