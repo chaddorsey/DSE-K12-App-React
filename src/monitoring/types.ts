@@ -39,7 +39,13 @@ export type PerformanceEventType =
   | 'search_filter'
   | 'typeahead_execute'
   | 'typeahead_select'
-  | 'typeahead_error';
+  | 'typeahead_error'
+  | 'component_render'
+  | 'api_request'
+  | 'share_methods_detected'
+  | 'share_method_selected'
+  | 'share_complete'
+  | 'share_error';
 
 export interface IPerformanceMetrics {
   type: PerformanceEventType;

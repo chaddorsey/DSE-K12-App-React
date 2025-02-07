@@ -18,6 +18,8 @@ export const ShareButton: React.FC<IShareButtonProps> = ({
   const handleClick = () => {
     MonitoringService.getInstance().trackPerformance({
       type: 'share_method_selected',
+      totalTime: 0,
+      timestamp: Date.now(),
       metadata: {
         contentType: content.type,
         title: content.title
