@@ -2,11 +2,25 @@
  * API data models
  */
 
+export interface IDashboardData {
+  stats: {
+    totalUsers: number;
+    activeUsers: number;
+    newUsers: number;
+  };
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    timestamp: string;
+    description: string;
+  }>;
+}
+
 export interface IUser {
   id: string;
   name: string;
   email: string;
-  avatar?: string;
+  avatarUrl?: string;
   role: 'user' | 'admin';
 }
 

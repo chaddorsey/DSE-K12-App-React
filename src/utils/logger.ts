@@ -1,23 +1,23 @@
 /**
- * Centralized logging utility for error tracking and monitoring
+ * Centralized logging utility for application-wide logging
  */
 
-import { NetworkError, HttpError } from '../errors/NetworkError';
+type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
-type LogLevel = 'info' | 'warn' | 'error';
-
-interface ILogEntry {
+interface ILoggerOptions {
   level: LogLevel;
-  message: string;
-  timestamp: Date;
-  code?: string;
-  details?: unknown;
-  stack?: string;
+  timestamp?: boolean;
+  prefix?: string;
 }
 
 class Logger {
   private static instance: Logger;
-  
+  private options: ILoggerOptions = {
+    level: 'info',
+    timestamp: true,
+    prefix: '[App]'
+  };
+
   private constructor() {}
 
   public static getInstance(): Logger {
@@ -27,28 +27,42 @@ class Logger {
     return Logger.instance;
   }
 
-  public error(message: string, error?: Error): void {
-    const entry: ILogEntry = {
-      level: 'error',
-      message,
-      timestamp: new Date(),
-      stack: error?.stack,
-      code: error instanceof NetworkError ? error.code : undefined,
-      details: error instanceof HttpError ? { status: error.status } : undefined
-    };
-
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error(entry);
-    }
-
-    // TODO: Send to monitoring service in production
-    this.sendToMonitoring(entry);
+  private formatMessage(level: LogLevel, message: string, ...args: any[]): string {
+    const timestamp = this.options.timestamp ? `[${new Date().toISOString()}]` : '';
+    const prefix = this.options.prefix || '';
+    return `${timestamp}${prefix}[${level.toUpperCase()}] ${message}`;
   }
 
-  private sendToMonitoring(entry: ILogEntry): void {
-    // Implementation for sending to monitoring service
-    // e.g., Sentry, LogRocket, etc.
+  public info(message: string, ...args: any[]): void {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(this.formatMessage('info', message), ...args);
+    }
+  }
+
+  public warn(message: string, ...args: any[]): void {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(this.formatMessage('warn', message), ...args);
+    }
+  }
+
+  public error(message: string | Error, ...args: any[]): void {
+    const errorMessage = message instanceof Error ? message.message : message;
+    console.error(this.formatMessage('error', errorMessage), ...args);
+    
+    // In production, you might want to send this to an error tracking service
+    if (process.env.NODE_ENV === 'production') {
+      // Send to error tracking service
+    }
+  }
+
+  public debug(message: string, ...args: any[]): void {
+    if (process.env.NODE_ENV === 'development') {
+      console.debug(this.formatMessage('debug', message), ...args);
+    }
+  }
+
+  public setOptions(options: Partial<ILoggerOptions>): void {
+    this.options = { ...this.options, ...options };
   }
 }
 

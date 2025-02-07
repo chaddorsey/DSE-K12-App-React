@@ -2,7 +2,7 @@
  * Hook for making type-safe API requests with automatic state management
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { EndpointPath, ResponseType, RequestBody, ApiResponse, IUseApiResult, IUseApiOptions } from '../api/types/endpoints';
 import { IRequestOptions } from '../api/ApiClient';
 import { ApiError } from '../api/types/errors';
@@ -112,6 +112,42 @@ export function useApi<T>(endpoint: EndpointPath, options?: IUseApiOptions<T>): 
       throw error;
     }
   }, [options]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchData = async () => {
+      try {
+        const response = await apiClient.request(endpoint);
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            data: response as T,
+            loading: false,
+            error: null,
+            errorMessage: null
+          }));
+        }
+      } catch (err) {
+        if (mounted) {
+          logger.error('API request failed', err);
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            error: err instanceof Error ? err : new Error('Unknown error'),
+            errorMessage: null,
+            data: null
+          }));
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [endpoint]);
 
   return {
     ...state,

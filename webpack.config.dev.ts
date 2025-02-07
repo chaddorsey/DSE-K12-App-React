@@ -2,65 +2,48 @@
  * Development-specific webpack configuration
  */
 
-import path from 'path';
-import { Configuration as WebpackConfig } from 'webpack';
-import { Configuration as WebpackDevServerConfig } from 'webpack-dev-server';
-import { merge } from 'webpack-merge';
-import baseConfig from './webpack.config';
+export {};  // Make this a module
 
-interface Configuration extends WebpackConfig {
-  devServer?: WebpackDevServerConfig;
-}
+const path = require('path');
+const webpack = require('webpack');
+const { merge } = require('webpack-merge');
+const baseConfig = require('./webpack.config');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
-const devConfig: Configuration = {
+const config = merge(baseConfig, {
   mode: 'development',
-  devtool: 'eval-source-map',
-  
-  // Development-specific output
-  output: {
-    filename: '[name].js',
-    chunkFilename: '[name].chunk.js'
-  },
-
-  // Development server configuration
+  devtool: 'inline-source-map',
   devServer: {
+    static: {
+      directory: path.join(__dirname, 'public'),
+    },
     hot: true,
-    historyApiFallback: true,
     port: 3000,
-    host: 'localhost',
+    historyApiFallback: true,
     open: true,
-    compress: true,
     client: {
       overlay: {
         errors: true,
-        warnings: false,
-      },
-      progress: true,
-    },
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        secure: false,
+        warnings: false  // Don't show warnings in overlay
       }
-    },
-    static: {
-      directory: path.join(__dirname, 'public'),
-      publicPath: '/'
     }
   },
-
-  // Development-specific optimizations
-  optimization: {
-    minimize: false,
-    splitChunks: {
-      chunks: 'all'
-    }
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
+    modules: ['node_modules', 'src']
   },
+  plugins: [
+    new webpack.DefinePlugin({
+      'process.env': {
+        NODE_ENV: JSON.stringify('development'),
+        DEBUG: JSON.stringify(true)
+      }
+    }),
+    process.env.ANALYZE && new BundleAnalyzerPlugin()
+  ].filter(Boolean),
+  performance: {
+    hints: false  // Change from 'warning' to false
+  }
+});
 
-  // Additional development plugins
-  plugins: []
-};
-
-// Merge with base config
-export default merge(baseConfig, devConfig); 
+module.exports = config; 

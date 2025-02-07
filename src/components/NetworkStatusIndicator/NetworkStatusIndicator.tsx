@@ -5,6 +5,7 @@
 import React from 'react';
 import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { logger } from '../../utils/logger';
 import './NetworkStatusIndicator.css';
 
 export interface INetworkStatusIndicatorProps {
@@ -27,9 +28,17 @@ export const NetworkStatusIndicator: React.FC<INetworkStatusIndicatorProps> = ({
   const statusText = isOnline ? 'Online' : 'Offline';
   const latencyText = `${latency}ms`;
 
+  React.useEffect(() => {
+    logger.info(`Network status changed: ${isOnline ? 'online' : 'offline'}`);
+  }, [isOnline]);
+
+  if (isOnline) return null;
+
   return (
     <div 
-      className={`network-status network-status--${position} ${isOnline ? 'is-online' : 'is-offline'} ${className}`.trim()}
+      className={`network-status network-status--${position} ${
+        isOnline ? 'is-online' : 'is-offline'
+      } ${className}`.trim()}
       role="status"
       aria-live="polite"
     >
@@ -44,4 +53,4 @@ export const NetworkStatusIndicator: React.FC<INetworkStatusIndicatorProps> = ({
       </span>
     </div>
   );
-}; 
+};

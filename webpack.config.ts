@@ -1,15 +1,17 @@
+export {};  // Make this a module
+
 /**
  * Webpack configuration with optimization features
  */
 
-import path from 'path';
-import webpack from 'webpack';
-import HtmlWebpackPlugin from 'html-webpack-plugin';
-import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
-import TerserPlugin from 'terser-webpack-plugin';
-import CompressionPlugin from 'compression-webpack-plugin';
+const path = require('path');
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+const TerserPlugin = require('terser-webpack-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
 
-const baseConfig: webpack.Configuration = {
+const baseConfig = {
   entry: './src/index.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -141,4 +143,4 @@ const baseConfig: webpack.Configuration = {
   }
 };
 
-export default baseConfig; 
+module.exports = baseConfig; 

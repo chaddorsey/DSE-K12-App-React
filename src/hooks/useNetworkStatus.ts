@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NetworkClient } from '../utils/NetworkClient';
 import { NetworkMonitor } from '../utils/NetworkMonitor';
+import { MonitoringService } from '../monitoring/MonitoringService';
 
 export interface NetworkStatus {
   online: boolean;
@@ -14,7 +15,7 @@ const networkClient = new NetworkClient(networkMonitor);
 
 export const useNetworkStatus = (): NetworkStatus => {
   const [status, setStatus] = useState<NetworkStatus>({
-    online: networkMonitor.getStatus().isOnline,
+    online: navigator.onLine,
     loading: true,
     lastChecked: new Date().toISOString()
   });
@@ -27,6 +28,11 @@ export const useNetworkStatus = (): NetworkStatus => {
           online: networkStatus.isOnline,
           loading: false,
           lastChecked: new Date().toISOString()
+        });
+        MonitoringService.getInstance().trackPerformance({
+          type: 'network_status_change',
+          totalTime: 0,
+          metadata: { status: networkStatus.isOnline ? 'online' : 'offline' }
         });
       } catch (error) {
         setStatus({
@@ -44,8 +50,15 @@ export const useNetworkStatus = (): NetworkStatus => {
         online: newStatus.isOnline,
         lastChecked: new Date().toISOString()
       }));
+      MonitoringService.getInstance().trackPerformance({
+        type: 'network_status_change',
+        totalTime: 0,
+        metadata: { status: newStatus.isOnline ? 'online' : 'offline' }
+      });
     };
 
+    window.addEventListener('online', () => handleStatusChange({ isOnline: true }));
+    window.addEventListener('offline', () => handleStatusChange({ isOnline: false }));
     networkMonitor.subscribe(handleStatusChange);
     checkStatus();
 
@@ -53,28 +66,11 @@ export const useNetworkStatus = (): NetworkStatus => {
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener('online', () => handleStatusChange({ isOnline: true }));
+      window.removeEventListener('offline', () => handleStatusChange({ isOnline: false }));
       networkMonitor.destroy();
     };
   }, []);
 
   return status;
-};
-
-export function useNetworkStatus() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  return { isOnline };
-} 
+}; 

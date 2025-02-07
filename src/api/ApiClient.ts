@@ -3,6 +3,7 @@
  * Handles all API communication with automatic retry and error handling.
  */
 
+import { mockApi } from '../services/mockApi';
 import { NetworkClient } from '../utils/NetworkClient';
 import { endpoints, EndpointPath, ResponseType, RequestBody, ExtractMethod } from './types/endpoints';
 import { ApiError } from './types/errors';
@@ -21,14 +22,11 @@ export class ApiClient {
   /**
    * Creates a new API client instance
    * @param networkClient - Network client for making HTTP requests
-   * @param options - Configuration options
+   * @param config - Configuration options
    */
   constructor(
     private networkClient: NetworkClient,
-    private options: {
-      baseUrl: string;
-      defaultHeaders?: Record<string, string>;
-    }
+    private config: { baseUrl: string }
   ) {}
 
   /**
@@ -36,41 +34,28 @@ export class ApiClient {
    */
   public async request<P extends EndpointPath>(
     path: P,
-    options?: IRequestOptions<RequestBody<P>>
+    options: RequestInit = {}
   ): Promise<ResponseType<P>> {
     try {
-      const endpoint = this.getEndpointConfig(path);
-      const method = endpoint.method as ExtractMethod<typeof endpoints, P>;
+      // Use mock API in development
+      if (process.env.NODE_ENV === 'development') {
+        return await mockApi.request<ResponseType<P>>(path);
+      }
 
-      const requestInit = {
-        method,
-        headers: {
-          ...this.options.defaultHeaders,
-          ...options?.headers
-        },
-        body: options?.body ? JSON.stringify(options.body) : undefined,
-        cache: options?.cache,
-        batch: options?.batch,
-        retryOptions: {
-          maxAttempts: options?.retryAttempts
-        }
-      };
-
-      logger.info(`API Request: ${method} ${endpoint.path}`, {
-        path,
-        method,
-        hasBody: !!options?.body
-      });
-
-      const response = await this.networkClient.fetch<ResponseType<P>>(
-        endpoint.path,
-        requestInit
+      const response = await this.networkClient.request(
+        `${this.config.baseUrl}${path}`,
+        options
       );
 
-      return response;
-    } catch (err) {
-      logger.error(`API Error: ${path}`, err as Error);
-      throw this.handleError(err);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      logger.error('API request failed', error);
+      throw this.handleError(error);
     }
   }
 

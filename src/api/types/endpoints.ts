@@ -2,7 +2,7 @@
  * Type-safe endpoint registry
  */
 
-import { IUser, IUserSettings } from './models';
+import { IUser, IUserSettings, IDashboardData } from './models';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
@@ -28,30 +28,15 @@ interface IEndpointDefinition<
 
 export const endpoints = {
   auth: {
-    login: {
-      path: '/auth/login',
-      method: 'POST',
-      response: {} as { token: string },
-      body: {} as { username: string; password: string }
-    },
-    logout: {
-      path: '/auth/logout',
-      method: 'POST',
-      response: {} as void
-    }
+    login: '/auth/login',
+    logout: '/auth/logout'
   },
   users: {
-    profile: {
-      path: '/users/profile',
-      method: 'GET',
-      response: {} as IUser
-    },
-    settings: {
-      path: '/users/settings',
-      method: 'PUT',
-      response: {} as IUserSettings,
-      body: {} as Partial<IUserSettings>
-    }
+    profile: '/users/profile',
+    settings: '/users/settings'
+  },
+  dashboard: {
+    overview: '/dashboard/overview'
   }
 } as const;
 
@@ -69,13 +54,21 @@ export type NestedPaths<T, Prefix extends string = ''> = T extends object
     }[keyof T]
   : never;
 
-export type EndpointPath = NestedPaths<typeof endpoints>;
+export type EndpointPath = keyof typeof endpoints;
 
-export type ResponseType<P extends EndpointPath> = ExtractResponse<EndpointConfig, P>;
+export type ResponseType<P extends EndpointPath> = 
+  P extends 'users.profile' ? IUser :
+  P extends 'users.settings' ? IUserSettings :
+  P extends 'dashboard.overview' ? IDashboardData :
+  never;
+
 export type RequestBody<P extends EndpointPath> = ExtractBody<EndpointConfig, P>;
 
-export type ApiResponse<P extends EndpointPath> = 
-  typeof endpoints[P] extends { response: infer R } ? R : never;
+export interface IApiResponse<T> {
+  data: T;
+  status: number;
+  message?: string;
+}
 
 export interface IUseApiOptions<T = unknown> {
   initialData?: T;

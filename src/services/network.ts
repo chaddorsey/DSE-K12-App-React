@@ -5,6 +5,12 @@
 import { NetworkMonitor } from '../utils/NetworkMonitor';
 import { NetworkClient } from '../utils/NetworkClient';
 
+const isDevelopment = typeof process !== 'undefined' && process.env.NODE_ENV === 'development';
+
+export const API_BASE_URL = isDevelopment 
+  ? 'http://localhost:3000'
+  : 'https://api.production.com';
+
 // Create monitor instance
 export const networkMonitor = new NetworkMonitor({
   pingEndpoint: '/api/health',
