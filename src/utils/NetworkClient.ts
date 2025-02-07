@@ -9,6 +9,7 @@ import { RequestBatcher, IBatchConfig } from './batch/RequestBatcher';
 import { CacheManager, ICacheConfig } from './cache/CacheManager';
 import { logger } from './logger';
 import { OfflineError, PortalRedirectError, HttpError } from '../errors/NetworkError';
+import { NetworkError } from '../errors/NetworkError';
 
 /**
  * Network client configuration interface
@@ -37,6 +38,24 @@ export interface INetworkRequestInit extends RequestInit {
   /** Standard fetch cache option */
   cache?: RequestCache;
 }
+
+interface IRequestConfig extends RequestInit {
+  retry?: {
+    maxAttempts: number;
+    backoffMs: number;
+  };
+  timeout?: number;
+  cache?: RequestCache;
+}
+
+const DEFAULT_CONFIG: IRequestConfig = {
+  retry: {
+    maxAttempts: 3,
+    backoffMs: 1000
+  },
+  timeout: 5000,
+  cache: 'default'
+};
 
 export class NetworkClient {
   private monitor: NetworkMonitor;
@@ -244,5 +263,71 @@ export class NetworkClient {
   async checkConnection(): Promise<boolean> {
     const status = await this.monitor.checkConnection();
     return status.isOnline;
+  }
+
+  async request(url: string, config: Partial<IRequestConfig> = {}): Promise<Response> {
+    const finalConfig = this.mergeConfig(config);
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= finalConfig.retry!.maxAttempts; attempt++) {
+      try {
+        const response = await this.fetchWithTimeout(url, finalConfig);
+        
+        if (!response.ok) {
+          throw new NetworkError(
+            `HTTP error ${response.status}`,
+            response.status,
+            await response.text()
+          );
+        }
+        
+        return response;
+      } catch (error) {
+        lastError = error as Error;
+        logger.warn(`Request failed (attempt ${attempt})`, { error, url });
+        
+        if (attempt < finalConfig.retry!.maxAttempts) {
+          await this.delay(this.getBackoffTime(attempt, finalConfig.retry!.backoffMs));
+        }
+      }
+    }
+
+    throw lastError || new Error('Request failed');
+  }
+
+  private mergeConfig(config: Partial<IRequestConfig>): IRequestConfig {
+    return {
+      ...DEFAULT_CONFIG,
+      ...this.config,
+      ...config,
+      retry: {
+        ...DEFAULT_CONFIG.retry,
+        ...this.config.retryPolicy,
+        ...config.retry
+      }
+    };
+  }
+
+  private async fetchWithTimeout(url: string, config: IRequestConfig): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), config.timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal
+      });
+      return response;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private getBackoffTime(attempt: number, baseMs: number): number {
+    return Math.min(baseMs * Math.pow(2, attempt - 1), 10000);
   }
 } 
