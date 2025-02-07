@@ -20,9 +20,12 @@ export const ShareDialog: React.FC<IShareDialogProps> = ({
 }) => {
   const { isOnline } = useNetworkStatus();
 
+  // Check if Web Share API is available
+  const canUseNativeShare = isOnline && 'share' in navigator;
+
   const handleShare = async () => {
     try {
-      if (navigator.share) {
+      if (canUseNativeShare) {
         await navigator.share({
           title: content.title,
           text: content.description || content.title,
@@ -36,7 +39,7 @@ export const ShareDialog: React.FC<IShareDialogProps> = ({
     }
   };
 
-  const canUseNativeShare = isOnline && typeof navigator.share === 'function';
+  logger.info('Rendering ShareDialog', { content, isOpen });
 
   return (
     <Dialog
@@ -46,16 +49,25 @@ export const ShareDialog: React.FC<IShareDialogProps> = ({
       className="share-dialog"
     >
       <div className="share-dialog__content">
-        <QRCodeShare content={content} />
-        {canUseNativeShare && (
-          <button
-            onClick={handleShare}
-            className="share-dialog__native-btn"
-          >
-            Use System Share...
-          </button>
-        )}
-        <ShareSheet content={content} onShare={onClose} />
+        <div className="share-dialog__qr-section">
+          <h3>Scan QR Code</h3>
+          <QRCodeShare content={content} />
+        </div>
+        
+        <div className="share-dialog__options">
+          {canUseNativeShare && (
+            <button
+              onClick={handleShare}
+              className="share-dialog__native-btn"
+            >
+              Use System Share...
+            </button>
+          )}
+          <div className="share-dialog__share-methods">
+            <h3>Other Share Options</h3>
+            <ShareSheet content={content} onShare={onClose} />
+          </div>
+        </div>
       </div>
     </Dialog>
   );
