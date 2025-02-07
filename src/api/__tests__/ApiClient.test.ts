@@ -1,141 +1,127 @@
 import { ApiClient } from '../ApiClient';
 import { NetworkClient } from '../../utils/NetworkClient';
-import { NetworkMonitor } from '../../utils/NetworkMonitor';
-import { ApiError } from '../types';
+import { ApiErrorHandler } from '../ApiErrorHandler';
+import { 
+  ValidationError, 
+  AuthenticationError,
+  ServerError 
+} from '../../errors/ApiError';
+import { logger } from '../../utils/logger';
+import type { EndpointPath } from '../types/endpoints';
 
+// Mock dependencies
 jest.mock('../../utils/NetworkClient');
+jest.mock('../ApiErrorHandler');
+jest.mock('../../utils/logger');
+jest.mock('../../services/mockApi');
 
 describe('ApiClient', () => {
   let apiClient: ApiClient;
   let mockNetworkClient: jest.Mocked<NetworkClient>;
+  let mockErrorHandler: jest.Mocked<ApiErrorHandler>;
+  
+  // Use a valid endpoint path for tests
+  const testEndpoint = 'users' as EndpointPath;
 
   beforeEach(() => {
-    mockNetworkClient = new NetworkClient(new NetworkMonitor()) as jest.Mocked<NetworkClient>;
-    apiClient = new ApiClient(mockNetworkClient, {
-      baseUrl: 'https://api.example.com',
-      defaultHeaders: {
-        'X-API-Key': 'test-key'
-      }
-    });
+    mockNetworkClient = new NetworkClient({} as any) as jest.Mocked<NetworkClient>;
+    mockErrorHandler = new ApiErrorHandler() as jest.Mocked<ApiErrorHandler>;
+    
+    apiClient = new ApiClient(
+      mockNetworkClient,
+      { baseUrl: 'https://api.example.com' },
+      mockErrorHandler
+    );
+
+    // Reset mocks
+    jest.clearAllMocks();
   });
 
-  describe('GET requests', () => {
-    it('should make successful GET requests', async () => {
-      const mockResponse = { id: 1, name: 'Test' };
-      mockNetworkClient.get.mockResolvedValueOnce(mockResponse);
+  it('should successfully make a request', async () => {
+    const mockResponse = new Response(
+      JSON.stringify({ data: 'test' }), 
+      { status: 200, statusText: 'OK' }
+    );
+    mockNetworkClient.request.mockResolvedValue(mockResponse);
 
-      const response = await apiClient.get('/test');
+    const result = await apiClient.request(testEndpoint);
 
-      expect(response).toEqual({
-        data: mockResponse,
-        status: 200,
-        headers: expect.any(Headers)
-      });
-      expect(mockNetworkClient.get).toHaveBeenCalledWith(
-        '/test',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'X-API-Key': 'test-key'
-          })
-        })
-      );
-    });
-
-    it('should handle errors', async () => {
-      const mockError = new Error('Network error');
-      mockNetworkClient.get.mockRejectedValueOnce(mockError);
-
-      await expect(apiClient.get('/test')).rejects.toThrow(ApiError);
-    });
+    expect(result).toEqual({ data: 'test' });
+    expect(mockNetworkClient.request).toHaveBeenCalledWith(
+      `https://api.example.com/${testEndpoint}`,
+      expect.any(Object)
+    );
+    expect(logger.info).toHaveBeenCalled();
   });
 
-  describe('POST requests', () => {
-    it('should make successful POST requests', async () => {
-      const mockResponse = { success: true };
-      const postData = { test: 'data' };
-      mockNetworkClient.post.mockResolvedValueOnce(mockResponse);
+  it('should handle validation errors', async () => {
+    const validationError = new ValidationError('Invalid input');
+    mockNetworkClient.request.mockRejectedValue(new Error('Bad Request'));
+    mockErrorHandler.handleError.mockReturnValue(validationError);
 
-      const response = await apiClient.post('/test', postData);
+    await expect(apiClient.request(testEndpoint))
+      .rejects
+      .toThrow(ValidationError);
 
-      expect(response.data).toEqual(mockResponse);
-      expect(mockNetworkClient.post).toHaveBeenCalledWith(
-        '/test',
-        postData,
-        expect.any(Object)
-      );
-    });
-
-    it('should handle offline errors', async () => {
-      mockNetworkClient.post.mockRejectedValueOnce(
-        new Error('Network is offline')
-      );
-
-      await expect(apiClient.post('/test', {})).rejects.toThrow(ApiError);
-      await expect(apiClient.post('/test', {})).rejects.toMatchObject({
-        code: 'OFFLINE'
-      });
-    });
+    expect(mockErrorHandler.handleError).toHaveBeenCalled();
+    expect(mockErrorHandler.getRecoveryAction).toHaveBeenCalledWith(validationError);
   });
 
-  describe('PUT requests', () => {
-    it('should make successful PUT requests', async () => {
-      const mockResponse = { success: true };
-      const putData = { test: 'data' };
-      mockNetworkClient.fetch.mockResolvedValueOnce(mockResponse);
+  it('should attempt recovery for auth errors', async () => {
+    const authError = new AuthenticationError('Token expired');
+    const mockRecovery = jest.fn();
+    
+    mockNetworkClient.request.mockRejectedValue(new Error('Unauthorized'));
+    mockErrorHandler.handleError.mockReturnValue(authError);
+    mockErrorHandler.getRecoveryAction.mockReturnValue(mockRecovery);
 
-      const response = await apiClient.put('/test', putData);
+    await expect(apiClient.request(testEndpoint))
+      .rejects
+      .toThrow(AuthenticationError);
 
-      expect(response.data).toEqual(mockResponse);
-      expect(mockNetworkClient.fetch).toHaveBeenCalledWith(
-        '/test',
-        expect.objectContaining({
-          method: 'PUT',
-          body: JSON.stringify(putData),
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json'
-          })
-        })
-      );
-    });
-
-    it('should handle HTTP errors', async () => {
-      mockNetworkClient.fetch.mockRejectedValueOnce(
-        new Error('HTTP error! status: 404')
-      );
-
-      await expect(apiClient.put('/test', {})).rejects.toThrow(ApiError);
-      await expect(apiClient.put('/test', {})).rejects.toMatchObject({
-        status: 404,
-        code: 'HTTP_ERROR'
-      });
-    });
+    expect(mockRecovery).toHaveBeenCalled();
   });
 
-  describe('DELETE requests', () => {
-    it('should make successful DELETE requests', async () => {
-      const mockResponse = { success: true };
-      mockNetworkClient.fetch.mockResolvedValueOnce(mockResponse);
+  it('should handle server errors', async () => {
+    const serverError = new ServerError('Internal error');
+    mockNetworkClient.request.mockRejectedValue(new Error('Server Error'));
+    mockErrorHandler.handleError.mockReturnValue(serverError);
 
-      const response = await apiClient.delete('/test');
+    await expect(apiClient.request(testEndpoint))
+      .rejects
+      .toThrow(ServerError);
+  });
 
-      expect(response.data).toEqual(mockResponse);
-      expect(mockNetworkClient.fetch).toHaveBeenCalledWith(
-        '/test',
-        expect.objectContaining({
-          method: 'DELETE'
-        })
-      );
-    });
+  it('should use development mock API when configured', async () => {
+    const mockProcess = process as any;
+    const originalEnv = mockProcess.env.NODE_ENV;
+    mockProcess.env.NODE_ENV = 'development';
 
-    it('should handle network errors', async () => {
-      mockNetworkClient.fetch.mockRejectedValueOnce(
-        new Error('Network is offline')
-      );
+    const mockData = { test: true };
+    const mockApi = require('../../services/mockApi').mockApi;
+    mockApi.request.mockResolvedValue(mockData);
 
-      await expect(apiClient.delete('/test')).rejects.toThrow(ApiError);
-      await expect(apiClient.delete('/test')).rejects.toMatchObject({
-        code: 'OFFLINE'
-      });
-    });
+    try {
+      const result = await apiClient.request(testEndpoint);
+      expect(result).toEqual(mockData);
+      expect(mockNetworkClient.request).not.toHaveBeenCalled();
+    } finally {
+      mockProcess.env.NODE_ENV = originalEnv;
+    }
+  });
+
+  it('should handle network client errors', async () => {
+    const networkError = new Error('Network failed');
+    mockNetworkClient.request.mockRejectedValue(networkError);
+    mockErrorHandler.handleError.mockReturnValue(new ServerError('Network error'));
+
+    await expect(apiClient.request(testEndpoint))
+      .rejects
+      .toThrow(ServerError);
+
+    expect(mockErrorHandler.handleError).toHaveBeenCalledWith(
+      networkError,
+      testEndpoint
+    );
   });
 }); 

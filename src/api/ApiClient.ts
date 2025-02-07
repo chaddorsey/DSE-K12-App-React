@@ -20,21 +20,11 @@ export interface IRequestOptions<TBody = unknown> {
 }
 
 export class ApiClient {
-  private errorHandler: ApiErrorHandler;
-
-  /**
-   * Creates a new API client instance
-   * @param networkClient - Network client for making HTTP requests
-   * @param config - Configuration options
-   * @param errorHandler - Optional error handler for custom error handling logic
-   */
   constructor(
     private networkClient: NetworkClient,
     private config: { baseUrl: string },
-    errorHandler?: ApiErrorHandler
-  ) {
-    this.errorHandler = errorHandler || new ApiErrorHandler();
-  }
+    private errorHandler: ApiErrorHandler = new ApiErrorHandler()
+  ) {}
 
   /**
    * Make a type-safe request to the API
@@ -49,13 +39,11 @@ export class ApiClient {
         return await mockApi.request<ResponseType<P>>(path);
       }
 
-      const response = await this.networkClient.request(
-        `${this.config.baseUrl}${path}`,
-        options
-      );
+      const url = `${this.config.baseUrl}${path}`;
+      const response = await this.networkClient.request(url, options);
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
