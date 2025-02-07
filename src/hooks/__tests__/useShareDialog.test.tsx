@@ -8,14 +8,13 @@ describe('useShareDialog', () => {
     data: { id: '123', name: 'Test User' }
   };
 
-  it('should initialize with closed state', () => {
+  it('initializes with closed state', () => {
     const { result } = renderHook(() => useShareDialog());
-
     expect(result.current.isOpen).toBe(false);
     expect(result.current.content).toBeNull();
   });
 
-  it('should open dialog with content', () => {
+  it('opens dialog with content', () => {
     const { result } = renderHook(() => useShareDialog());
 
     act(() => {
@@ -26,7 +25,7 @@ describe('useShareDialog', () => {
     expect(result.current.content).toEqual(mockContent);
   });
 
-  it('should close dialog and clear content', () => {
+  it('closes dialog and clears content', () => {
     const { result } = renderHook(() => useShareDialog());
 
     act(() => {

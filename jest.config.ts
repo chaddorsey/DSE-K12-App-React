@@ -6,7 +6,8 @@ const config: Config.InitialOptions = {
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '^qrcode\\.react$': '<rootDir>/src/__mocks__/qrcode.react.tsx'
   },
   testMatch: [
     '**/__tests__/**/*.test.[jt]s?(x)',

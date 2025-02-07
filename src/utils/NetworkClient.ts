@@ -27,7 +27,7 @@ export interface INetworkClientConfig {
 /**
  * Network request initialization options
  */
-export interface INetworkRequestInit extends Omit<RequestInit, 'cache'> {
+export interface INetworkRequestInit extends RequestInit {
   /** Expected response type */
   responseType?: 'json' | 'text' | 'blob';
   /** Cache options for this request */
@@ -239,5 +239,10 @@ export class NetworkClient {
       default:
         return response.json();
     }
+  }
+
+  async checkConnection(): Promise<boolean> {
+    const status = await this.monitor.checkConnection();
+    return status.isOnline;
   }
 } 
