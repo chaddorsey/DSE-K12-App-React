@@ -6,13 +6,12 @@ import { MonitoringService } from '../../monitoring/MonitoringService';
 import type { IShareableContent } from './types';
 import './ShareSheet.css';
 
-interface IShareSheetProps {
-  isOpen: boolean;
+export interface IShareSheetProps {
   content: IShareableContent;
-  onClose: () => void;
+  onShare?: () => void;
 }
 
-export const ShareSheet: React.FC<IShareSheetProps> = ({ isOpen, content, onClose }) => {
+export const ShareSheet: React.FC<IShareSheetProps> = ({ content, onShare }) => {
   const { availableMethods, loading, error } = useShareMethods();
 
   const handleMethodSelect = async (methodId: string) => {
@@ -28,16 +27,14 @@ export const ShareSheet: React.FC<IShareSheetProps> = ({ isOpen, content, onClos
           contentType: content.type
         }
       });
-      onClose();
+      onShare?.();
     } catch (err) {
       // Error handling will be managed by ShareStatusTracker
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title="Share">
+    <Dialog isOpen={true} onClose={onShare} title="Share">
       <div className="share-sheet">
         {loading && (
           <div className="share-sheet__loading">

@@ -1,7 +1,7 @@
 import React from 'react';
-import { useShareDialog } from '../../hooks';
+import { useShareDialog } from '../../hooks/useShareDialog';
 import { Button } from '../Button';
-import { MonitoringService } from '../../monitoring/MonitoringService';
+import { logger } from '../../utils/logger';
 import type { IShareableContent } from './types';
 
 interface IShareButtonProps {
@@ -9,23 +9,11 @@ interface IShareButtonProps {
   className?: string;
 }
 
-export const ShareButton: React.FC<IShareButtonProps> = ({ 
-  content,
-  className
-}) => {
+export const ShareButton: React.FC<IShareButtonProps> = ({ content, className = '' }) => {
   const { openShare } = useShareDialog();
 
   const handleClick = () => {
-    MonitoringService.getInstance().trackPerformance({
-      type: 'share_method_selected',
-      totalTime: 0,
-      timestamp: Date.now(),
-      metadata: {
-        contentType: content.type,
-        title: content.title
-      }
-    });
-    
+    logger.info('Share button clicked', { contentType: content.type });
     openShare(content);
   };
 

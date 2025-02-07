@@ -1,10 +1,11 @@
 export type ShareContentType = 'url' | 'image';
 
 export interface IShareableContent {
-  type: ShareContentType;
-  url?: string;
+  type: 'url' | 'text' | 'file';
   title: string;
-  imageUrl?: string;
+  url?: string;
+  description?: string;
+  fileData?: Blob;
 }
 
 export interface IShareMethod {

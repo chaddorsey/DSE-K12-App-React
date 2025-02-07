@@ -3,21 +3,20 @@ import { NetworkClient } from '../utils/NetworkClient';
 import { NetworkMonitor } from '../utils/NetworkMonitor';
 import { MonitoringService } from '../monitoring/MonitoringService';
 
-export interface NetworkStatus {
-  online: boolean;
-  loading: boolean;
-  lastChecked: string;
-  error?: Error;
+export interface INetworkStatus {
+  isOnline: boolean;
+  latency: number;
+  connectionType: string;
 }
 
 const networkMonitor = new NetworkMonitor();
 const networkClient = new NetworkClient(networkMonitor);
 
-export const useNetworkStatus = (): NetworkStatus => {
-  const [status, setStatus] = useState<NetworkStatus>({
-    online: navigator.onLine,
-    loading: true,
-    lastChecked: new Date().toISOString()
+export function useNetworkStatus(): INetworkStatus {
+  const [status, setStatus] = useState<INetworkStatus>({
+    isOnline: navigator.onLine,
+    latency: 0,
+    connectionType: ''
   });
 
   useEffect(() => {
@@ -25,9 +24,9 @@ export const useNetworkStatus = (): NetworkStatus => {
       try {
         const networkStatus = await networkMonitor.checkConnection();
         setStatus({
-          online: networkStatus.isOnline,
-          loading: false,
-          lastChecked: new Date().toISOString()
+          isOnline: networkStatus.isOnline,
+          latency: networkStatus.latency,
+          connectionType: networkStatus.connectionType
         });
         MonitoringService.getInstance().trackPerformance({
           type: 'network_status_change',
@@ -36,9 +35,9 @@ export const useNetworkStatus = (): NetworkStatus => {
         });
       } catch (error) {
         setStatus({
-          online: false,
-          loading: false,
-          lastChecked: new Date().toISOString(),
+          isOnline: false,
+          latency: 0,
+          connectionType: '',
           error: error as Error
         });
       }
@@ -47,8 +46,9 @@ export const useNetworkStatus = (): NetworkStatus => {
     const handleStatusChange = (newStatus: { isOnline: boolean }) => {
       setStatus(prev => ({
         ...prev,
-        online: newStatus.isOnline,
-        lastChecked: new Date().toISOString()
+        isOnline: newStatus.isOnline,
+        latency: 0,
+        connectionType: ''
       }));
       MonitoringService.getInstance().trackPerformance({
         type: 'network_status_change',
@@ -73,4 +73,4 @@ export const useNetworkStatus = (): NetworkStatus => {
   }, []);
 
   return status;
-}; 
+} 

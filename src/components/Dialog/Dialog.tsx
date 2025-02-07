@@ -6,13 +6,15 @@ export interface IDialogProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }
 
 export const Dialog: React.FC<IDialogProps> = ({
   isOpen,
   onClose,
   title,
-  children
+  children,
+  className = ''
 }) => {
   if (!isOpen) return null;
 
