@@ -6,8 +6,9 @@
 import { mockApi } from '../services/mockApi';
 import { NetworkClient } from '../utils/NetworkClient';
 import { endpoints, EndpointPath, ResponseType, RequestBody, ExtractMethod } from './types/endpoints';
-import { ApiError } from './types/errors';
+import { ApiErrorHandler } from './ApiErrorHandler';
 import { logger } from '../utils/logger';
+import type { ApiError } from '../errors/ApiError';
 
 export interface IRequestOptions<TBody = unknown> {
   body?: TBody;
@@ -19,15 +20,21 @@ export interface IRequestOptions<TBody = unknown> {
 }
 
 export class ApiClient {
+  private errorHandler: ApiErrorHandler;
+
   /**
    * Creates a new API client instance
    * @param networkClient - Network client for making HTTP requests
    * @param config - Configuration options
+   * @param errorHandler - Optional error handler for custom error handling logic
    */
   constructor(
     private networkClient: NetworkClient,
-    private config: { baseUrl: string }
-  ) {}
+    private config: { baseUrl: string },
+    errorHandler?: ApiErrorHandler
+  ) {
+    this.errorHandler = errorHandler || new ApiErrorHandler();
+  }
 
   /**
    * Make a type-safe request to the API
@@ -52,10 +59,18 @@ export class ApiClient {
       }
 
       const data = await response.json();
+      logger.info('API request successful', { path });
       return data;
     } catch (error) {
-      logger.error('API request failed', error);
-      throw this.handleError(error);
+      const apiError = this.errorHandler.handleError(error, path);
+      const recovery = this.errorHandler.getRecoveryAction(apiError);
+
+      if (recovery) {
+        logger.info('Attempting error recovery', { path, error: apiError });
+        await recovery();
+      }
+
+      throw apiError;
     }
   }
 
@@ -71,23 +86,5 @@ export class ApiClient {
     }
 
     return config;
-  }
-
-  /**
-   * Standardize error handling across all requests
-   * @param error - Original error from request
-   * @returns Never - always throws an ApiError
-   * @throws {ApiError} Standardized API error
-   * @private
-   */
-  private handleError(error: unknown): never {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(
-      error instanceof Error ? error.message : 'Unknown error',
-      500,
-      'UNKNOWN_ERROR'
-    );
   }
 } 
