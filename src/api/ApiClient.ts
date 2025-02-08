@@ -10,6 +10,14 @@ import { ApiErrorHandler } from './ApiErrorHandler';
 import { logger } from '../utils/logger';
 import type { ApiError } from '../errors/ApiError';
 
+interface IApiClientConfig {
+  baseUrl: string;
+  cacheConfig?: {
+    ttl: number;
+    maxEntries: number;
+  };
+}
+
 export interface IRequestOptions<TBody = unknown> {
   body?: TBody;
   headers?: Record<string, string>;
@@ -22,7 +30,7 @@ export interface IRequestOptions<TBody = unknown> {
 export class ApiClient {
   constructor(
     private networkClient: NetworkClient,
-    private config: { baseUrl: string },
+    private config: IApiClientConfig,
     private errorHandler: ApiErrorHandler = new ApiErrorHandler()
   ) {}
 
