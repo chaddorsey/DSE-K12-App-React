@@ -3,6 +3,8 @@
 ## Overview
 Implementation of core conference social connection app, using App.js as reference implementation while building a production-ready React application with TypeScript.
 
+See `docs/project_plan.md` for high-level objectives and `docs/component_migration_plan.md` for implementation details.
+
 ## Goals
 - Create robust, maintainable foundation for conference social app
 - Leverage existing high-quality infrastructure

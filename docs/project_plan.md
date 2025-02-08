@@ -77,7 +77,7 @@ Build on core features with mobile-specific capabilities:
 3. Regular architecture reviews
 
 ## Reference
-See `design/component_migration_plan.md` for detailed technical approach
+See `docs/component_migration_plan.md` for detailed technical approach and `docs/reimplementation_plan.md` for technical strategy.
 
 ## Completed
 - ✅ Network monitoring system

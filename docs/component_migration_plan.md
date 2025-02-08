@@ -1,4 +1,9 @@
-# Component Migration Plan - Updated
+# Component Migration Plan
+
+## Overview
+Systematic plan for migrating components from App.js into feature-based architecture while maintaining existing infrastructure.
+
+See `docs/project_plan.md` for high-level objectives and `docs/reimplementation_plan.md` for technical strategy.
 
 ## Phase 1: Core Infrastructure (Week 1)
 1. **Setup & Standards**
