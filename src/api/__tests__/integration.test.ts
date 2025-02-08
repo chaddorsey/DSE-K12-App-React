@@ -5,6 +5,10 @@
 import { ApiClient } from '../client';
 import { ValidationError, NetworkError, AuthenticationError } from '../../utils/errors';
 import { MonitoringService } from '../../monitoring/MonitoringService';
+import type { IApiResponse } from '../types';
+
+// Mock monitoring service
+jest.mock('../../monitoring/MonitoringService');
 
 // Mock fetch
 const mockFetch = jest.fn();
@@ -15,13 +19,21 @@ const monitoring = MonitoringService.getInstance();
 
 describe('API Infrastructure Integration', () => {
   let client: ApiClient;
+  let trackErrorSpy: jest.SpyInstance;
   const trackPerformanceSpy = jest.spyOn(monitoring, 'trackPerformance');
-  const trackErrorSpy = jest.spyOn(monitoring, 'trackError');
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockFetch.mockReset();
-    client = new ApiClient('https://api.example.com');
+    client = new ApiClient({
+      baseUrl: 'https://api.test.com'
+    });
+    
+    trackErrorSpy = jest.spyOn(MonitoringService.getInstance(), 'trackError');
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('Error Handling Flow', () => {

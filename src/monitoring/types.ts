@@ -45,7 +45,9 @@ export type PerformanceEventType =
   | 'share_methods_detected'
   | 'share_method_selected'
   | 'share_complete'
-  | 'share_error';
+  | 'share_error'
+  | 'state_transition'
+  | 'user_interaction';
 
 export interface IPerformanceMetrics {
   type: PerformanceEventType;
@@ -87,14 +89,17 @@ export interface IPerformanceMetrics {
 export interface IStateTransition {
   from: string;
   to: string;
-  action: string;
-  timestamp: number;
-  metadata?: Record<string, any>;
+  success?: boolean;
+  duration?: number;
+  error?: Error;
+  metadata?: Record<string, unknown>;
+  component?: string;
+  timestamp?: number;
 }
 
 export interface IErrorReport {
   error: Error;
-  context: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
   timestamp: number;
   handled: boolean;
 }
@@ -102,10 +107,8 @@ export interface IErrorReport {
 export interface IAnalyticsEvent {
   type: string;
   category: string;
-  action: string;
-  label?: string;
-  value?: number;
-  metadata?: Record<string, any>;
+  timestamp: Date;
+  metadata?: Record<string, unknown>;
 }
 
 export interface IPerformanceBaseline {

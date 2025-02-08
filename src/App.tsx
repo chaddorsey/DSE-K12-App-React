@@ -1,35 +1,30 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
+import { Routes, Route } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ShareButton } from './components/sharing/ShareButton';
-import { ShareDialogProvider } from './components/sharing/ShareDialogProvider';
+import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
+import { AppProviders } from './providers/AppProviders';
 import { Dashboard } from './components/Dashboard';
 import { UserProfile } from './components/UserProfile';
 import { Settings } from './components/Settings';
-
-const testContent = {
-  type: 'url' as const,
-  title: 'Test Share',
-  url: 'https://example.com',
-  description: 'Test sharing functionality'
-};
+import { usePerformanceMonitoring } from './monitoring/hooks/useMonitoring';
 
 export const App: React.FC = () => {
+  usePerformanceMonitoring('App');
+
   return (
-    <BrowserRouter>
-      <ErrorBoundary>
-        <ShareDialogProvider>
+    <ErrorBoundary>
+      <AppProviders>
+        <div className="app">
           <NetworkStatusIndicator />
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<div>404 - Not Found</div>} />
           </Routes>
-          <ShareButton content={testContent} />
-        </ShareDialogProvider>
-      </ErrorBoundary>
-    </BrowserRouter>
+        </div>
+      </AppProviders>
+    </ErrorBoundary>
   );
-}; 
+};
+
+export default App; 

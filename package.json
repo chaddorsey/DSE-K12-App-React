@@ -9,16 +9,18 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-qr-code": "^2.0.15",
-    "react-router-dom": "^7.1.5",
+    "react-router-dom": "^6.22.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^4.2.4",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "@types/react-router-dom": "^5.3.3"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "cross-env NODE_ENV=production webpack --config webpack.config.ts",
+    "start": "webpack serve --mode development",
+    "build": "webpack --mode production",
+    "test": "jest",
+    "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
     "dev": "cross-env NODE_ENV=development webpack serve --config webpack.config.dev.ts",
-    "test": "react-scripts test",
     "test:coverage": "react-scripts test --coverage --watchAll=false",
     "eject": "react-scripts eject",
     "analyze": "ANALYZE=true webpack --mode production",
@@ -70,6 +72,8 @@
     "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^4.11.1",
-    "webpack-merge": "^5.8.0"
+    "webpack-merge": "^5.8.0",
+    "copy-webpack-plugin": "^11.0.0",
+    "babel-loader": "^9.1.3"
   }
 }

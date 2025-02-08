@@ -32,7 +32,7 @@ export class MonitoringService {
     return MonitoringService.instance;
   }
 
-  public trackStateTransition(transition: Omit<IStateTransition, 'timestamp'>): void {
+  public trackStateTransition(transition: IStateTransition): void {
     this.transitions.push({
       ...transition,
       timestamp: Date.now()
@@ -40,12 +40,12 @@ export class MonitoringService {
     this.checkHealthMetrics();
   }
 
-  public trackError(error: Error, context: Record<string, unknown>, handled = true): void {
+  public trackError(error: Error, metadata?: Record<string, unknown>): void {
     this.errors.push({
       error,
-      context,
+      metadata,
       timestamp: Date.now(),
-      handled
+      handled: true
     });
     this.checkHealthMetrics();
   }
@@ -65,9 +65,10 @@ export class MonitoringService {
 
   public trackInteraction(event: IInteractionEvent): void {
     this.track({
+      type: event.type,
       category: 'interaction',
-      ...event,
-      timestamp: new Date()
+      timestamp: new Date(),
+      metadata: event.metadata
     });
   }
 
@@ -87,7 +88,7 @@ export class MonitoringService {
 
   private getRecentPerformance(timeWindow = 5 * 60 * 1000): IPerformanceMetrics[] {
     const now = Date.now();
-    return this.metrics.filter(m => now - m.timestamp < timeWindow);
+    return this.metrics.filter(m => m.timestamp && now - m.timestamp < timeWindow);
   }
 
   private shouldTriggerAlert(errors: IErrorReport[], metrics: IPerformanceMetrics[]): boolean {
@@ -98,11 +99,10 @@ export class MonitoringService {
   }
 
   private triggerHealthAlert(): void {
-    // Implementation for alerting
     console.error('Health metrics exceeded thresholds');
   }
 
-  private track(event: { category: string } & Record<string, unknown>): void {
+  private track(event: IAnalyticsEvent): void {
     console.log('Tracking:', event);
     // Implementation for actual tracking would go here
   }
