@@ -5,7 +5,7 @@
 
 import { mockApi } from '../services/mockApi';
 import { NetworkClient } from '../utils/NetworkClient';
-import { endpoints, EndpointPath, ResponseType, RequestBody, ExtractMethod } from './types/endpoints';
+import { endpoints, EndpointPath, ResponseType, RequestBody } from './types/endpoints';
 import { ApiErrorHandler } from './ApiErrorHandler';
 import { logger } from '../utils/logger';
 import type { ApiError } from '../errors/ApiError';
