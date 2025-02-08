@@ -9,8 +9,7 @@
 
 export interface INetworkStatus {
   isOnline: boolean;
-  connectionType?: 'slow-2g' | '2g' | '3g' | '4g';
-  lastChecked: Date;
+  connectionQuality?: 'good' | 'poor' | 'offline';
   latency?: number;
 }
 
@@ -26,26 +25,51 @@ export interface INetworkMonitorOptions {
 }
 
 export class NetworkMonitor {
-  private subscribers: ((status: { isOnline: boolean }) => void)[] = [];
+  private static instance: NetworkMonitor;
+  private subscribers: Array<(status: INetworkStatus) => void> = [];
+  private currentStatus: INetworkStatus = { isOnline: true };
 
-  getStatus() {
-    return { isOnline: navigator.onLine };
+  private constructor() {
+    this.initializeListeners();
   }
 
-  async checkConnection(): Promise<{ isOnline: boolean }> {
-    try {
-      await fetch('/ping');
-      return { isOnline: true };
-    } catch {
-      return { isOnline: false };
+  public static getInstance(): NetworkMonitor {
+    if (!NetworkMonitor.instance) {
+      NetworkMonitor.instance = new NetworkMonitor();
     }
+    return NetworkMonitor.instance;
   }
 
-  subscribe(callback: (status: { isOnline: boolean }) => void) {
+  private initializeListeners(): void {
+    window.addEventListener('online', () => this.updateStatus({ isOnline: true }));
+    window.addEventListener('offline', () => this.updateStatus({ isOnline: false }));
+  }
+
+  public updateStatus(status: Partial<INetworkStatus>): void {
+    this.currentStatus = { ...this.currentStatus, ...status };
+    this.notifySubscribers();
+  }
+
+  public getStatus(): INetworkStatus {
+    return { ...this.currentStatus };
+  }
+
+  public subscribe(callback: (status: INetworkStatus) => void): () => void {
     this.subscribers.push(callback);
+    callback(this.currentStatus); // Initial status
+    
+    return () => {
+      this.subscribers = this.subscribers.filter(cb => cb !== callback);
+    };
   }
 
-  destroy() {
+  private notifySubscribers(): void {
+    this.subscribers.forEach(callback => callback(this.currentStatus));
+  }
+
+  public destroy(): void {
+    window.removeEventListener('online', () => this.updateStatus({ isOnline: true }));
+    window.removeEventListener('offline', () => this.updateStatus({ isOnline: false }));
     this.subscribers = [];
   }
 } 

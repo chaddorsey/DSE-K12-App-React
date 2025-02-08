@@ -4,35 +4,52 @@ import { NetworkMonitor } from '../NetworkMonitor';
 import '@testing-library/jest-dom';
 
 describe('NetworkMonitor', () => {
-  let monitor: NetworkMonitor;
+  let networkMonitor: NetworkMonitor;
 
   beforeEach(() => {
-    monitor = new NetworkMonitor();
-    global.fetch = jest.fn();
+    networkMonitor = NetworkMonitor.getInstance();
   });
 
-  it('returns current online status', () => {
-    const status = monitor.getStatus();
-    expect(status).toHaveProperty('isOnline');
+  afterEach(() => {
+    networkMonitor.destroy();
   });
 
-  it('checks connection by making ping request', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({});
-    const status = await monitor.checkConnection();
-    expect(status.isOnline).toBe(true);
+  it('should be a singleton', () => {
+    const instance1 = NetworkMonitor.getInstance();
+    const instance2 = NetworkMonitor.getInstance();
+    expect(instance1).toBe(instance2);
   });
 
-  it('handles failed connection check', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error());
-    const status = await monitor.checkConnection();
-    expect(status.isOnline).toBe(false);
-  });
-
-  it('notifies subscribers of status changes', () => {
+  it('should notify subscribers of status changes', () => {
     const callback = jest.fn();
-    monitor.subscribe(callback);
-    const status = { isOnline: true };
-    monitor['subscribers'][0](status);
-    expect(callback).toHaveBeenCalledWith(status);
+    const unsubscribe = networkMonitor.subscribe(callback);
+
+    // Should be called immediately with current status
+    expect(callback).toHaveBeenCalledWith(expect.objectContaining({
+      isOnline: expect.any(Boolean)
+    }));
+
+    networkMonitor.updateStatus({ isOnline: false });
+    expect(callback).toHaveBeenLastCalledWith(expect.objectContaining({
+      isOnline: false
+    }));
+
+    unsubscribe();
+    networkMonitor.updateStatus({ isOnline: true });
+    expect(callback).toHaveBeenCalledTimes(2); // No additional calls after unsubscribe
+  });
+
+  it('should maintain current status', () => {
+    networkMonitor.updateStatus({ isOnline: true, connectionQuality: 'good' });
+    expect(networkMonitor.getStatus()).toEqual({
+      isOnline: true,
+      connectionQuality: 'good'
+    });
+
+    networkMonitor.updateStatus({ connectionQuality: 'poor' });
+    expect(networkMonitor.getStatus()).toEqual({
+      isOnline: true,
+      connectionQuality: 'poor'
+    });
   });
 }); 
