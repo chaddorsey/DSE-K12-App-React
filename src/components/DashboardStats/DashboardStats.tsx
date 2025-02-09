@@ -1,23 +1,28 @@
 import React from 'react';
 import { DataContainer } from '../DataContainer';
-import type { ApiEndpoints } from '../types/api';
+import type { IDashboardData } from '../../api/types/models';
+import './DashboardStats.css';
 
 interface IDashboardStatsProps {
-  timeframe: ApiEndpoints['dashboard.stats']['params']['timeframe'];
+  timeframe: 'day' | 'week' | 'month' | 'year';
 }
 
-export function DashboardStats({
-  timeframe
-}: IDashboardStatsProps): React.ReactElement {
+export function DashboardStats({ timeframe }: IDashboardStatsProps) {
   return (
-    <DataContainer<'dashboard.stats'>
-      endpoint="dashboard.stats"
+    <DataContainer<'dashboard.overview'>
+      endpoint="dashboard.overview"
       params={{ timeframe }}
     >
-      {(data) => (
-        <div>
-          <div>Views: {data.views}</div>
-          <div>Interactions: {data.interactions}</div>
+      {(data: IDashboardData) => (
+        <div className="dashboard-stats">
+          <div className="stat-item">
+            <span className="stat-label">Views</span>
+            <span className="stat-value">{data.stats.views}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Interactions</span>
+            <span className="stat-value">{data.stats.interactions}</span>
+          </div>
         </div>
       )}
     </DataContainer>

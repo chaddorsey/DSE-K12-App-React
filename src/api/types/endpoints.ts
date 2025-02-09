@@ -54,15 +54,48 @@ export type NestedPaths<T, Prefix extends string = ''> = T extends object
     }[keyof T]
   : never;
 
-export type EndpointPath = keyof typeof endpoints;
+export type EndpointPath = 
+  | 'auth.login' 
+  | 'auth.logout'
+  | 'users.profile'
+  | 'users.settings'
+  | 'dashboard.overview'
+  | 'search.results';
 
-export type ResponseType<P extends EndpointPath> = 
-  P extends 'users.profile' ? IUser :
-  P extends 'users.settings' ? IUserSettings :
-  P extends 'dashboard.overview' ? IDashboardData :
-  never;
+export interface ApiEndpoints {
+  'auth.login': {
+    params: {
+      email: string;
+      password: string;
+    };
+    response: { token: string };
+  };
+  'auth.logout': {
+    params: void;
+    response: void;
+  };
+  'users.profile': {
+    params: void;
+    response: IUser;
+  };
+  'users.settings': {
+    params: Partial<IUserSettings>;
+    response: IUserSettings;
+  };
+  'dashboard.overview': {
+    params: {
+      timeframe: 'day' | 'week' | 'month' | 'year';
+    };
+    response: IDashboardData;
+  };
+  'search.results': {
+    params: import('./search').SearchQuery;
+    response: import('./search').SearchResult[];
+  };
+}
 
-export type RequestBody<P extends EndpointPath> = ExtractBody<EndpointConfig, P>;
+export type RequestBody<P extends EndpointPath> = ApiEndpoints[P]['params'];
+export type ResponseData<P extends EndpointPath> = ApiEndpoints[P]['response'];
 
 export interface IApiResponse<T> {
   data: T;

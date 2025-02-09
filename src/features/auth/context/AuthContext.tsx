@@ -2,87 +2,99 @@
  * Authentication context and provider
  */
 
-import React from 'react';
+import React, { createContext, useCallback, useEffect, useState } from 'react';
 import { MonitoringService } from '../../../monitoring/MonitoringService';
-import { IUser } from '../types';
+import { apiClient } from '../../../services/api';
+import { logger } from '../../../utils/logger';
+import type { IUser } from '../types';
 
-interface IAuthState {
+interface IAuthContext {
   user: IUser | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
   error: Error | null;
-}
-
-interface IAuthContext extends IAuthState {
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  resetPassword: (username: string, newPassword: string) => Promise<void>;
+  signup: (userData: Partial<IUser>) => Promise<void>;
 }
 
-const AuthContext = React.createContext<IAuthContext | null>(null);
+const AuthContext = createContext<IAuthContext | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = React.useState<IAuthState>({
-    user: null,
-    isLoading: false,
-    error: null
-  });
+  const [user, setUser] = useState<IUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const monitoring = MonitoringService.getInstance();
-
-  const login = React.useCallback(async (username: string, password: string) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    monitoring.trackStateTransition({
-      from: 'logged-out',
-      to: 'logging-in',
-      success: true,
-      duration: 0,
-      component: 'AuthProvider'
-    });
-
+  const login = useCallback(async (email: string, password: string) => {
     try {
-      // Implementation will be added when we migrate the API layer
-      setState(prev => ({ ...prev, isLoading: false }));
-      monitoring.trackStateTransition({
-        from: 'logging-in',
-        to: 'logged-in',
-        success: true,
-        duration: 0,
-        component: 'AuthProvider'
-      });
-    } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: false, 
-        error: error as Error 
-      }));
-      monitoring.trackStateTransition({
-        from: 'logging-in',
-        to: 'error',
-        success: false,
-        duration: 0,
-        error: error as Error,
-        component: 'AuthProvider'
-      });
+      setIsLoading(true);
+      setError(null);
+      const response = await apiClient.post<IUser>('auth.login', { email, password });
+      setUser(response);
+      MonitoringService.getInstance().trackEvent('auth_login_success');
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Login failed'));
+      MonitoringService.getInstance().trackError('auth_login_failed', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const logout = React.useCallback(async () => {
-    // Implementation will be added
+  const logout = useCallback(async () => {
+    try {
+      await apiClient.post('auth.logout');
+      setUser(null);
+      MonitoringService.getInstance().trackEvent('auth_logout_success');
+    } catch (err) {
+      logger.error('Logout failed', err);
+      MonitoringService.getInstance().trackError('auth_logout_failed', err);
+    }
   }, []);
 
-  const resetPassword = React.useCallback(async (username: string, newPassword: string) => {
-    // Implementation will be added
+  const signup = useCallback(async (userData: Partial<IUser>) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiClient.post<IUser>('auth.signup', userData);
+      setUser(response);
+      MonitoringService.getInstance().trackEvent('auth_signup_success');
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Signup failed'));
+      MonitoringService.getInstance().trackError('auth_signup_failed', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const value = React.useMemo(() => ({
-    ...state,
-    login,
-    logout,
-    resetPassword
-  }), [state, login, logout, resetPassword]);
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const user = await apiClient.get<IUser>('auth.check');
+        setUser(user);
+      } catch (err) {
+        logger.error('Auth check failed', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider 
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        error,
+        login,
+        logout,
+        signup
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -94,4 +106,6 @@ export const useAuth = (): IAuthContext => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}; 
+};
+
+export default AuthContext; 

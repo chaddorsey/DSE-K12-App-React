@@ -4,6 +4,8 @@
 
 export interface IDashboardData {
   stats: {
+    views: number;
+    interactions: number;
     totalUsers: number;
     activeUsers: number;
     newUsers: number;

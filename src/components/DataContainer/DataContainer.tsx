@@ -4,7 +4,7 @@
 
 import React, { useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
-import { EndpointPath, IApiResponse, IUseApiOptions } from '../../api/types/endpoints';
+import { EndpointPath, IApiResponse, IUseApiOptions, ApiEndpoints } from '../../api/types/endpoints';
 import { ErrorDisplay } from '../ErrorDisplay';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { usePerformanceMonitoring } from '../../hooks/usePerformanceMonitoring';
@@ -12,7 +12,8 @@ import './DataContainer.css';
 
 interface IDataContainerProps<P extends EndpointPath> {
   endpoint: P;
-  children: (data: IApiResponse<P>) => React.ReactNode;
+  params?: ApiEndpoints[P]['params'];
+  children: (data: ApiEndpoints[P]['response']) => React.ReactNode;
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
   apiOptions?: IUseApiOptions<IApiResponse<P>>;
@@ -20,6 +21,7 @@ interface IDataContainerProps<P extends EndpointPath> {
 
 export function DataContainer<P extends EndpointPath>({
   endpoint,
+  params,
   children,
   loadingComponent = <LoadingSpinner />,
   errorComponent,
