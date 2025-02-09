@@ -1,5 +1,6 @@
 import React from 'react';
 import { DataContainer } from '../DataContainer';
+import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
 import type { IDashboardData } from '../../api/types/models';
 import './DashboardStats.css';
 
@@ -8,6 +9,8 @@ interface IDashboardStatsProps {
 }
 
 export function DashboardStats({ timeframe }: IDashboardStatsProps) {
+  usePerformanceMonitoring('DashboardStats');
+
   return (
     <DataContainer<'dashboard.overview'>
       endpoint="dashboard.overview"
