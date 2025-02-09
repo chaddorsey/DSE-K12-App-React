@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
 import { apiClient } from '../../services/api';
 import { logger } from '../../utils/logger';
 import type { IUser } from './types';
+import { refreshAuthToken, setupTokenRefresh } from './tokenRefresh';
 
 interface IAuthContext {
   user: IUser | null;
@@ -23,6 +24,24 @@ const TOKEN_KEY = 'auth_token';
 export function AuthProvider({ children, initialUser = null }: IAuthProviderProps) {
   usePerformanceMonitoring('AuthProvider');
   const [user, setUser] = useState<IUser | null>(initialUser);
+
+  useEffect(() => {
+    if (user) {
+      const stopRefresh = setupTokenRefresh(async () => {
+        try {
+          await refreshAuthToken();
+          logger.info('Token refresh cycle completed');
+        } catch (error) {
+          logger.error('Token refresh cycle failed', { error });
+          logout();
+        }
+      });
+
+      return () => {
+        stopRefresh();
+      };
+    }
+  }, [user]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -50,7 +69,6 @@ export function AuthProvider({ children, initialUser = null }: IAuthProviderProp
       logger.info('User logged out successfully');
     } catch (error) {
       logger.error('Logout failed', { error });
-      // Still clear local state even if API call fails
       localStorage.removeItem(TOKEN_KEY);
       setUser(null);
     }
