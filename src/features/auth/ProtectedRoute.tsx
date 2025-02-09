@@ -10,16 +10,13 @@ interface IProtectedRouteProps {
   requiredRole?: IUser['role'];
 }
 
-export function ProtectedRoute({ children, requiredRole }: IProtectedRouteProps) {
-  usePerformanceMonitoring('ProtectedRoute');
+export const ProtectedRoute: React.FC<IProtectedRouteProps> = ({ children, requiredRole }) => {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
+  usePerformanceMonitoring('ProtectedRoute');
 
   if (!isAuthenticated) {
-    logger.info('Unauthorized access attempt', {
-      path: location.pathname,
-      requiredRole
-    });
+    logger.info('Unauthorized access attempt', { path: location.pathname });
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -33,4 +30,4 @@ export function ProtectedRoute({ children, requiredRole }: IProtectedRouteProps)
   }
 
   return <>{children}</>;
-} 
+}; 

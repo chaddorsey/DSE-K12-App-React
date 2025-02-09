@@ -1,9 +1,8 @@
-import { ApiClient } from '../api/ApiClient';
-import { networkClient } from './network';
+import { ApiClient } from '../api/client';
 
-export const apiClient = new ApiClient(networkClient, {
-  baseUrl: process.env.REACT_APP_API_URL || '',
-  defaultHeaders: {
+export const apiClient = new ApiClient(
+  process.env.REACT_APP_API_URL || '',
+  {
     'Content-Type': 'application/json'
   }
-}); 
+); 
