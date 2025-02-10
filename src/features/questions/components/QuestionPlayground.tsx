@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OpenResponseQuestion } from './OpenResponseQuestion';
 import { NumericQuestion } from './NumericQuestion';
@@ -63,9 +63,71 @@ const questionPool: QuestionType[] = [
 const OnboardingFlow = () => {
   const { state, actions } = useOnboardingContext();
   const { state: questionState } = useQuestionContext();
+  const [currentDelight, setCurrentDelight] = useState<DelightFactor | null>(null);
+
+  const handleDelightComplete = () => {
+    setCurrentDelight(null);
+  };
+
+  const getDelightFactor = (question: QuestionType, response: QuestionResponse): DelightFactor | null => {
+    switch (question.type) {
+      case 'MULTIPLE_CHOICE':
+        if (question.id === 'std1') { // What brings you here
+          return {
+            id: 'confetti',
+            type: 'ANIMATION',
+            timing: 'POST_ANSWER',
+            trigger: 'IMMEDIATE',
+            animationType: 'CELEBRATION',
+            content: {
+              animation: 'confetti',
+              duration: 2000
+            },
+            questionTypes: ['MULTIPLE_CHOICE']
+          };
+        } else if (question.id === 'std4') { // Preferred learning style
+          return {
+            id: 'stats',
+            type: 'STATS',
+            timing: 'POST_ANSWER',
+            trigger: 'IMMEDIATE',
+            content: {
+              statType: 'PERCENTAGE',
+              value: Math.floor(Math.random() * 30) + 20,
+              message: `You're in good company! ${Math.floor(Math.random() * 30) + 20}% of respondents share that style.`
+            }
+          };
+        }
+        return null;
+      case 'NUMERIC':
+        return {
+          id: 'number',
+          type: 'NUMBER_ANIMATION',
+          timing: 'POST_ANSWER',
+          trigger: 'IMMEDIATE',
+          content: {
+            number: parseInt(response.answer, 10),
+            color: `hsl(${Math.random() * 360}, 80%, 60%)`,
+            duration: 1000
+          }
+        };
+      default:
+        return null;
+    }
+  };
 
   const handleAnswer = (response: QuestionResponse) => {
-    actions.handleResponse(response);
+    const currentQuestion = state.selectedQuestions[state.currentQuestionIndex];
+    const delightFactor = getDelightFactor(currentQuestion, response);
+    
+    if (delightFactor) {
+      setCurrentDelight(delightFactor);
+      setTimeout(() => {
+        actions.handleResponse(response);
+      }, delightFactor.content.duration + 100);
+    } else {
+      actions.handleResponse(response);
+    }
   };
 
   const renderCurrentQuestion = () => {
@@ -118,6 +180,12 @@ const OnboardingFlow = () => {
       ) : (
         <div className="question-container">
           {renderCurrentQuestion()}
+          {currentDelight && (
+            <DelightFactor
+              factor={currentDelight}
+              onComplete={handleDelightComplete}
+            />
+          )}
         </div>
       )}
 

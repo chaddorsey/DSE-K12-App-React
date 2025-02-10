@@ -44,4 +44,25 @@ export interface AnimationDelightFactor extends BaseDelightFactor {
   questionTypes: string[];
 }
 
-export type DelightFactor = AnimationDelightFactor; 
+export type DelightFactor = 
+  | AnimationDelightFactor 
+  | AttendeeStatsDelightFactor 
+  | NumberAnimationDelightFactor;
+
+export interface AttendeeStatsDelightFactor extends DelightFactor {
+  type: 'STATS';
+  content: {
+    statType: 'PERCENTAGE' | 'COUNT';
+    value: number;
+    message: string;
+  };
+}
+
+export interface NumberAnimationDelightFactor extends DelightFactor {
+  type: 'NUMBER_ANIMATION';
+  content: {
+    number: number;
+    color: string;
+    duration: number;
+  };
+} 
