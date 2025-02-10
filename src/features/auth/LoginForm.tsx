@@ -1,82 +1,98 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigate } from 'react-router-dom';
-import * as yup from 'yup';
 import { useAuth } from './AuthContext';
-import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
-import { logger } from '../../utils/logger';
 import './LoginForm.css';
 
-interface LoginFormData {
+interface LoginFormInputs {
   email: string;
   password: string;
 }
 
-const schema = yup.object({
-  email: yup.string().email('Invalid email').required('Email is required'),
-  password: yup.string().required('Password is required')
-}).required();
-
 export const LoginForm: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  usePerformanceMonitoring('LoginForm');
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormInputs>();
+  const [error, setError] = React.useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting }
-  } = useForm<LoginFormData>({
-    resolver: yupResolver(schema)
-  });
-
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: LoginFormInputs) => {
     try {
+      setError(null);
       await login(data.email, data.password);
-      logger.info('Login successful');
       navigate('/dashboard');
-    } catch (error) {
-      logger.error('Login failed', { error });
-      // Handle login error
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="login-form">
-      <div className="form-group">
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          {...register('email')}
-          className={errors.email ? 'error' : ''}
-        />
-        {errors.email && (
-          <span className="error-message">{errors.email.message}</span>
-        )}
-      </div>
+    <div className="login-container">
+      <div className="login-card">
+        <h2>Welcome Back</h2>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: 'Invalid email address'
+                }
+              })}
+            />
+            {errors.email && (
+              <span className="error-text">{errors.email.message}</span>
+            )}
+          </div>
 
-      <div className="form-group">
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          {...register('password')}
-          className={errors.password ? 'error' : ''}
-        />
-        {errors.password && (
-          <span className="error-message">{errors.password.message}</span>
-        )}
-      </div>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              {...register('password', {
+                required: 'Password is required',
+                minLength: {
+                  value: 8,
+                  message: 'Password must be at least 8 characters'
+                }
+              })}
+            />
+            {errors.password && (
+              <span className="error-text">{errors.password.message}</span>
+            )}
+          </div>
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="submit-button"
-      >
-        {isSubmitting ? 'Signing in...' : 'Sign in'}
-      </button>
-    </form>
+          <button 
+            type="submit" 
+            className="submit-button"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+
+        <div className="form-footer">
+          <button 
+            type="button" 
+            className="link-button"
+            onClick={() => navigate('/reset-password')}
+          >
+            Forgot Password?
+          </button>
+          <button 
+            type="button" 
+            className="link-button"
+            onClick={() => navigate('/register')}
+          >
+            Create Account
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }; 

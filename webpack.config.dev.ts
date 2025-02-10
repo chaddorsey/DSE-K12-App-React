@@ -2,48 +2,104 @@
  * Development-specific webpack configuration
  */
 
-export {};  // Make this a module
+import path from 'path';
+import { Configuration as WebpackConfiguration } from 'webpack';
+import { Configuration as WebpackDevServerConfiguration } from 'webpack-dev-server';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import webpack from 'webpack';
+import dotenv from 'dotenv';
+import CopyPlugin from 'copy-webpack-plugin';
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
-const path = require('path');
-const webpack = require('webpack');
-const { merge } = require('webpack-merge');
-const baseConfig = require('./webpack.config');
-const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+// Load environment variables
+const env = dotenv.config().parsed || {};
 
-const config = merge(baseConfig, {
+interface Configuration extends WebpackConfiguration {
+  devServer?: WebpackDevServerConfiguration;
+}
+
+const config: Configuration = {
   mode: 'development',
-  devtool: 'inline-source-map',
+  entry: './src/index.tsx',
+  module: {
+    rules: [
+      {
+        test: /\.(ts|tsx)$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                '@babel/preset-env',
+                '@babel/preset-react',
+                '@babel/preset-typescript'
+              ]
+            }
+          }
+        ]
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
+      }
+    ]
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    plugins: [new TsconfigPathsPlugin()],
+    modules: [
+      path.resolve(__dirname, 'src'),
+      'node_modules'
+    ],
+    fallback: {
+      "path": false,
+      "fs": false
+    }
+  },
+  output: {
+    filename: 'bundle.js',
+    path: path.resolve(__dirname, 'dist'),
+    publicPath: '/'
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, 'public/index.html')
+    }),
+    new webpack.DefinePlugin({
+      'window.__CONFIG__': JSON.stringify({
+        apiUrl: env.REACT_APP_API_URL || 'http://localhost:3000/api',
+        environment: 'development',
+        debug: true
+      })
+    }),
+    new (CopyPlugin as any)({
+      patterns: [
+        { 
+          from: 'public/mockServiceWorker.js',
+          to: 'mockServiceWorker.js'
+        }
+      ]
+    })
+  ],
   devServer: {
     static: {
       directory: path.join(__dirname, 'public'),
     },
-    hot: true,
-    port: 3000,
     historyApiFallback: true,
+    port: 3000,
+    hot: true,
     open: true,
-    client: {
-      overlay: {
-        errors: true,
-        warnings: false  // Don't show warnings in overlay
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        pathRewrite: { '^/api': '' },
+        changeOrigin: true,
+        secure: false
       }
     }
   },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
-    modules: ['node_modules', 'src']
-  },
-  plugins: [
-    new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: JSON.stringify('development'),
-        DEBUG: JSON.stringify(true)
-      }
-    }),
-    process.env.ANALYZE && new BundleAnalyzerPlugin()
-  ].filter(Boolean),
-  performance: {
-    hints: false  // Change from 'warning' to false
-  }
-});
+  devtool: 'inline-source-map'
+};
 
-module.exports = config; 
+export default config; 

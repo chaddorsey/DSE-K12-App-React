@@ -1,25 +1,25 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { AuthProvider, useAuth } from './features/auth/AuthContext';
+import { AuthProvider } from './features/auth/AuthContext';
 import { NetworkProvider } from './features/network/NetworkProvider';
 import { LoginForm } from './features/auth/LoginForm';
 import { Dashboard } from './components/Dashboard';
-import { ProtectedRoute } from './features/auth/ProtectedRoute';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { usePerformanceMonitoring } from './monitoring/hooks/useMonitoring';
-import { Header } from './features/auth/components/Header';
+import { logger } from './utils/logger';
 
 const AppContent: React.FC = () => {
   usePerformanceMonitoring('App');
-  const { user, logout } = useAuth();
+  const location = useLocation();
+
+  React.useEffect(() => {
+    logger.info('Route changed', { path: location.pathname });
+  }, [location]);
 
   return (
     <div className="App">
-      <Header 
-        user={user}
-        onLogout={logout}
-      />
       <div className="app-content">
         <NetworkStatusIndicator />
         <Routes>
@@ -32,10 +32,7 @@ const AppContent: React.FC = () => {
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/" 
-            element={<Navigate to="/dashboard" replace />} 
-          />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </div>
     </div>

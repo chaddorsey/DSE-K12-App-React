@@ -18,7 +18,8 @@ interface AuthContextType {
 }
 
 const TOKEN_KEY = 'auth_token';
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const USER_KEY = 'user';
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -28,23 +29,24 @@ export const useAuth = () => {
   return context;
 };
 
-interface AuthProviderProps {
-  children: React.ReactNode;
-  initialUser?: User | null;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ 
-  children, 
-  initialUser = null 
-}) => {
-  usePerformanceMonitoring('AuthProvider');
-  
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
-    if (initialUser) return initialUser;
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
+    try {
+      const storedUser = localStorage.getItem(USER_KEY);
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch (error) {
+      logger.error('Failed to parse stored user', { error });
+      return null;
+    }
   });
 
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    return !!token;
+  });
+
+  usePerformanceMonitoring('AuthProvider');
+  
   useEffect(() => {
     if (user) {
       const stopRefresh = setupTokenRefresh(async () => {
@@ -65,14 +67,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const response = await apiClient.post<{ token: string; user: User }>('auth.login', {
+      const response = await apiClient.post<{ token: string; user: User }>('auth/login', {
         email,
         password
       });
 
       localStorage.setItem(TOKEN_KEY, response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem(USER_KEY, JSON.stringify(response.user));
       setUser(response.user);
+      setIsAuthenticated(true);
 
       logger.info('User logged in successfully', { email });
     } catch (error) {
@@ -83,17 +86,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
   const logout = useCallback(async () => {
     try {
-      await apiClient.post('auth.logout');
+      await apiClient.post('auth/logout');
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem('user');
+      localStorage.removeItem(USER_KEY);
       setUser(null);
+      setIsAuthenticated(false);
 
       logger.info('User logged out successfully');
     } catch (error) {
       logger.error('Logout failed', { error });
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem('user');
+      localStorage.removeItem(USER_KEY);
       setUser(null);
+      setIsAuthenticated(false);
     }
   }, []);
 
@@ -101,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     user,
     login,
     logout,
-    isAuthenticated: user !== null,
+    isAuthenticated,
   };
 
   return (
