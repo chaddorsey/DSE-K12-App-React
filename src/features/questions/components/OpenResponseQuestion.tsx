@@ -1,65 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import classNames from 'classnames';
+import { useAccessibility } from '../../../features/accessibility/context/AccessibilityContext';
+import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
 import type { OpenResponseQuestionType, QuestionResponse } from '../types';
 import './OpenResponseQuestion.css';
 
-interface OpenResponseQuestionProps {
+interface Props {
   question: OpenResponseQuestionType;
   onAnswer: (response: QuestionResponse) => void;
   disabled?: boolean;
-  loading?: boolean;
 }
 
-export const OpenResponseQuestion: React.FC<OpenResponseQuestionProps> = ({
+export const OpenResponseQuestion: React.FC<Props> = ({
   question,
   onAnswer,
   disabled = false,
-  loading = false,
 }) => {
-  const [text, setText] = useState('');
-  const remainingChars = question.maxLength - text.length;
+  const { highContrast, fontSize, keyboardMode } = useAccessibility();
+  const [answer, setAnswer] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { isKeyboardVisible, keyboardHeight, viewportOffset } = useVirtualKeyboard();
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
-  };
-
-  const handleSubmit = () => {
-    if (text.trim()) {
+    const value = e.target.value;
+    if (value.length <= question.maxLength) {
+      setAnswer(value);
       onAnswer({
         questionId: question.id,
-        answer: text,
+        answer: value,
         timestamp: Date.now()
       });
     }
   };
 
-  if (loading) {
-    return <div data-testid="question-loading">Loading...</div>;
-  }
+  const getTransform = () => {
+    if (isKeyboardVisible) {
+      return `translateY(-${keyboardHeight + viewportOffset}px)`;
+    }
+    return 'translateY(0)';
+  };
 
   return (
-    <div className="question-container">
-      <h3 className="question-prompt">{question.prompt}</h3>
-      <div className="response-container">
+    <div 
+      className={classNames('open-response-question', {
+        'high-contrast': highContrast,
+        [`font-size-${fontSize}`]: true,
+        'keyboard-mode': keyboardMode
+      })}
+    >
+      <div 
+        className="prompt"
+        id={`question-${question.id}-prompt`}
+      >
+        {question.prompt}
+      </div>
+      <div 
+        className="input-container"
+        style={{ transform: getTransform() }}
+      >
         <textarea
-          value={text}
+          ref={inputRef}
+          role="textbox"
+          aria-labelledby={`question-${question.id}-prompt`}
+          aria-describedby={`question-${question.id}-description`}
+          value={answer}
           onChange={handleChange}
-          maxLength={question.maxLength}
           disabled={disabled}
-          className="response-input"
+          maxLength={question.maxLength}
           rows={4}
-          placeholder="Type your response here..."
         />
-        <div className="response-footer">
-          <div className="char-counter">
-            {remainingChars} characters remaining
-          </div>
-          <button
-            onClick={handleSubmit}
-            disabled={disabled || !text.trim()}
-            className="submit-button"
-          >
-            Submit
-          </button>
+        <div 
+          id={`question-${question.id}-description`} 
+          className="character-count"
+        >
+          {answer.length} / {question.maxLength} characters
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { OpenResponseQuestion } from '../OpenResponseQuestion';
 import type { OpenResponseQuestionType } from '../../types';
+import { AccessibilityProvider } from '../../../../features/accessibility/context/AccessibilityContext';
 
 describe('OpenResponseQuestion', () => {
   const mockQuestion: OpenResponseQuestionType = {
@@ -143,6 +144,95 @@ describe('OpenResponseQuestion', () => {
       questionId: mockQuestion.id,
       answer: 'Test response',
       timestamp: expect.any(Number)
+    });
+  });
+});
+
+const mockVisualViewport = {
+  height: 800,
+  offsetTop: 0,
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+};
+
+describe('OpenResponseQuestion Mobile Keyboard', () => {
+  const mockOnAnswer = jest.fn();
+
+  beforeEach(() => {
+    Object.defineProperty(window, 'visualViewport', {
+      value: mockVisualViewport,
+      configurable: true
+    });
+    Object.defineProperty(window, 'innerHeight', { value: 800 });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('adjusts input position when keyboard opens', () => {
+    render(
+      <AccessibilityProvider>
+        <OpenResponseQuestion 
+          question={mockQuestion}
+          onAnswer={mockOnAnswer}
+        />
+      </AccessibilityProvider>
+    );
+
+    const input = screen.getByRole('textbox');
+    const mockResizeListener = mockVisualViewport.addEventListener.mock.calls[0][1];
+
+    // Simulate keyboard opening
+    Object.defineProperty(window.visualViewport!, 'height', { value: 500 });
+    mockResizeListener(new Event('resize'));
+
+    expect(input.parentElement).toHaveStyle({
+      transform: `translateY(-300px)` // Keyboard height
+    });
+  });
+
+  it('restores input position when keyboard closes', () => {
+    render(
+      <AccessibilityProvider>
+        <OpenResponseQuestion 
+          question={mockQuestion}
+          onAnswer={mockOnAnswer}
+        />
+      </AccessibilityProvider>
+    );
+
+    const input = screen.getByRole('textbox');
+    const mockResizeListener = mockVisualViewport.addEventListener.mock.calls[0][1];
+
+    // Simulate keyboard closing
+    Object.defineProperty(window.visualViewport!, 'height', { value: 800 });
+    mockResizeListener(new Event('resize'));
+
+    expect(input.parentElement).toHaveStyle({
+      transform: 'translateY(0)'
+    });
+  });
+
+  it('handles viewport scrolling with keyboard open', () => {
+    render(
+      <AccessibilityProvider>
+        <OpenResponseQuestion 
+          question={mockQuestion}
+          onAnswer={mockOnAnswer}
+        />
+      </AccessibilityProvider>
+    );
+
+    const input = screen.getByRole('textbox');
+    const mockScrollListener = mockVisualViewport.addEventListener.mock.calls[1][1];
+
+    // Simulate viewport scroll
+    Object.defineProperty(window.visualViewport!, 'offsetTop', { value: 50 });
+    mockScrollListener(new Event('scroll'));
+
+    expect(input.parentElement).toHaveStyle({
+      transform: `translateY(-50px)`
     });
   });
 }); 
