@@ -1,21 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { MultipleChoiceQuestionType, QuestionResponse } from '../types';
 import './MultipleChoiceQuestion.css';
 
-interface MultipleChoiceQuestionProps {
+interface Props {
   question: MultipleChoiceQuestionType;
   onAnswer: (response: QuestionResponse) => void;
+  correctAnswer?: string;  // Optional for quiz mode
   disabled?: boolean;
   loading?: boolean;
 }
 
-export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
+export const MultipleChoiceQuestion: React.FC<Props> = ({
   question,
   onAnswer,
+  correctAnswer,
   disabled = false,
-  loading = false,
+  loading = false
 }) => {
-  const handleOptionClick = (option: string) => {
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  const handleSelect = (option: string) => {
+    if (disabled || loading) return;
+    
+    setSelectedAnswer(option);
+    setShowFeedback(true);
+    
     onAnswer({
       questionId: question.id,
       answer: option,
@@ -23,21 +33,36 @@ export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
     });
   };
 
+  const getOptionClassName = (option: string) => {
+    if (!showFeedback || !selectedAnswer) return 'option';
+    
+    if (correctAnswer) {
+      // Quiz mode feedback
+      if (option === selectedAnswer) {
+        return option === correctAnswer ? 'option correct' : 'option incorrect';
+      }
+      if (option === correctAnswer) {
+        return 'option correct';
+      }
+    }
+    
+    return option === selectedAnswer ? 'option selected' : 'option';
+  };
+
   if (loading) {
     return <div data-testid="question-loading">Loading...</div>;
   }
 
   return (
-    <div className="question-container">
-      <h3 className="question-prompt">{question.prompt}</h3>
-      <div className="options-container">
+    <div className="multiple-choice-question">
+      <div className="prompt">{question.prompt}</div>
+      <div className="options">
         {question.options.map((option) => (
           <button
             key={option}
-            onClick={() => handleOptionClick(option)}
-            disabled={disabled}
-            className="option-button"
-            aria-label={option}
+            className={getOptionClassName(option)}
+            onClick={() => handleSelect(option)}
+            disabled={!!(disabled || loading || (showFeedback && correctAnswer))}
           >
             {option}
           </button>

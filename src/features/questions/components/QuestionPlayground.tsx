@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OpenResponseQuestion } from './OpenResponseQuestion';
 import { NumericQuestion } from './NumericQuestion';
 import { DelightFactor } from './DelightFactor/DelightFactor';
 import { QuestionProvider, useQuestionContext } from '../context/QuestionContext';
 import { OnboardingProvider, useOnboardingContext } from '../context/OnboardingContext';
-import type { QuestionType } from '../types';
+import { QuizProvider, useQuizContext } from '../context/QuizContext';
+import type { QuestionType, QuestionResponse, QuestionContextValue } from '../types';
 import './QuestionPlayground.css';
+import { MockDataProvider } from '../../../mocks/MockDataProvider';
 
 const standardQuestions: QuestionType[] = [
   {
@@ -57,6 +59,25 @@ const questionPool: QuestionType[] = [
     min: 1,
     max: 40,
     step: 1
+  }
+];
+
+const mockQuizQuestions: QuizQuestion[] = [
+  {
+    id: 'quiz1',
+    type: 'MULTIPLE_CHOICE',
+    prompt: 'What is John\'s favorite color?',
+    options: ['Red', 'Blue', 'Green', 'Yellow'],
+    correctAnswer: 'Blue',
+    distractors: ['Red', 'Green', 'Yellow']
+  },
+  {
+    id: 'quiz2',
+    type: 'MULTIPLE_CHOICE',
+    prompt: 'How does John prefer to learn?',
+    options: ['Visual', 'Audio', 'Reading', 'Hands-on'],
+    correctAnswer: 'Visual',
+    distractors: ['Audio', 'Reading', 'Hands-on']
   }
 ];
 
@@ -198,15 +219,191 @@ const OnboardingFlow = () => {
   );
 };
 
+const ContextControls = () => {
+  const { state, actions } = useQuestionContext();
+  const quiz = useQuizContext();
+  const onboarding = useOnboardingContext();
+  const [isSessionActive, setIsSessionActive] = useState(false);
+  
+  const handleExperienceChange = (experience: QuestionContextValue['experience']) => {
+    if (isSessionActive) return;
+    actions.setExperience(experience);
+  };
+
+  const handleModeChange = (mode: QuestionContextValue['mode']) => {
+    if (isSessionActive) return;
+    actions.setMode(mode);
+  };
+
+  useEffect(() => {
+    // Session is active if onboarding has questions or quiz is initialized
+    setIsSessionActive(
+      (state.experience === 'ONBOARDING' && onboarding.state.selectedQuestions.length > 0) ||
+      (state.experience === 'QUIZ' && quiz.state.questions.length > 0)
+    );
+  }, [state.experience, onboarding.state.selectedQuestions, quiz.state.questions]);
+
+  return (
+    <div className="context-controls-wrapper">
+      <div className="context-controls">
+        <div className="control-group">
+          <label>
+            Experience:
+            <select 
+              value={state.experience}
+              onChange={(e) => handleExperienceChange(e.target.value as any)}
+              disabled={isSessionActive}
+            >
+              <option value="ONBOARDING">Onboarding</option>
+              <option value="QUIZ">Quiz</option>
+              <option value="HEAD_TO_HEAD">Head to Head</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="control-group">
+          <label>
+            Mode:
+            <select 
+              value={state.mode}
+              onChange={(e) => handleModeChange(e.target.value as any)}
+              disabled={isSessionActive}
+            >
+              <option value="PRACTICE">Practice</option>
+              <option value="COMPETITION">Competition</option>
+            </select>
+          </label>
+        </div>
+
+        {state.experience === 'QUIZ' && !isSessionActive && (
+          <button 
+            onClick={() => quiz.actions.initializeQuiz('user1', mockQuizQuestions)}
+            className="start-button"
+          >
+            Start Quiz
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const QuizFlow = () => {
+  const { state, actions } = useQuizContext();
+  const [currentDelight, setCurrentDelight] = useState<DelightFactor | null>(null);
+  const [hasAnswered, setHasAnswered] = useState(false);
+
+  const handleAnswer = (response: QuizResponse) => {
+    const currentQuestion = state.questions[state.currentQuestionIndex];
+    const isCorrect = response.answer === currentQuestion.correctAnswer;
+
+    // Submit answer first to update score
+    actions.submitAnswer(response);
+    setHasAnswered(true);
+
+    // If correct, show confetti
+    if (isCorrect) {
+      setCurrentDelight({
+        id: 'confetti',
+        type: 'ANIMATION',
+        timing: 'POST_ANSWER',
+        trigger: 'IMMEDIATE',
+        animationType: 'CELEBRATION',
+        content: {
+          animation: 'confetti',
+          duration: 2000
+        },
+        questionTypes: ['MULTIPLE_CHOICE']
+      });
+    }
+  };
+
+  const handleNext = () => {
+    actions.advanceToNext();
+    setHasAnswered(false);
+    setCurrentDelight(null);
+  };
+
+  const renderCurrentQuestion = () => {
+    if (!state.questions.length) return null;
+    
+    const currentQuestion = state.questions[state.currentQuestionIndex];
+    return (
+      <div className="quiz-question">
+        <MultipleChoiceQuestion
+          question={currentQuestion}
+          onAnswer={handleAnswer}
+          correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+          disabled={hasAnswered}
+        />
+        {hasAnswered && !state.completed && (
+          <button 
+            onClick={handleNext}
+            className="next-button"
+          >
+            Next Question
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="quiz-container">
+      <div className="quiz-header">
+        <h2>Quiz Questions</h2>
+        <div className="quiz-progress">
+          Question {state.currentQuestionIndex + 1} of {state.questions.length}
+          <div className="quiz-score">Score: {state.score}</div>
+        </div>
+      </div>
+
+      <div className="question-container">
+        {renderCurrentQuestion()}
+        {currentDelight && (
+          <DelightFactor
+            factor={currentDelight}
+            onComplete={() => setCurrentDelight(null)}
+          />
+        )}
+      </div>
+
+      {state.completed && (
+        <div className="completion-message">
+          Quiz Complete! Final Score: {state.score}/{state.questions.length}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const QuestionPlayground = () => {
   return (
-    <QuestionProvider>
-      <OnboardingProvider
-        standardQuestions={standardQuestions}
-        questionPool={questionPool}
-      >
-        <OnboardingFlow />
-      </OnboardingProvider>
-    </QuestionProvider>
+    <MockDataProvider>
+      <div className="playground-container">
+        <QuestionProvider>
+          <OnboardingProvider
+            standardQuestions={standardQuestions}
+            questionPool={questionPool}
+          >
+            <QuizProvider>
+              <ContextControls />
+              <QuestionContent />
+            </QuizProvider>
+          </OnboardingProvider>
+        </QuestionProvider>
+      </div>
+    </MockDataProvider>
+  );
+};
+
+const QuestionContent = () => {
+  const { state } = useQuestionContext();
+  
+  return (
+    <>
+      {state.experience === 'ONBOARDING' && <OnboardingFlow />}
+      {state.experience === 'QUIZ' && <QuizFlow />}
+    </>
   );
 }; 
