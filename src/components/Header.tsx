@@ -29,6 +29,18 @@ export const Header: React.FC = () => {
       <div className="header-content">
         <div className="logo">DSET App</div>
         <nav className="nav-links">
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            className="nav-button"
+          >
+            Dashboard
+          </button>
+          <button 
+            onClick={() => navigate('/playground')} 
+            className="nav-button"
+          >
+            Playground
+          </button>
           {isAuthenticated && (
             <div className="user-section">
               <span className="user-name">{user?.name}</span>

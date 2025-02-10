@@ -27,10 +27,28 @@
   gap: 1rem;
 }
 
+.nav-button {
+  padding: 0.5rem 1rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-button:hover {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
 .user-section {
   display: flex;
   align-items: center;
   gap: 1rem;
+  margin-left: 1rem;
+  padding-left: 1rem;
+  border-left: 1px solid #dee2e6;
 }
 
 .user-name {
