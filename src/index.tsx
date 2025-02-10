@@ -6,7 +6,9 @@ import './index.css';
 async function prepare() {
   if (process.env.NODE_ENV === 'development') {
     const { startWorker } = await import('./mocks/browser');
+    console.log('Starting mock service worker...');
     await startWorker();
+    console.log('Mock service worker started');
   }
 }
 

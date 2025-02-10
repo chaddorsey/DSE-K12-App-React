@@ -12,6 +12,7 @@ import { usePerformanceMonitoring } from './monitoring/hooks/useMonitoring';
 import { logger } from './utils/logger';
 import { CreateAccount } from './features/auth/CreateAccount';
 import { ResetPassword } from './features/auth/ResetPassword';
+import { QuestionPlayground } from './features/questions/components/QuestionPlayground';
 
 const AppContent: React.FC = () => {
   usePerformanceMonitoring('App');
@@ -30,6 +31,7 @@ const AppContent: React.FC = () => {
           <Route path="/login" element={<LoginForm />} />
           <Route path="/create-account" element={<CreateAccount />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/playground" element={<QuestionPlayground />} />
           <Route 
             path="/dashboard" 
             element={

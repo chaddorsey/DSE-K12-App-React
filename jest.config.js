@@ -4,22 +4,12 @@ module.exports = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^@components/(.*)$': '<rootDir>/src/components/$1',
-    '^@features/(.*)$': '<rootDir>/src/features/$1',
-    '^@utils/(.*)$': '<rootDir>/src/utils/$1',
-    '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '^@/(.*)$': '<rootDir>/src/$1'
   },
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
-      jsx: 'react'
+      tsconfig: 'tsconfig.json'
     }]
-  },
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-      jsx: 'react'
-    }
   }
 }; 
