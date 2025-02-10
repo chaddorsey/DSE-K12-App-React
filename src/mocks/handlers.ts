@@ -5,6 +5,28 @@ interface LoginRequest {
   password: string;
 }
 
+interface ResetPasswordRequest {
+  username: string;
+  newPassword: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+}
+
+// Mock user store
+const users = new Map<string, User>([
+  ['test@example.com', {
+    id: '1',
+    name: 'Test User',
+    email: 'test@example.com',
+    password: 'password123'
+  }]
+]);
+
 export const handlers = [
   http.get('http://localhost:3001/dashboard.overview', () => {
     return HttpResponse.json({
@@ -12,7 +34,7 @@ export const handlers = [
       data: {
         title: 'Dashboard Overview',
         stats: {
-          totalUsers: 100,
+          totalUsers: users.size,
           activeUsers: 50,
           totalSessions: 1000,
           averageSessionDuration: '45m',
@@ -36,16 +58,13 @@ export const handlers = [
   http.post<LoginRequest>('http://localhost:3001/auth/login', async ({ request }) => {
     const { email, password } = await request.json() as LoginRequest;
     
-    // Simple mock validation
-    if (email === 'test@example.com' && password === 'password123') {
+    const user = users.get(email);
+    if (user && user.password === password) {
+      const { password: _, ...userWithoutPassword } = user;
       return HttpResponse.json({
         status: 'success',
         token: 'mock-jwt-token',
-        user: {
-          id: '1',
-          name: 'Test User',
-          email: 'test@example.com'
-        }
+        user: userWithoutPassword
       });
     }
 
@@ -56,5 +75,43 @@ export const handlers = [
       }), 
       { status: 401 }
     );
+  }),
+
+  http.post<ResetPasswordRequest>('http://localhost:3001/auth/reset-password', async ({ request }) => {
+    const { username, newPassword } = await request.json() as ResetPasswordRequest;
+    
+    // Simulate server validation
+    if (!username || !newPassword) {
+      return new HttpResponse(
+        JSON.stringify({ 
+          status: 'error',
+          message: 'Invalid request parameters'
+        }), 
+        { status: 400 }
+      );
+    }
+
+    // Find user by email (username)
+    const user = users.get(username);
+    if (!user) {
+      return new HttpResponse(
+        JSON.stringify({ 
+          status: 'error',
+          message: 'User not found'
+        }), 
+        { status: 404 }
+      );
+    }
+
+    // Update password in mock store
+    users.set(username, {
+      ...user,
+      password: newPassword
+    });
+
+    return HttpResponse.json({
+      status: 'success',
+      message: 'Password reset successful'
+    });
   }),
 ]; 
