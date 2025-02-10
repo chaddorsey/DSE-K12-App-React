@@ -21,9 +21,17 @@ export interface NumericQuestionType extends BaseQuestionType {
   step: number;
 }
 
+export interface SliderQuestionType extends BaseQuestionType {
+  type: 'SLIDER';
+  leftOption: string;
+  rightOption: string;
+  defaultValue?: number;
+}
+
 export interface QuestionResponse {
   questionId: string;
-  answer: string;
+  answer?: string;  // For multiple choice, open response
+  value?: number;   // For slider, numeric
   timestamp: number;
 }
 
@@ -74,7 +82,13 @@ export interface QuizQuestion extends QuestionType {
 
 export interface QuizResponse {
   questionId: string;
-  userAnswer: string;
+  answer: string;   // All answers normalized to string for storage
   correct: boolean;
   timestamp: number;
-} 
+}
+
+export type QuestionType = 
+  | MultipleChoiceQuestionType 
+  | OpenResponseQuestionType 
+  | NumericQuestionType
+  | SliderQuestionType; 

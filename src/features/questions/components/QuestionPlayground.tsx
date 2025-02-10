@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OpenResponseQuestion } from './OpenResponseQuestion';
 import { NumericQuestion } from './NumericQuestion';
+import { SliderQuestion } from './SliderQuestion';
 import { DelightFactor } from './DelightFactor/DelightFactor';
 import { QuestionProvider, useQuestionContext } from '../context/QuestionContext';
 import { OnboardingProvider, useOnboardingContext } from '../context/OnboardingContext';
@@ -36,6 +37,14 @@ const standardQuestions: QuestionType[] = [
     type: 'MULTIPLE_CHOICE',
     prompt: 'Preferred learning style?',
     options: ['Visual', 'Audio', 'Reading', 'Hands-on']
+  },
+  {
+    id: 'std5',
+    type: 'SLIDER',
+    prompt: 'How do you prefer to balance theory and practice?',
+    leftOption: 'Pure Theory',
+    rightOption: 'Pure Practice',
+    defaultValue: 0.5
   }
 ];
 
@@ -59,6 +68,14 @@ const questionPool: QuestionType[] = [
     min: 1,
     max: 40,
     step: 1
+  },
+  {
+    id: 'pool4',
+    type: 'SLIDER',
+    prompt: 'What mix of individual vs group work do you prefer?',
+    leftOption: 'Individual',
+    rightOption: 'Group',
+    defaultValue: 0.5
   }
 ];
 
@@ -70,6 +87,16 @@ const mockQuizQuestions: QuizQuestion[] = [
     options: ['Red', 'Blue', 'Green', 'Yellow'],
     correctAnswer: 'Blue',
     distractors: ['Red', 'Green', 'Yellow']
+  },
+  {
+    id: 'quiz3',
+    type: 'SLIDER',
+    prompt: 'What is John\'s preferred balance of coding vs architecture?',
+    leftOption: 'Pure Coding',
+    rightOption: 'Pure Architecture',
+    defaultValue: 0.5,
+    correctAnswer: '0.7', // 70% architecture, 30% coding
+    distractors: ['0.3', '0.5', '0.9']
   },
   {
     id: 'quiz2',
@@ -173,6 +200,13 @@ const OnboardingFlow = () => {
       case 'NUMERIC':
         return (
           <NumericQuestion
+            question={currentQuestion}
+            onAnswer={handleAnswer}
+          />
+        );
+      case 'SLIDER':
+        return (
+          <SliderQuestion
             question={currentQuestion}
             onAnswer={handleAnswer}
           />
@@ -293,12 +327,26 @@ const QuizFlow = () => {
   const [currentDelight, setCurrentDelight] = useState<DelightFactor | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
 
-  const handleAnswer = (response: QuizResponse) => {
+  const handleAnswer = (response: QuestionResponse) => {
     const currentQuestion = state.questions[state.currentQuestionIndex];
-    const isCorrect = response.answer === currentQuestion.correctAnswer;
+    
+    // Normalize the response format
+    const normalizedResponse = {
+      questionId: response.questionId,
+      answer: response.value?.toString() ?? response.answer,
+      correct: false,  // Will be determined by validation
+      timestamp: response.timestamp
+    };
+
+    // Validate the answer
+    const isCorrect = currentQuestion.type === 'SLIDER' 
+      ? Math.abs(parseFloat(normalizedResponse.answer) - parseFloat(currentQuestion.correctAnswer)) <= 0.1
+      : normalizedResponse.answer === currentQuestion.correctAnswer;
+
+    normalizedResponse.correct = isCorrect;
 
     // Submit answer first to update score
-    actions.submitAnswer(response);
+    actions.submitAnswer(normalizedResponse);
     setHasAnswered(true);
 
     // If correct, show confetti
@@ -313,7 +361,7 @@ const QuizFlow = () => {
           animation: 'confetti',
           duration: 2000
         },
-        questionTypes: ['MULTIPLE_CHOICE']
+        questionTypes: ['MULTIPLE_CHOICE', 'SLIDER']
       });
     }
   };
@@ -330,12 +378,30 @@ const QuizFlow = () => {
     const currentQuestion = state.questions[state.currentQuestionIndex];
     return (
       <div className="quiz-question">
-        <MultipleChoiceQuestion
-          question={currentQuestion}
-          onAnswer={handleAnswer}
-          correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
-          disabled={hasAnswered}
-        />
+        {(() => {
+          switch (currentQuestion.type) {
+            case 'MULTIPLE_CHOICE':
+              return (
+                <MultipleChoiceQuestion
+                  question={currentQuestion}
+                  onAnswer={handleAnswer}
+                  correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+                  disabled={hasAnswered}
+                />
+              );
+            case 'SLIDER':
+              return (
+                <SliderQuestion
+                  question={currentQuestion}
+                  onAnswer={handleAnswer}
+                  correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+                  disabled={hasAnswered}
+                />
+              );
+            default:
+              return null;
+          }
+        })()}
         {hasAnswered && !state.completed && (
           <button 
             onClick={handleNext}
