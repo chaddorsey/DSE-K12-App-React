@@ -11,7 +11,10 @@ const startWorker = async () => {
         onUnhandledRequest: 'bypass',
         quiet: true,
         serviceWorker: {
-          url: `${window.location.origin}/mockServiceWorker.js`
+          url: `${window.location.origin}/mockServiceWorker.js`,
+          options: {
+            scope: '/'
+          }
         }
       });
       console.log('MSW worker started successfully');

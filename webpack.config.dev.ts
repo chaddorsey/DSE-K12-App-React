@@ -73,11 +73,12 @@ const config: Configuration = {
         debug: true
       })
     }),
-    new CopyPlugin({
+    new (CopyPlugin as any)({
       patterns: [
         { 
           from: 'node_modules/msw/lib/mockServiceWorker.js',
-          to: 'mockServiceWorker.js'
+          to: 'mockServiceWorker.js',
+          force: true
         }
       ]
     })

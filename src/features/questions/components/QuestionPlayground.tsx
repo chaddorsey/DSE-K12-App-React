@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OpenResponseQuestion } from './OpenResponseQuestion';
 import { NumericQuestion } from './NumericQuestion';
-import type { QuestionResponse, MultipleChoiceQuestionType, OpenResponseQuestionType, NumericQuestionType } from '../types';
+import { DelightFactor } from './DelightFactor/DelightFactor';
+import type { 
+  QuestionResponse, 
+  MultipleChoiceQuestionType, 
+  OpenResponseQuestionType, 
+  NumericQuestionType,
+  AnimationDelightFactor 
+} from '../types';
 import './QuestionPlayground.css';
 
 type QuestionType = MultipleChoiceQuestionType | OpenResponseQuestionType | NumericQuestionType;
@@ -36,14 +43,33 @@ const sampleQuestions: QuestionType[] = [
   } as NumericQuestionType
 ];
 
+const sampleDelightFactor: AnimationDelightFactor = {
+  id: 'celebration1',
+  type: 'ANIMATION',
+  timing: 'POST_ANSWER',
+  trigger: 'IMMEDIATE',
+  animationType: 'CELEBRATION',
+  content: {
+    animation: 'confetti',
+    duration: 2000
+  },
+  questionTypes: ['MULTIPLE_CHOICE', 'OPEN_RESPONSE', 'NUMERIC']
+};
+
 export const QuestionPlayground: React.FC = () => {
   const [responses, setResponses] = useState<QuestionResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [disabled, setDisabled] = useState(false);
+  const [showDelight, setShowDelight] = useState(false);
 
   const handleAnswer = (response: QuestionResponse) => {
     setResponses(prev => [...prev, response]);
     console.log('Answer received:', response);
+    setShowDelight(true);
+  };
+
+  const handleDelightComplete = () => {
+    setShowDelight(false);
   };
 
   const renderQuestion = (question: QuestionType) => {
@@ -110,6 +136,12 @@ export const QuestionPlayground: React.FC = () => {
                 responses.find(r => r.questionId === question.id)?.answer || 'No answer yet'
               }
             </div>
+            {showDelight && (
+              <DelightFactor
+                factor={sampleDelightFactor}
+                onComplete={handleDelightComplete}
+              />
+            )}
           </div>
         ))}
       </div>
