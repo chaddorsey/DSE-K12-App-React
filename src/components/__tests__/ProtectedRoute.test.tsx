@@ -3,10 +3,10 @@
  */
 
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from '../ProtectedRoute';
-import { AuthProvider } from '../AuthProvider';
+import { AuthProvider } from '../../features/auth/AuthContext';
 import { mockMonitoring } from '../../hooks/testing/mockMonitoring';
 
 // Mock useAuth to control auth state in tests
@@ -28,48 +28,41 @@ describe('ProtectedRoute', () => {
   const TestComponent = () => <div>Protected Content</div>;
   const LoginComponent = () => <div>Login Page</div>;
 
-  it('should render children when authenticated', () => {
-    useAuth.mockImplementation(() => ({
-      user: { id: 1, email: 'test@example.com' },
-      isLoading: false
-    }));
+  const renderProtectedRoute = (isAuthenticated = false) => {
+    // Mock localStorage
+    if (isAuthenticated) {
+      localStorage.setItem('auth_token', 'mock-token');
+    } else {
+      localStorage.clear();
+    }
 
-    const { getByText } = render(
-      <MemoryRouter>
-        <Routes>
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<TestComponent />} />
-          </Route>
-        </Routes>
+    return render(
+      <MemoryRouter initialEntries={['/protected']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginComponent />} />
+            <Route
+              path="/protected"
+              element={
+                <ProtectedRoute>
+                  <TestComponent />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </AuthProvider>
       </MemoryRouter>
     );
+  };
 
-    expect(getByText('Protected Content')).toBeInTheDocument();
+  it('renders protected content when authenticated', () => {
+    renderProtectedRoute(true);
+    expect(screen.getByText('Protected Content')).toBeInTheDocument();
   });
 
-  it('should redirect to login when not authenticated', () => {
-    useAuth.mockImplementation(() => ({
-      user: null,
-      isLoading: false
-    }));
-
-    const { getByText } = render(
-      <MemoryRouter initialEntries={['/protected']}>
-        <Routes>
-          <Route path="/login" element={<LoginComponent />} />
-          <Route
-            path="/protected"
-            element={
-              <ProtectedRoute redirectTo="/login">
-                <TestComponent />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    expect(getByText('Login Page')).toBeInTheDocument();
+  it('redirects to login when not authenticated', () => {
+    renderProtectedRoute(false);
+    expect(screen.getByText('Login Page')).toBeInTheDocument();
   });
 
   it('should handle role-based access', () => {

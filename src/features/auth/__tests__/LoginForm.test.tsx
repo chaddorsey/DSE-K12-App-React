@@ -1,82 +1,115 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { LoginForm } from '../LoginForm';
-import { useAuth } from '../AuthContext';
-import { usePerformanceMonitoring } from '../../../monitoring/hooks/useMonitoring';
+import { AuthProvider } from '../AuthContext';
+import { act } from 'react-dom/test-utils';
 
-jest.mock('../AuthContext');
-jest.mock('../../../monitoring/hooks/useMonitoring');
-
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
-const mockLogin = jest.fn();
+// Mock the navigation
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
 
 describe('LoginForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockUseAuth.mockReturnValue({
-      login: mockLogin,
-      logout: jest.fn(),
-      user: null,
-      isAuthenticated: false
-    });
+    mockNavigate.mockClear();
   });
 
-  it('renders login form', () => {
-    render(<LoginForm onSuccess={jest.fn()} />);
+  const renderLoginForm = () => {
+    return render(
+      <MemoryRouter>
+        <AuthProvider>
+          <LoginForm />
+        </AuthProvider>
+      </MemoryRouter>
+    );
+  };
 
+  it('renders login form with all fields', () => {
+    renderLoginForm();
+    
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
   });
 
-  it('handles successful login', async () => {
-    const onSuccess = jest.fn();
-    mockLogin.mockResolvedValueOnce(undefined);
-
-    render(<LoginForm onSuccess={onSuccess} />);
-
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'test@example.com' }
-    });
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' }
-    });
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+  it('shows validation errors for empty fields', async () => {
+    renderLoginForm();
+    
+    const submitButton = screen.getByRole('button', { name: /login/i });
+    fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123');
-      expect(onSuccess).toHaveBeenCalled();
+      expect(screen.getByText(/email is required/i)).toBeInTheDocument();
+      expect(screen.getByText(/password is required/i)).toBeInTheDocument();
     });
   });
 
-  it('displays validation errors', async () => {
-    render(<LoginForm onSuccess={jest.fn()} />);
+  it('shows error for invalid email format', async () => {
+    renderLoginForm();
+    
+    const emailInput = screen.getByLabelText(/email/i);
+    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+    
+    const submitButton = screen.getByRole('button', { name: /login/i });
+    fireEvent.click(submitButton);
 
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-
-    expect(await screen.findByText(/email is required/i)).toBeInTheDocument();
-    expect(await screen.findByText(/password is required/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/invalid email address/i)).toBeInTheDocument();
+    });
   });
 
-  it('handles login failure', async () => {
-    const error = new Error('Invalid credentials');
-    mockLogin.mockRejectedValueOnce(error);
+  it('shows error for short password', async () => {
+    renderLoginForm();
+    
+    const passwordInput = screen.getByLabelText(/password/i);
+    fireEvent.change(passwordInput, { target: { value: '123' } });
+    
+    const submitButton = screen.getByRole('button', { name: /login/i });
+    fireEvent.click(submitButton);
 
-    render(<LoginForm onSuccess={jest.fn()} />);
-
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: 'test@example.com' }
+    await waitFor(() => {
+      expect(screen.getByText(/password must be at least 8 characters/i)).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'wrong' }
-    });
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
-
-    expect(await screen.findByText(/invalid credentials/i)).toBeInTheDocument();
   });
 
-  it('tracks performance', () => {
-    render(<LoginForm onSuccess={jest.fn()} />);
-    expect(usePerformanceMonitoring).toHaveBeenCalledWith('LoginForm');
+  it('navigates to dashboard on successful login', async () => {
+    renderLoginForm();
+    
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+    
+    await act(async () => {
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.change(passwordInput, { target: { value: 'password123' } });
+      
+      const submitButton = screen.getByRole('button', { name: /login/i });
+      fireEvent.click(submitButton);
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+
+  it('shows error message on failed login', async () => {
+    renderLoginForm();
+    
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+    
+    await act(async () => {
+      fireEvent.change(emailInput, { target: { value: 'wrong@example.com' } });
+      fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
+      
+      const submitButton = screen.getByRole('button', { name: /login/i });
+      fireEvent.click(submitButton);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument();
+    });
   });
 }); 

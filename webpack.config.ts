@@ -1,146 +1,59 @@
-export {};  // Make this a module
+import path from 'path';
+import { Configuration } from 'webpack';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
-/**
- * Webpack configuration with optimization features
- */
-
-const path = require('path');
-const webpack = require('webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-const TerserPlugin = require('terser-webpack-plugin');
-const CompressionPlugin = require('compression-webpack-plugin');
-
-const baseConfig = {
+const config: Configuration = {
   entry: './src/index.tsx',
-  output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: '[name].[contenthash].js',
-    chunkFilename: '[name].[contenthash].chunk.js',
-    clean: true
-  },
-  optimization: {
-    minimize: process.env.NODE_ENV === 'production',
-    minimizer: [
-      new TerserPlugin({
-        terserOptions: {
-          compress: {
-            drop_console: process.env.NODE_ENV === 'production',
-            drop_debugger: true,
-            pure_funcs: ['console.log', 'console.info']
-          },
-          format: {
-            comments: false
-          }
-        },
-        extractComments: false
-      })
-    ],
-    splitChunks: {
-      chunks: 'all',
-      minSize: 10000,
-      minChunks: 1,
-      maxAsyncRequests: 30,
-      maxInitialRequests: 30,
-      cacheGroups: {
-        react: {
-          test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
-          name: 'react',
-          chunks: 'all',
-          priority: 40
-        },
-        router: {
-          test: /[\\/]node_modules[\\/]react-router(-dom)?[\\/]/,
-          name: 'router',
-          chunks: 'all',
-          priority: 30
-        },
-        defaultVendors: {
-          test: /[\\/]node_modules[\\/]/,
-          priority: -10,
-          reuseExistingChunk: true
-        },
-        default: {
-          minChunks: 2,
-          priority: -20,
-          reuseExistingChunk: true
-        }
-      }
-    }
-  },
-  performance: {
-    hints: 'warning',
-    maxEntrypointSize: 512000,
-    maxAssetSize: 512000
-  },
   module: {
     rules: [
       {
         test: /\.(ts|tsx)$/,
+        exclude: /node_modules\/(?!(@remix-run|@types)\/).*/,
         use: [
           {
-            loader: 'ts-loader',
+            loader: 'babel-loader',
             options: {
-              transpileOnly: true,
-              experimentalWatchApi: true
-            }
-          }
-        ],
-        exclude: /node_modules/
-      },
-      {
-        test: /\.css$/,
-        use: [
-          'style-loader',
-          {
-            loader: 'css-loader',
-            options: {
-              modules: {
-                auto: true,
-                localIdentName: '[hash:base64:5]'
-              }
+              presets: [
+                '@babel/preset-env',
+                '@babel/preset-react',
+                '@babel/preset-typescript'
+              ],
+              plugins: ['@babel/plugin-transform-typescript']
             }
           }
         ]
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
       }
     ]
   },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    plugins: [new TsconfigPathsPlugin()],
+    modules: [
+      path.resolve(__dirname, 'src'),
+      'node_modules'
+    ],
+    fallback: {
+      "path": false,
+      "fs": false
+    },
+    alias: {
+      '@remix-run/router': path.resolve(__dirname, 'node_modules/@remix-run/router/dist/router.js')
+    }
+  },
+  output: {
+    filename: 'bundle.js',
+    path: path.resolve(__dirname, 'dist')
+  },
   plugins: [
     new HtmlWebpackPlugin({
-      template: 'public/index.html',
-      minify: {
-        removeComments: true,
-        collapseWhitespace: true,
-        removeRedundantAttributes: true,
-        useShortDoctype: true,
-        removeEmptyAttributes: true,
-        removeStyleLinkTypeAttributes: true,
-        keepClosingSlash: true,
-        minifyJS: true,
-        minifyCSS: true,
-        minifyURLs: true
-      }
-    }),
-    new CompressionPlugin({
-      test: /\.(js|css|html|svg)$/,
-      algorithm: 'gzip',
-      threshold: 10240,
-      minRatio: 0.8
-    }),
-    new webpack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-      'process.env.API_URL': JSON.stringify(process.env.API_URL)
-    }),
-    process.env.ANALYZE && new BundleAnalyzerPlugin()
-  ].filter(Boolean),
-  resolve: {
-    extensions: ['.ts', '.tsx', '.js'],
-    alias: {
-      '@components': path.resolve(__dirname, 'src/components'),
-      '@utils': path.resolve(__dirname, 'src/utils'),
-      '@hooks': path.resolve(__dirname, 'src/hooks')
-    }
-  }
+      template: path.resolve(__dirname, 'public/index.html')
+    })
+  ]
 };
 
-module.exports = baseConfig; 
+export default config; 
