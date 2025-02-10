@@ -1,6 +1,7 @@
 /// <reference types="@testing-library/jest-dom" />
 
 import '@testing-library/jest-dom';
+import { toHaveNoViolations } from 'jest-axe';
 
 // Mock fetch globally
 global.fetch = jest.fn(() => 
@@ -22,4 +23,6 @@ Object.defineProperty(window, 'navigator', {
 // Clear all mocks after each test
 afterEach(() => {
   jest.clearAllMocks();
-}); 
+});
+
+expect.extend(toHaveNoViolations); 
