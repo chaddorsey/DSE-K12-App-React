@@ -37,10 +37,30 @@ export interface SegmentedSliderQuestionType extends BaseQuestionType {
   defaultSegment?: number;
 }
 
+export interface XYContinuumQuestionType extends BaseQuestionType {
+  type: 'XY_CONTINUUM';
+  xAxis: {
+    left: string;
+    right: string;
+  };
+  yAxis: {
+    top: string;
+    bottom: string;
+  };
+  defaultPosition?: {
+    x: number;
+    y: number;
+  };
+}
+
 export interface QuestionResponse {
   questionId: string;
-  answer?: string;  // For multiple choice, open response
-  value?: number;   // For slider, numeric
+  answer?: string;
+  value?: number;
+  position?: {
+    x: number;
+    y: number;
+  };
   timestamp: number;
 }
 
@@ -101,4 +121,5 @@ export type QuestionType =
   | OpenResponseQuestionType 
   | NumericQuestionType
   | SliderQuestionType
-  | SegmentedSliderQuestionType; 
+  | SegmentedSliderQuestionType
+  | XYContinuumQuestionType; 

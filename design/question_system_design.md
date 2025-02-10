@@ -430,3 +430,78 @@ interface DelightFactorManager {
     context: QuestionContext
   ): DelightFactor | null;
 } 
+
+### Question Types
+
+#### Base Question Type
+```typescript
+interface BaseQuestionType {
+  id: string;
+  prompt: string;
+  type: string;
+}
+```
+
+#### Multiple Choice
+```typescript
+interface MultipleChoiceQuestionType extends BaseQuestionType {
+  type: 'MULTIPLE_CHOICE';
+  options: string[];
+}
+```
+
+#### Open Response
+```typescript
+interface OpenResponseQuestionType extends BaseQuestionType {
+  type: 'OPEN_RESPONSE';
+  maxLength: number;
+}
+```
+
+#### Numeric
+```typescript
+interface NumericQuestionType extends BaseQuestionType {
+  type: 'NUMERIC';
+  min: number;
+  max: number;
+  step: number;
+}
+```
+
+#### Slider
+```typescript
+interface SliderQuestionType extends BaseQuestionType {
+  type: 'SLIDER';
+  leftOption: string;
+  rightOption: string;
+  defaultValue?: number; // 0.5 if not specified
+}
+```
+
+#### Segmented Slider
+```typescript
+interface SegmentedSliderQuestionType extends BaseQuestionType {
+  type: 'SEGMENTED_SLIDER';
+  segments: {
+    value: number;
+    label?: string;
+  }[];
+  defaultSegment?: number;
+}
+```
+
+#### X-Y Continuum
+```typescript
+interface XYContinuumQuestionType extends BaseQuestionType {
+  type: 'XY_CONTINUUM';
+  xAxis: {
+    left: string;
+    right: string;
+  };
+  yAxis: {
+    top: string;
+    bottom: string;
+  };
+  defaultPosition?: { x: number; y: number };
+}
+``` 
