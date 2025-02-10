@@ -175,26 +175,22 @@ src/
    - Experience-specific delight factors
    
 2. Mode-based modifications
-   - Practice mode features:
-     - Immediate feedback
-     - Retry options
-     - Explanation displays
+   - Onboarding mode features:
+     - Sequential question presentation
+     - Fixed sequence of 7 questions:
+       - 4 standard questions (same for all users)
+       - 3 randomly selected questions
+     - Question type distribution:
+       - At least 2 multiple choice
+       - At least 1 open response
+       - At least 1 numeric
+     - Immediate delight feedback after each answer
+     - Auto-advance to next question
+     - Redirect to dashboard on completion
    - Competition mode features:
      - Time limits
      - Score tracking
      - Opponent awareness
-   
-3. Subject-specific handling
-   - Dynamic question generation
-   - Personalized content
-   - Progress tracking
-   
-4. Response persistence
-   - Local storage integration
-   - API endpoints for:
-     - Response submission
-     - Progress tracking
-     - Analytics collection
 
 ### Context Integration Details
 
@@ -289,6 +285,41 @@ interface AnalyticsEvent {
    - Event tracking
    - Progress monitoring
    - Performance metrics
+
+#### Onboarding Flow Details
+```typescript
+interface OnboardingConfig {
+  totalQuestions: 7;
+  standardQuestions: QuestionType[]; // Fixed set of 4 questions
+  questionPool: QuestionType[];      // Pool for random selection
+  typeDistribution: {
+    multipleChoice: { min: 2 },
+    openResponse: { min: 1 },
+    numeric: { min: 1 }
+  };
+}
+
+interface OnboardingState {
+  currentQuestionIndex: number;
+  selectedQuestions: QuestionType[];  // 7 questions for this session
+  responses: QuestionResponse[];
+  completed: boolean;
+}
+
+interface OnboardingActions {
+  initializeSequence: () => void;     // Select and order questions
+  handleResponse: (response: QuestionResponse) => void;
+  advanceToNext: () => void;
+  completeOnboarding: () => void;     // Redirect to dashboard
+}
+```
+
+#### Question Selection Algorithm
+1. Start with 4 standard questions
+2. Calculate remaining type requirements
+3. Filter question pool by required types
+4. Randomly select remaining questions while maintaining distribution
+5. Shuffle final sequence (keeping standard questions in relative order)
 
 ## Testing Strategy
 
