@@ -9,6 +9,11 @@ export interface MultipleChoiceQuestionType extends BaseQuestionType {
   options: string[];
 }
 
+export interface OpenResponseQuestionType extends BaseQuestionType {
+  type: 'OPEN_RESPONSE';
+  maxLength: number;
+}
+
 export interface QuestionResponse {
   questionId: string;
   answer: string;

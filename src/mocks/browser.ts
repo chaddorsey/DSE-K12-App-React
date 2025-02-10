@@ -1,13 +1,24 @@
 import { setupWorker } from 'msw/browser';
 import { handlers } from './handlers';
 
-export const worker = setupWorker(...handlers);
+const worker = setupWorker(...handlers);
 
-export const startWorker = async () => {
-  return worker.start({
-    onUnhandledRequest: 'bypass',
-    serviceWorker: {
-      url: '/mockServiceWorker.js'
+const startWorker = async () => {
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Starting MSW worker...');
+      await worker.start({
+        onUnhandledRequest: 'bypass',
+        quiet: true,
+        serviceWorker: {
+          url: `${window.location.origin}/mockServiceWorker.js`
+        }
+      });
+      console.log('MSW worker started successfully');
     }
-  });
-}; 
+  } catch (error) {
+    console.error('Failed to start MSW worker:', error);
+  }
+};
+
+export { worker, startWorker }; 
