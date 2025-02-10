@@ -10,6 +10,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Header } from './components/Header';
 import { usePerformanceMonitoring } from './monitoring/hooks/useMonitoring';
 import { logger } from './utils/logger';
+import { CreateAccount } from './features/auth/CreateAccount';
+import { ResetPassword } from './features/auth/ResetPassword';
 
 const AppContent: React.FC = () => {
   usePerformanceMonitoring('App');
@@ -26,6 +28,8 @@ const AppContent: React.FC = () => {
         <NetworkStatusIndicator />
         <Routes>
           <Route path="/login" element={<LoginForm />} />
+          <Route path="/create-account" element={<CreateAccount />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route 
             path="/dashboard" 
             element={
@@ -35,6 +39,7 @@ const AppContent: React.FC = () => {
             } 
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
     </div>

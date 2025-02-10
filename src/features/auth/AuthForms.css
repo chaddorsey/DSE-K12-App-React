@@ -93,4 +93,24 @@
   margin-bottom: 24px;
   text-align: center;
   font-size: 14px;
+}
+
+.form-footer {
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  text-decoration: none;
+}
+
+.link-button:hover {
+  text-decoration: underline;
 } 

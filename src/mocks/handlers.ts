@@ -17,6 +17,12 @@ interface User {
   password: string;
 }
 
+interface CreateAccountRequest {
+  email: string;
+  password: string;
+  name: string;
+}
+
 // Mock user store
 const users = new Map<string, User>([
   ['test@example.com', {
@@ -26,6 +32,9 @@ const users = new Map<string, User>([
     password: 'password123'
   }]
 ]);
+
+// Helper function to generate IDs
+const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export const handlers = [
   http.get('http://localhost:3001/dashboard.overview', () => {
@@ -112,6 +121,49 @@ export const handlers = [
     return HttpResponse.json({
       status: 'success',
       message: 'Password reset successful'
+    });
+  }),
+
+  http.post<CreateAccountRequest>('http://localhost:3001/auth/create-account', async ({ request }) => {
+    const { email, password, name } = await request.json() as CreateAccountRequest;
+    
+    // Validate required fields
+    if (!email || !password || !name) {
+      return new HttpResponse(
+        JSON.stringify({ 
+          status: 'error',
+          message: 'All fields are required'
+        }), 
+        { status: 400 }
+      );
+    }
+
+    // Check if user already exists
+    if (users.has(email)) {
+      return new HttpResponse(
+        JSON.stringify({ 
+          status: 'error',
+          message: 'Email already registered'
+        }), 
+        { status: 409 }
+      );
+    }
+
+    // Create new user
+    const newUser = {
+      id: generateId(),
+      email,
+      password,
+      name
+    };
+    users.set(email, newUser);
+
+    // Return success without password
+    const { password: _, ...userWithoutPassword } = newUser;
+    return HttpResponse.json({
+      status: 'success',
+      message: 'Account created successfully',
+      user: userWithoutPassword
     });
   }),
 ]; 

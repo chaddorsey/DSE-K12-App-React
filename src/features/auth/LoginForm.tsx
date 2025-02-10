@@ -1,8 +1,8 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import './LoginForm.css';
+import './AuthForms.css';
 
 interface LoginFormInputs {
   email: string;
@@ -26,8 +26,8 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
+    <div className="auth-container">
+      <div className="auth-card">
         <h2>Welcome Back</h2>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -77,20 +77,18 @@ export const LoginForm: React.FC = () => {
         </form>
 
         <div className="form-footer">
-          <button 
-            type="button" 
+          <Link 
+            to="/reset-password"
             className="link-button"
-            onClick={() => navigate('/reset-password')}
           >
             Forgot Password?
-          </button>
-          <button 
-            type="button" 
+          </Link>
+          <Link 
+            to="/create-account"
             className="link-button"
-            onClick={() => navigate('/register')}
           >
             Create Account
-          </button>
+          </Link>
         </div>
       </div>
     </div>
