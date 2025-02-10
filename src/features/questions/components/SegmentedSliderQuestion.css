@@ -1,0 +1,170 @@
+.segmented-slider-question {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+  --slider-bar-height: 4px;
+  --slider-thumb-size: 28px;
+  --marker-size: 16px;
+  --marker-border: 2px;
+}
+
+.prompt {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.slider-container {
+  padding: 2rem 1rem;
+}
+
+.slider-wrapper {
+  position: relative;
+  margin: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Add a container for the slider and marker */
+.slider-track-container {
+  position: relative;
+  height: var(--slider-thumb-size);
+  display: flex;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.slider-track-container .base-slider {
+  position: absolute;
+  width: 100%;
+  z-index: 1;
+  margin: 0;
+}
+
+.segment-markers {
+  position: relative;
+  margin-top: 1.5rem;
+  height: 2rem;
+  z-index: 1;
+}
+
+.segment-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.875rem;
+  color: #666;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.correct-marker {
+  position: absolute;
+  /* Center marker on slider bar:
+     (thumb-size - bar-height) / 2 + (bar-height / 2) - (marker-size / 2) */
+  top: calc(
+    (var(--slider-thumb-size) - var(--slider-bar-height)) / 2 + 
+    (var(--slider-bar-height) / 2) - 
+    (var(--marker-size) / 2)
+  );
+  width: var(--marker-size);
+  height: var(--marker-size);
+  background-color: #28a745;
+  border: var(--marker-border) solid #fff;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 var(--marker-border) #28a745;
+  z-index: 3;
+  cursor: help;
+}
+
+/* Ensure thumb is always on top */
+.base-slider::-webkit-slider-thumb {
+  z-index: 4;
+  position: relative;
+}
+
+.base-slider::-moz-range-thumb {
+  z-index: 4;
+  position: relative;
+}
+
+.submit-button {
+  align-self: center;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  color: white;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Feedback states */
+.segmented-slider-question.correct .slider-wrapper .base-slider {
+  background: linear-gradient(
+    to right,
+    #28a745 0%,
+    #28a745 var(--progress),
+    #e9ecef var(--progress),
+    #e9ecef 100%
+  ) !important;
+}
+
+.segmented-slider-question.correct .slider-wrapper .base-slider::-webkit-slider-thumb {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+}
+
+.segmented-slider-question.correct .slider-wrapper .base-slider::-moz-range-thumb {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+}
+
+.segmented-slider-question.incorrect .slider-wrapper .base-slider {
+  background: linear-gradient(
+    to right,
+    #dc3545 0%,
+    #dc3545 var(--progress),
+    #e9ecef var(--progress),
+    #e9ecef 100%
+  ) !important;
+}
+
+.segmented-slider-question.incorrect .slider-wrapper .base-slider::-webkit-slider-thumb {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+}
+
+.segmented-slider-question.incorrect .slider-wrapper .base-slider::-moz-range-thumb {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+.segmented-slider-question.incorrect {
+  animation: shake 0.5s ease-in-out;
+}
+
+@media (max-width: 480px) {
+  .segment-label {
+    font-size: 0.75rem;
+  }
+} 

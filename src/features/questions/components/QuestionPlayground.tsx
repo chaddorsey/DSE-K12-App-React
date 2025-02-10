@@ -10,6 +10,7 @@ import { QuizProvider, useQuizContext } from '../context/QuizContext';
 import type { QuestionType, QuestionResponse, QuestionContextValue } from '../types';
 import './QuestionPlayground.css';
 import { MockDataProvider } from '../../../mocks/MockDataProvider';
+import { SegmentedSliderQuestion } from './SegmentedSliderQuestion';
 
 const standardQuestions: QuestionType[] = [
   {
@@ -45,6 +46,19 @@ const standardQuestions: QuestionType[] = [
     leftOption: 'Pure Theory',
     rightOption: 'Pure Practice',
     defaultValue: 0.5
+  },
+  {
+    id: 'std6',
+    type: 'SEGMENTED_SLIDER',
+    prompt: 'How comfortable are you with public speaking?',
+    segments: [
+      { value: 1, label: 'Very Uncomfortable' },
+      { value: 2, label: 'Uncomfortable' },
+      { value: 3, label: 'Neutral' },
+      { value: 4, label: 'Comfortable' },
+      { value: 5, label: 'Very Comfortable' }
+    ],
+    defaultSegment: 3
   }
 ];
 
@@ -76,6 +90,19 @@ const questionPool: QuestionType[] = [
     leftOption: 'Individual',
     rightOption: 'Group',
     defaultValue: 0.5
+  },
+  {
+    id: 'pool5',
+    type: 'SEGMENTED_SLIDER',
+    prompt: 'Rate your programming experience level:',
+    segments: [
+      { value: 1, label: 'Beginner' },
+      { value: 2, label: 'Intermediate' },
+      { value: 3, label: 'Advanced' },
+      { value: 4, label: 'Expert' },
+      { value: 5, label: 'Master' }
+    ],
+    defaultSegment: 3
   }
 ];
 
@@ -105,6 +132,21 @@ const mockQuizQuestions: QuizQuestion[] = [
     options: ['Visual', 'Audio', 'Reading', 'Hands-on'],
     correctAnswer: 'Visual',
     distractors: ['Audio', 'Reading', 'Hands-on']
+  },
+  {
+    id: 'quiz4',
+    type: 'SEGMENTED_SLIDER',
+    prompt: 'What is John\'s self-rated expertise in React?',
+    segments: [
+      { value: 1, label: 'Beginner' },
+      { value: 2, label: 'Intermediate' },
+      { value: 3, label: 'Advanced' },
+      { value: 4, label: 'Expert' },
+      { value: 5, label: 'Master' }
+    ],
+    defaultSegment: 3,
+    correctAnswer: '4', // Expert level
+    distractors: ['2', '3', '5']
   }
 ];
 
@@ -207,6 +249,13 @@ const OnboardingFlow = () => {
       case 'SLIDER':
         return (
           <SliderQuestion
+            question={currentQuestion}
+            onAnswer={handleAnswer}
+          />
+        );
+      case 'SEGMENTED_SLIDER':
+        return (
+          <SegmentedSliderQuestion
             question={currentQuestion}
             onAnswer={handleAnswer}
           />
@@ -392,6 +441,15 @@ const QuizFlow = () => {
             case 'SLIDER':
               return (
                 <SliderQuestion
+                  question={currentQuestion}
+                  onAnswer={handleAnswer}
+                  correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+                  disabled={hasAnswered}
+                />
+              );
+            case 'SEGMENTED_SLIDER':
+              return (
+                <SegmentedSliderQuestion
                   question={currentQuestion}
                   onAnswer={handleAnswer}
                   correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}

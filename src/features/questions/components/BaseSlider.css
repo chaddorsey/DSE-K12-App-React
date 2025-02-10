@@ -1,4 +1,9 @@
 .base-slider-container {
+  --slider-bar-height: 4px;
+  --slider-thumb-size: 28px;
+  --marker-size: 16px;
+  --marker-border: 2px;
+  
   width: 100%;
   padding: 1.5rem 0;
   touch-action: none;

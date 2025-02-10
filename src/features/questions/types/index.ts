@@ -28,6 +28,15 @@ export interface SliderQuestionType extends BaseQuestionType {
   defaultValue?: number;
 }
 
+export interface SegmentedSliderQuestionType extends BaseQuestionType {
+  type: 'SEGMENTED_SLIDER';
+  segments: {
+    value: number;
+    label?: string;
+  }[];
+  defaultSegment?: number;
+}
+
 export interface QuestionResponse {
   questionId: string;
   answer?: string;  // For multiple choice, open response
@@ -91,4 +100,5 @@ export type QuestionType =
   | MultipleChoiceQuestionType 
   | OpenResponseQuestionType 
   | NumericQuestionType
-  | SliderQuestionType; 
+  | SliderQuestionType
+  | SegmentedSliderQuestionType; 
