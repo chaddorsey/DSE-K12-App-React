@@ -11,7 +11,7 @@ declare global {
 }
 
 const defaultConfig: Config = {
-  apiUrl: 'http://localhost:3001',
+  apiUrl: '/api',
   environment: 'development',
   debug: true
 };

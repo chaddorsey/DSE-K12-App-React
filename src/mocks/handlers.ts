@@ -37,7 +37,7 @@ const users = new Map<string, User>([
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export const handlers = [
-  http.get('http://localhost:3001/dashboard.overview', () => {
+  http.get('/api/dashboard.overview', () => {
     return HttpResponse.json({
       status: 'success',
       data: {
@@ -64,19 +64,21 @@ export const handlers = [
     });
   }),
 
-  http.post<LoginRequest>('http://localhost:3001/auth/login', async ({ request }) => {
-    const { email, password } = await request.json() as LoginRequest;
+  http.post('/api/auth/login', async ({ request }) => {
+    const { email, password } = await request.json();
     
-    const user = users.get(email);
-    if (user && user.password === password) {
-      const { password: _, ...userWithoutPassword } = user;
+    if (email === 'test@example.com' && password === 'password123') {
       return HttpResponse.json({
         status: 'success',
         token: 'mock-jwt-token',
-        user: userWithoutPassword
+        user: {
+          id: '1',
+          name: 'Test User',
+          email: 'test@example.com'
+        }
       });
     }
-
+    
     return new HttpResponse(
       JSON.stringify({ 
         status: 'error',
@@ -86,7 +88,7 @@ export const handlers = [
     );
   }),
 
-  http.post<ResetPasswordRequest>('http://localhost:3001/auth/reset-password', async ({ request }) => {
+  http.post<ResetPasswordRequest>('/api/auth/reset-password', async ({ request }) => {
     const { username, newPassword } = await request.json() as ResetPasswordRequest;
     
     // Simulate server validation
@@ -124,7 +126,7 @@ export const handlers = [
     });
   }),
 
-  http.post<CreateAccountRequest>('http://localhost:3001/auth/create-account', async ({ request }) => {
+  http.post<CreateAccountRequest>('/api/auth/create-account', async ({ request }) => {
     const { email, password, name } = await request.json() as CreateAccountRequest;
     
     // Validate required fields

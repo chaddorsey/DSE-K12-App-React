@@ -95,7 +95,10 @@ const config: Configuration = {
         target: 'http://localhost:3001',
         pathRewrite: { '^/api': '' },
         changeOrigin: true,
-        secure: false
+        secure: false,
+        onError: (err: Error) => {
+          console.log('Proxy error:', err);
+        }
       }
     }
   },
