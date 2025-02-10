@@ -1,134 +1,58 @@
-.question-container {
-  padding: 1rem;
-}
-
-.question-prompt {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-}
-
-.options-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.option {
-  padding: 1rem;
-  min-height: 44px;
-  min-width: 44px;
-  border: 2px solid #ccc;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-  text-align: left;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-  transition: all 0.2s ease-in-out;
-
-  /* Focus styles */
-  &:focus-visible {
-    outline: 3px solid var(--focus-color);
-    outline-offset: 2px;
-    box-shadow: 0 0 0 2px var(--bg-primary);
-  }
-}
-
-.option:hover:not(:disabled) {
-  border-color: #007bff;
-  background: #f8f9fa;
-}
-
-.option.correct {
-  background-color: #d4edda;
-  color: #155724;
-  border-color: #28a745;
-  border-width: 2px;
-  animation: pulse-green 0.3s ease-in-out;
-}
-
-.option.incorrect {
-  background-color: #f8d7da;
-  color: #721c24;
-  border-color: #dc3545;
-  border-width: 2px;
-  animation: shake 0.5s ease-in-out;
-}
-
-.option.selected.correct {
-  background-color: #28a745;
-  color: white;
-  border-color: #1e7e34;
-}
-
-.option.selected.incorrect {
-  background-color: #dc3545;
-  color: white;
-  border-color: #bd2130;
-}
-
-@keyframes pulse-green {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-.option:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.option.selected:not(.correct):not(.incorrect) {
-  background-color: #007bff;
-  color: white;
-  border-color: #007bff;
-}
-
+/* Base container styles */
 .multiple-choice-question {
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  max-width: 100%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
+/* Prompt styles */
 .prompt {
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
   font-weight: 500;
   color: var(--text-primary);
 }
 
+/* Options container */
 .options-container {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: max(0.5rem, 2vh);
 }
 
+/* Option base styles */
 .option {
-  padding: 1rem;
+  /* Touch target sizing */
+  min-height: 44px;
+  min-width: 44px;
+  padding: max(0.75rem, 3vh) 1rem;
+  
+  /* Visual styling */
   border: 2px solid var(--border-color);
   border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
   background: var(--bg-primary);
+  cursor: pointer;
   
-  /* Ensure sufficient touch target size */
-  min-height: 44px;
+  /* Touch optimizations */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   
-  /* Focus styles */
-  outline: none;
+  /* Transitions */
+  transition: all 0.2s ease-in-out;
 }
 
-.option:focus-visible {
-  outline: 3px solid var(--focus-color);
-  outline-offset: 2px;
-}
-
+/* Interactive states */
 .option:hover:not(.disabled) {
+  background: var(--bg-hover);
+}
+
+.option.touch-active {
+  transform: scale(0.98);
   background: var(--bg-hover);
 }
 
@@ -137,19 +61,104 @@
   background: var(--primary-light);
 }
 
+.option.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Feedback states */
 .option.correct {
   border-color: var(--success-color);
   background: var(--success-light);
+  animation: pulse-green 0.3s ease-in-out;
 }
 
 .option.incorrect {
   border-color: var(--error-color);
   background: var(--error-light);
+  animation: shake 0.5s ease-in-out;
 }
 
-.option.disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
+/* Animations */
+@keyframes pulse-green {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .option {
+    transition: none;
+    animation: none !important;
+  }
+}
+
+/* Viewport adaptations */
+@media (max-height: 667px) {
+  .multiple-choice-question {
+    padding: 0.5rem;
+  }
+  
+  .options-container {
+    gap: 0.5rem;
+  }
+  
+  .option {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Landscape orientation */
+@media (orientation: landscape) and (max-height: 450px) {
+  .multiple-choice-question {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    gap: 1rem;
+    align-items: start;
+  }
+  
+  .options-container {
+    max-height: 80vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Focus states */
+.option:focus-visible {
+  outline: 3px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.keyboard-mode .option:focus {
+  outline: 3px solid var(--focus-color);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--bg-primary);
+}
+
+.high-contrast .option:focus-visible {
+  outline-color: var(--text-primary);
+  outline-width: 4px;
 }
 
 /* High contrast mode */
@@ -164,60 +173,75 @@
   --focus-color: #0066cc;
 }
 
-/* Screen reader only class */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Keyboard mode specific styles */
-.keyboard-mode .option:focus {
-  outline: 3px solid var(--focus-color);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 2px var(--bg-primary);
-}
-
-/* High contrast focus styles */
-.high-contrast .option:focus-visible {
-  outline-color: var(--text-primary);
-  outline-width: 4px;
-}
-
-/* Add to existing CSS */
-@media (prefers-reduced-motion: reduce) {
-  .option {
-    transition: none;
-  }
-
-  .option.correct {
-    animation: none;
-  }
-
-  .option.incorrect {
-    animation: none;
-  }
-}
-
-/* Update existing animations to be more subtle */
-.option {
-  transition: all 0.2s ease-in-out;
-}
-
-.option.correct {
-  animation: pulse-green 0.3s ease-in-out;
-}
-
-.option.incorrect {
-  animation: shake 0.5s ease-in-out;
-}
-
 /* Mobile-first responsive design */
 /* Touch feedback improvements */
-/* Mobile keyboard adjustments */ 
+/* Mobile keyboard adjustments */
+
+/* Mobile-first base styles */
+.multiple-choice-question {
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.prompt {
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+}
+
+.options-container {
+  gap: max(0.5rem, 2vh);
+}
+
+.option {
+  /* Increase touch target size */
+  min-height: 44px;
+  min-width: 44px;
+  padding: max(0.75rem, 3vh) 1rem;
+  
+  /* Prevent text selection on touch */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  
+  /* Touch feedback */
+  &.touch-active {
+    transform: scale(0.98);
+    background: var(--bg-hover);
+  }
+  
+  /* Prevent double-tap zoom */
+  touch-action: manipulation;
+}
+
+/* Viewport height adaptations */
+@media (max-height: 667px) {
+  .multiple-choice-question {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  
+  .options-container {
+    gap: 0.5rem;
+  }
+  
+  .option {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Landscape orientation */
+@media (orientation: landscape) and (max-height: 450px) {
+  .multiple-choice-question {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    gap: 1rem;
+    align-items: start;
+  }
+  
+  .options-container {
+    max-height: 80vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+} 

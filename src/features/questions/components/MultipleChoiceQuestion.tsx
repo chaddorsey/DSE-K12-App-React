@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import type { MultipleChoiceQuestionType, QuestionResponse } from '../types';
 import classNames from 'classnames';
 import './MultipleChoiceQuestion.css';
@@ -20,6 +20,7 @@ export const MultipleChoiceQuestion: React.FC<Props> = ({
 }) => {
   const { highContrast, fontSize, keyboardMode } = useAccessibility();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [touchActive, setTouchActive] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useKeyboardNavigation({
@@ -31,7 +32,7 @@ export const MultipleChoiceQuestion: React.FC<Props> = ({
     onEscape: () => setSelectedOption(null)
   });
 
-  const handleOptionSelect = (option: string) => {
+  const handleOptionSelect = useCallback((option: string) => {
     if (disabled) return;
     setSelectedOption(option);
     onAnswer({
@@ -39,7 +40,21 @@ export const MultipleChoiceQuestion: React.FC<Props> = ({
       answer: option,
       timestamp: Date.now()
     });
-  };
+  }, [disabled, onAnswer, question.id]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent, option: string) => {
+    e.preventDefault(); // Prevent scrolling
+    setTouchActive(option);
+  }, []);
+
+  const handleTouchEnd = useCallback((option: string) => {
+    setTouchActive(null);
+    handleOptionSelect(option);
+  }, [handleOptionSelect]);
+
+  const handleTouchCancel = useCallback(() => {
+    setTouchActive(null);
+  }, []);
 
   const getOptionStatus = (option: string) => {
     if (!correctAnswer || !selectedOption) return 'default';
@@ -89,15 +104,13 @@ export const MultipleChoiceQuestion: React.FC<Props> = ({
               'selected': selectedOption === option,
               'correct': getOptionStatus(option) === 'correct',
               'incorrect': getOptionStatus(option) === 'incorrect',
-              'disabled': disabled
+              'disabled': disabled,
+              'touch-active': touchActive === option
             })}
             onClick={() => handleOptionSelect(option)}
-            onKeyDown={(e) => {
-              if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                handleOptionSelect(option);
-              }
-            }}
+            onTouchStart={(e) => handleTouchStart(e, option)}
+            onTouchEnd={() => handleTouchEnd(option)}
+            onTouchCancel={handleTouchCancel}
           >
             {option}
           </div>
