@@ -27,4 +27,35 @@
   border-radius: 4px;
   font-size: 0.9rem;
   color: #666;
+}
+
+.context-controls {
+  background: #f8f9fa;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-group select {
+  padding: 0.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  background: white;
+  min-width: 120px;
+}
+
+.control-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
 } 

@@ -3,6 +3,7 @@ import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OpenResponseQuestion } from './OpenResponseQuestion';
 import { NumericQuestion } from './NumericQuestion';
 import { DelightFactor } from './DelightFactor/DelightFactor';
+import { QuestionProvider, useQuestionContext } from '../context/QuestionContext';
 import type { 
   QuestionResponse, 
   MultipleChoiceQuestionType, 
@@ -56,16 +57,104 @@ const sampleDelightFactor: AnimationDelightFactor = {
   questionTypes: ['MULTIPLE_CHOICE', 'OPEN_RESPONSE', 'NUMERIC']
 };
 
-export const QuestionPlayground: React.FC = () => {
+const ContextControls = () => {
+  const { state, actions } = useQuestionContext();
+  
+  return (
+    <div className="context-controls">
+      <div className="control-group">
+        <label>
+          Experience:
+          <select 
+            value={state.experience}
+            onChange={(e) => actions.setExperience(e.target.value as any)}
+          >
+            <option value="ONBOARDING">Onboarding</option>
+            <option value="QUIZ">Quiz</option>
+            <option value="HEAD_TO_HEAD">Head to Head</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="control-group">
+        <label>
+          Mode:
+          <select 
+            value={state.mode}
+            onChange={(e) => actions.setMode(e.target.value as any)}
+          >
+            <option value="PRACTICE">Practice</option>
+            <option value="COMPETITION">Competition</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="control-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={state.showFeedback}
+            onChange={(e) => actions.setShowFeedback(e.target.checked)}
+          />
+          Show Feedback
+        </label>
+      </div>
+
+      <div className="control-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={state.allowRetry}
+            onChange={(e) => actions.setAllowRetry(e.target.checked)}
+          />
+          Allow Retry
+        </label>
+      </div>
+    </div>
+  );
+};
+
+const PlaygroundContent = () => {
   const [responses, setResponses] = useState<QuestionResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [showDelight, setShowDelight] = useState(false);
+  const { state } = useQuestionContext();
+
+  const shouldShowDelight = (question: QuestionType, response: QuestionResponse): boolean => {
+    switch (state.experience) {
+      case 'QUIZ':
+        switch (question.type) {
+          case 'MULTIPLE_CHOICE':
+            // Only first option triggers delight
+            return response.answer === question.options[0];
+          case 'OPEN_RESPONSE':
+            // Every other submission
+            const openResponses = responses.filter(r => r.questionId === question.id);
+            return openResponses.length % 2 === 1;
+          case 'NUMERIC':
+            // Every third submission
+            const numericResponses = responses.filter(r => r.questionId === question.id);
+            return numericResponses.length % 3 === 2;
+          default:
+            return false;
+        }
+      case 'HEAD_TO_HEAD':
+        // Random trigger (30% chance)
+        return Math.random() < 0.3;
+      default:
+        return true;
+    }
+  };
 
   const handleAnswer = (response: QuestionResponse) => {
     setResponses(prev => [...prev, response]);
     console.log('Answer received:', response);
-    setShowDelight(true);
+    
+    const question = sampleQuestions.find(q => q.id === response.questionId);
+    if (question && shouldShowDelight(question, response)) {
+      setShowDelight(true);
+    }
   };
 
   const handleDelightComplete = () => {
@@ -108,6 +197,7 @@ export const QuestionPlayground: React.FC = () => {
 
   return (
     <div className="playground-container">
+      <ContextControls />
       <div className="playground-controls">
         <label>
           <input
@@ -146,5 +236,13 @@ export const QuestionPlayground: React.FC = () => {
         ))}
       </div>
     </div>
+  );
+};
+
+export const QuestionPlayground = () => {
+  return (
+    <QuestionProvider>
+      <PlaygroundContent />
+    </QuestionProvider>
   );
 }; 

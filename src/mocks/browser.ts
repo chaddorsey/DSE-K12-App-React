@@ -11,7 +11,7 @@ const startWorker = async () => {
         onUnhandledRequest: 'bypass',
         quiet: true,
         serviceWorker: {
-          url: `${window.location.origin}/mockServiceWorker.js`,
+          url: '/mockServiceWorker.js',
           options: {
             scope: '/'
           }

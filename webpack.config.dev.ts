@@ -76,8 +76,8 @@ const config: Configuration = {
     new (CopyPlugin as any)({
       patterns: [
         { 
-          from: 'node_modules/msw/lib/mockServiceWorker.js',
-          to: 'mockServiceWorker.js',
+          from: path.resolve(__dirname, 'public/mockServiceWorker.js'),
+          to: path.resolve(__dirname, 'dist/mockServiceWorker.js'),
           force: true
         }
       ]
