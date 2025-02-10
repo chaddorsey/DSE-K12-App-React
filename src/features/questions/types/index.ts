@@ -122,4 +122,44 @@ export type QuestionType =
   | NumericQuestionType
   | SliderQuestionType
   | SegmentedSliderQuestionType
-  | XYContinuumQuestionType; 
+  | XYContinuumQuestionType;
+
+interface BaseQuestion {
+  id: string;
+  type: QuestionType;
+  prompt: string;
+}
+
+export interface MultipleChoiceQuestion extends BaseQuestion {
+  type: 'MULTIPLE_CHOICE';
+  options: string[];
+}
+
+export interface OpenResponseQuestion extends BaseQuestion {
+  type: 'OPEN_RESPONSE';
+  maxLength: number;
+}
+
+export interface NumericQuestion extends BaseQuestion {
+  type: 'NUMERIC';
+  min: number;
+  max: number;
+  step: number;
+}
+
+export interface SliderQuestion extends BaseQuestion {
+  type: 'SLIDER';
+  min: number;
+  max: number;
+  step: number;
+  labels?: {
+    min?: string;
+    max?: string;
+  };
+}
+
+export type Question = 
+  | MultipleChoiceQuestion 
+  | OpenResponseQuestion 
+  | NumericQuestion 
+  | SliderQuestion; 
