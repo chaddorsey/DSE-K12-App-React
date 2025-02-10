@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OpenResponseQuestion } from './OpenResponseQuestion';
-import type { QuestionResponse, MultipleChoiceQuestionType, OpenResponseQuestionType } from '../types';
+import { NumericQuestion } from './NumericQuestion';
+import type { QuestionResponse, MultipleChoiceQuestionType, OpenResponseQuestionType, NumericQuestionType } from '../types';
 import './QuestionPlayground.css';
 
-type QuestionType = MultipleChoiceQuestionType | OpenResponseQuestionType;
+type QuestionType = MultipleChoiceQuestionType | OpenResponseQuestionType | NumericQuestionType;
 
 const sampleQuestions: QuestionType[] = [
   {
@@ -24,7 +25,15 @@ const sampleQuestions: QuestionType[] = [
     type: 'OPEN_RESPONSE',
     prompt: 'What are your career goals?',
     maxLength: 500
-  } as OpenResponseQuestionType
+  } as OpenResponseQuestionType,
+  {
+    id: 'q4',
+    type: 'NUMERIC',
+    prompt: 'How many years of experience do you have?',
+    min: 0,
+    max: 50,
+    step: 1
+  } as NumericQuestionType
 ];
 
 export const QuestionPlayground: React.FC = () => {
@@ -51,6 +60,15 @@ export const QuestionPlayground: React.FC = () => {
       case 'OPEN_RESPONSE':
         return (
           <OpenResponseQuestion
+            question={question}
+            onAnswer={handleAnswer}
+            loading={loading}
+            disabled={disabled}
+          />
+        );
+      case 'NUMERIC':
+        return (
+          <NumericQuestion
             question={question}
             onAnswer={handleAnswer}
             loading={loading}

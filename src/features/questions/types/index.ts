@@ -14,6 +14,13 @@ export interface OpenResponseQuestionType extends BaseQuestionType {
   maxLength: number;
 }
 
+export interface NumericQuestionType extends BaseQuestionType {
+  type: 'NUMERIC';
+  min: number;
+  max: number;
+  step: number;
+}
+
 export interface QuestionResponse {
   questionId: string;
   answer: string;
