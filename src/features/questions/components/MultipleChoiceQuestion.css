@@ -188,4 +188,36 @@
 .high-contrast .option:focus-visible {
   outline-color: var(--text-primary);
   outline-width: 4px;
-} 
+}
+
+/* Add to existing CSS */
+@media (prefers-reduced-motion: reduce) {
+  .option {
+    transition: none;
+  }
+
+  .option.correct {
+    animation: none;
+  }
+
+  .option.incorrect {
+    animation: none;
+  }
+}
+
+/* Update existing animations to be more subtle */
+.option {
+  transition: all 0.2s ease-in-out;
+}
+
+.option.correct {
+  animation: pulse-green 0.3s ease-in-out;
+}
+
+.option.incorrect {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Mobile-first responsive design */
+/* Touch feedback improvements */
+/* Mobile keyboard adjustments */ 

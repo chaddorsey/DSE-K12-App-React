@@ -504,4 +504,25 @@ interface XYContinuumQuestionType extends BaseQuestionType {
   };
   defaultPosition?: { x: number; y: number };
 }
-``` 
+```
+
+## Accessibility Features
+
+### Keyboard Navigation
+- Full keyboard navigation support using arrow keys
+- Space/Enter to select options
+- Escape to clear selection
+- Focus management with visible indicators
+
+### Screen Reader Support
+- ARIA roles and labels for all interactive elements
+- Clear announcements for selection state changes
+- Keyboard shortcut documentation
+- Descriptive feedback for correct/incorrect answers
+
+### Visual Accessibility
+- High contrast mode support
+- Configurable font sizes
+- Clear focus indicators
+- Sufficient touch targets (44px minimum)
+- Reduced motion support 
