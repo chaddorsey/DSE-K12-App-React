@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import classNames from 'classnames';
 import { useFormNavigation } from '../hooks/useFormNavigation';
+import { useQuestionValidation } from '../hooks/useQuestionValidation';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OpenResponseQuestion } from './OpenResponseQuestion';
 import { useAccessibility } from '../../../features/accessibility/context/AccessibilityContext';
@@ -21,6 +22,7 @@ export const QuestionForm: React.FC<Props> = ({
   const { highContrast, fontSize, keyboardMode } = useAccessibility();
   const {
     currentQuestion,
+    currentQuestionIndex,
     isFirstQuestion,
     isLastQuestion,
     answeredQuestions,
@@ -30,6 +32,12 @@ export const QuestionForm: React.FC<Props> = ({
     handleKeyDown
   } = useFormNavigation({ questions, onComplete });
 
+  const {
+    errors,
+    validateQuestion,
+    clearError
+  } = useQuestionValidation({ questions });
+
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
@@ -37,25 +45,43 @@ export const QuestionForm: React.FC<Props> = ({
 
   const handleAnswer = (response: QuestionResponse) => {
     onAnswer(response);
-    markAnswered(response.questionId);
+    validateQuestion(response.questionId, response.answer);
+    if (!errors[response.questionId]) {
+      markAnswered(response.questionId);
+    }
+  };
+
+  const handleNavigation = (direction: 'next' | 'prev') => {
+    if (direction === 'next') {
+      if (currentQuestion && !errors[currentQuestion.id]) {
+        goToNext();
+        if (currentQuestion.id in errors) {
+          clearError(currentQuestion.id);
+        }
+      } else if (currentQuestion) {
+        validateQuestion(currentQuestion.id, undefined);
+      }
+    } else {
+      goToPrevious();
+    }
   };
 
   const renderQuestion = (question: Question) => {
+    const error = errors[question.id];
+    
+    const commonProps = {
+      question,
+      onAnswer: handleAnswer,
+      error,
+      'aria-invalid': !!error,
+      'aria-errormessage': error ? `error-${question.id}` : undefined
+    };
+
     switch (question.type) {
       case 'MULTIPLE_CHOICE':
-        return (
-          <MultipleChoiceQuestion
-            question={question}
-            onAnswer={handleAnswer}
-          />
-        );
+        return <MultipleChoiceQuestion {...commonProps} />;
       case 'OPEN_RESPONSE':
-        return (
-          <OpenResponseQuestion
-            question={question}
-            onAnswer={handleAnswer}
-          />
-        );
+        return <OpenResponseQuestion {...commonProps} />;
       default:
         return null;
     }
@@ -84,18 +110,31 @@ export const QuestionForm: React.FC<Props> = ({
         />
       </div>
 
-      {currentQuestion && renderQuestion(currentQuestion)}
+      {currentQuestion && (
+        <>
+          {renderQuestion(currentQuestion)}
+          {errors[currentQuestion.id] && (
+            <div 
+              id={`error-${currentQuestion.id}`}
+              className="error-message"
+              role="alert"
+            >
+              {errors[currentQuestion.id]}
+            </div>
+          )}
+        </>
+      )}
 
       <div className="navigation-buttons">
         <button
-          onClick={goToPrevious}
+          onClick={() => handleNavigation('prev')}
           disabled={isFirstQuestion}
           className="nav-button prev"
         >
           Previous
         </button>
         <button
-          onClick={goToNext}
+          onClick={() => handleNavigation('next')}
           disabled={isLastQuestion}
           className="nav-button next"
         >

@@ -135,4 +135,36 @@ describe('QuestionForm', () => {
     
     expect(progress).toHaveAttribute('aria-valuenow', '100');
   });
+
+  it('displays validation errors', () => {
+    renderForm();
+    
+    // Try to navigate without answering required question
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    
+    expect(screen.getByText('Please select an option')).toBeInTheDocument();
+  });
+
+  it('prevents navigation when current question is invalid', () => {
+    renderForm();
+    
+    // Try to navigate with invalid response
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    
+    // Should still show first question
+    expect(screen.getByText('First question')).toBeInTheDocument();
+    expect(screen.queryByText('Second question')).not.toBeInTheDocument();
+  });
+
+  it('clears validation errors when valid answer is provided', () => {
+    renderForm();
+    
+    // Generate error
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    expect(screen.getByText('Please select an option')).toBeInTheDocument();
+    
+    // Provide valid answer
+    fireEvent.click(screen.getByText('A'));
+    expect(screen.queryByText('Please select an option')).not.toBeInTheDocument();
+  });
 });

@@ -80,4 +80,18 @@
     padding: 1rem;
     font-size: 1rem;
   }
+}
+
+.error-message {
+  color: var(--error-color);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  background: var(--error-bg);
+}
+
+/* High contrast mode */
+.high-contrast .error-message {
+  border: 2px solid var(--error-color);
 } 
