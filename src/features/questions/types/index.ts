@@ -65,4 +65,16 @@ export interface NumberAnimationDelightFactor extends DelightFactor {
     color: string;
     duration: number;
   };
+}
+
+export interface QuizQuestion extends QuestionType {
+  correctAnswer: string;
+  distractors: string[];
+}
+
+export interface QuizResponse {
+  questionId: string;
+  userAnswer: string;
+  correct: boolean;
+  timestamp: number;
 } 

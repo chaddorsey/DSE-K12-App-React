@@ -177,20 +177,21 @@ src/
 2. Mode-based modifications
    - Onboarding mode features:
      - Sequential question presentation
-     - Fixed sequence of 7 questions:
-       - 4 standard questions (same for all users)
-       - 3 randomly selected questions
-     - Question type distribution:
-       - At least 2 multiple choice
-       - At least 1 open response
-       - At least 1 numeric
-     - Immediate delight feedback after each answer
+     - Fixed sequence of 7 questions
+     - Question type distribution
+     - Immediate delight feedback
      - Auto-advance to next question
      - Redirect to dashboard on completion
-   - Competition mode features:
-     - Time limits
-     - Score tracking
-     - Opponent awareness
+   - Quiz mode features:
+     - Subject selection UI
+     - Question sequence from subject's responses
+     - Response validation against subject's answers
+     - Correct/incorrect feedback
+     - Score tracking and completion state
+   - Head-to-Head mode features (future):
+     - Real-time opponent matching
+     - Synchronized question presentation
+     - Live score comparison
 
 ### Context Integration Details
 
@@ -320,6 +321,55 @@ interface OnboardingActions {
 3. Filter question pool by required types
 4. Randomly select remaining questions while maintaining distribution
 5. Shuffle final sequence (keeping standard questions in relative order)
+
+#### Quiz Mode Details
+```typescript
+interface QuizState {
+  subjectId: string;
+  currentQuestionIndex: number;
+  questions: QuizQuestion[];
+  responses: QuizResponse[];
+  completed: boolean;
+  score: number;
+}
+
+interface QuizQuestion extends QuestionType {
+  correctAnswer: string;
+  distractors: string[];
+}
+
+interface QuizResponse {
+  questionId: string;
+  userAnswer: string;
+  correct: boolean;
+  timestamp: number;
+}
+```
+
+#### Quiz Flow
+1. Subject Selection
+   - Grid/list of available subjects with avatars
+   - Selection initializes quiz sequence
+
+2. Question Presentation
+   - 5 questions per sequence
+   - Multiple choice format with distractors
+   - Progress indication (X/5)
+
+3. Response Handling
+   - Correct:
+     - Green highlight
+     - Confetti animation
+     - Score increment
+   - Incorrect:
+     - Red highlight with wiggle
+     - Reveal correct in green
+     - No delight factor
+
+4. Completion
+   - Display final score
+   - "Try Some More" option if more questions available
+   - "Return to People" navigation option
 
 ## Testing Strategy
 

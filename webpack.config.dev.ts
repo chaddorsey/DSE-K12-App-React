@@ -91,17 +91,6 @@ const config: Configuration = {
     port: 3000,
     hot: true,
     open: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        pathRewrite: { '^/api': '' },
-        changeOrigin: true,
-        secure: false,
-        onError: (err: Error) => {
-          console.log('Proxy error:', err);
-        }
-      }
-    }
   },
   devtool: 'inline-source-map'
 };
