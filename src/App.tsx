@@ -7,6 +7,7 @@ import { NetworkProvider } from './features/network/NetworkProvider';
 import { LoginForm } from './features/auth/LoginForm';
 import { Dashboard } from './components/Dashboard';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { Header } from './components/Header';
 import { usePerformanceMonitoring } from './monitoring/hooks/useMonitoring';
 import { logger } from './utils/logger';
 
@@ -20,6 +21,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="App">
+      <Header />
       <div className="app-content">
         <NetworkStatusIndicator />
         <Routes>
