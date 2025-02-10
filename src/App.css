@@ -2,6 +2,8 @@
 .App {
   text-align: center;
   font-family: Arial, sans-serif;
+  min-height: 100vh;
+  padding-top: 60px; /* Match header height */
 }
 
 /* Header */
@@ -269,4 +271,10 @@
 .round-actions button {
   margin: 0 10px;
   padding: 10px 20px;
+}
+
+.app-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
 }
