@@ -11,6 +11,7 @@ import type { QuestionType, QuestionResponse, QuestionContextValue } from '../ty
 import './QuestionPlayground.css';
 import { MockDataProvider } from '../../../mocks/MockDataProvider';
 import { SegmentedSliderQuestion } from './SegmentedSliderQuestion';
+import { XYContinuumQuestion } from './XYContinuumQuestion';
 
 const standardQuestions: QuestionType[] = [
   {
@@ -59,6 +60,20 @@ const standardQuestions: QuestionType[] = [
       { value: 5, label: 'Very Comfortable' }
     ],
     defaultSegment: 3
+  },
+  {
+    id: 'std7',
+    type: 'XY_CONTINUUM',
+    prompt: 'Plot your learning style preferences:',
+    xAxis: {
+      left: 'Theory',
+      right: 'Practice'
+    },
+    yAxis: {
+      top: 'Individual',
+      bottom: 'Group'
+    },
+    defaultPosition: { x: 0.5, y: 0.5 }
   }
 ];
 
@@ -147,6 +162,36 @@ const mockQuizQuestions: QuizQuestion[] = [
     defaultSegment: 3,
     correctAnswer: '4', // Expert level
     distractors: ['2', '3', '5']
+  },
+  {
+    id: 'quiz5',
+    type: 'XY_CONTINUUM',
+    prompt: 'Where did John plot his work preferences?',
+    xAxis: {
+      left: 'Process-Oriented',
+      right: 'Results-Oriented'
+    },
+    yAxis: {
+      top: 'Independent',
+      bottom: 'Collaborative'
+    },
+    correctAnswer: '0.25,0.25', // Center of Process-oriented & Independent quadrant
+    distractors: ['0.75,0.25', '0.75,0.75', '0.25,0.75']
+  },
+  {
+    id: 'quiz6',
+    type: 'XY_CONTINUUM',
+    prompt: 'Where did John plot his work preferences?',
+    xAxis: {
+      left: 'Process-Oriented',
+      right: 'Results-Oriented'
+    },
+    yAxis: {
+      top: 'Independent',
+      bottom: 'Collaborative'
+    },
+    correctAnswer: '0.375,0.375', // On the boundary of a centered square
+    distractors: ['0.625,0.375', '0.375,0.625', '0.625,0.625']
   }
 ];
 
@@ -256,6 +301,13 @@ const OnboardingFlow = () => {
       case 'SEGMENTED_SLIDER':
         return (
           <SegmentedSliderQuestion
+            question={currentQuestion}
+            onAnswer={handleAnswer}
+          />
+        );
+      case 'XY_CONTINUUM':
+        return (
+          <XYContinuumQuestion
             question={currentQuestion}
             onAnswer={handleAnswer}
           />
@@ -375,6 +427,8 @@ const QuizFlow = () => {
   const { state, actions } = useQuizContext();
   const [currentDelight, setCurrentDelight] = useState<DelightFactor | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [guessCount, setGuessCount] = useState(0);
 
   const handleAnswer = (response: QuestionResponse) => {
     const currentQuestion = state.questions[state.currentQuestionIndex];
@@ -383,23 +437,63 @@ const QuizFlow = () => {
     const normalizedResponse = {
       questionId: response.questionId,
       answer: response.value?.toString() ?? response.answer,
-      correct: false,  // Will be determined by validation
+      correct: false,
       timestamp: response.timestamp
     };
 
-    // Validate the answer
-    const isCorrect = currentQuestion.type === 'SLIDER' 
-      ? Math.abs(parseFloat(normalizedResponse.answer) - parseFloat(currentQuestion.correctAnswer)) <= 0.1
-      : normalizedResponse.answer === currentQuestion.correctAnswer;
+    // Update guess count for XY_CONTINUUM questions
+    if (currentQuestion.type === 'XY_CONTINUUM' && response.guessCount) {
+      setGuessCount(response.guessCount);
+    }
 
-    normalizedResponse.correct = isCorrect;
+    // Validate the answer based on question type
+    let correct = false;
+    switch (currentQuestion.type) {
+      case 'SLIDER':
+        correct = Math.abs(parseFloat(normalizedResponse.answer) - parseFloat(currentQuestion.correctAnswer)) <= 0.1;
+        break;
+      case 'XY_CONTINUUM':
+        if (response.position) {
+          const [correctX, correctY] = currentQuestion.correctAnswer.split(',').map(Number);
+          correct = 
+            Math.abs(response.position.x - correctX) <= 0.1 &&
+            Math.abs(response.position.y - correctY) <= 0.1;
+          
+          // Always record response after second guess
+          if (response.guessCount && response.guessCount >= 2) {
+            normalizedResponse.correct = correct;
+            actions.submitAnswer(normalizedResponse);
+            setHasAnswered(true);
+            setIsCorrect(correct);
+            
+            if (correct) {
+              setCurrentDelight({
+                id: 'confetti',
+                type: 'ANIMATION',
+                timing: 'POST_ANSWER',
+                trigger: 'IMMEDIATE',
+                animationType: 'CELEBRATION',
+                content: {
+                  animation: 'confetti',
+                  duration: 2000
+                },
+                questionTypes: ['MULTIPLE_CHOICE', 'SLIDER', 'XY_CONTINUUM']
+              });
+            }
+            return;
+          }
+        }
+        break;
+      default:
+        correct = normalizedResponse.answer === currentQuestion.correctAnswer;
+    }
 
-    // Submit answer first to update score
+    setIsCorrect(correct);
+    normalizedResponse.correct = correct;
     actions.submitAnswer(normalizedResponse);
     setHasAnswered(true);
 
-    // If correct, show confetti
-    if (isCorrect) {
+    if (correct) {
       setCurrentDelight({
         id: 'confetti',
         type: 'ANIMATION',
@@ -410,7 +504,7 @@ const QuizFlow = () => {
           animation: 'confetti',
           duration: 2000
         },
-        questionTypes: ['MULTIPLE_CHOICE', 'SLIDER']
+        questionTypes: ['MULTIPLE_CHOICE', 'SLIDER', 'XY_CONTINUUM']
       });
     }
   };
@@ -419,6 +513,8 @@ const QuizFlow = () => {
     actions.advanceToNext();
     setHasAnswered(false);
     setCurrentDelight(null);
+    setIsCorrect(false);
+    setGuessCount(0);
   };
 
   const renderCurrentQuestion = () => {
@@ -456,17 +552,38 @@ const QuizFlow = () => {
                   disabled={hasAnswered}
                 />
               );
+            case 'XY_CONTINUUM':
+              return (
+                <XYContinuumQuestion
+                  question={currentQuestion}
+                  onAnswer={handleAnswer}
+                  correctAnswer={currentQuestion.correctAnswer}
+                  disabled={hasAnswered}
+                  mode="QUIZ"
+                />
+              );
             default:
               return null;
           }
         })()}
         {hasAnswered && !state.completed && (
-          <button 
-            onClick={handleNext}
-            className="next-button"
-          >
-            Next Question
-          </button>
+          currentQuestion.type === 'XY_CONTINUUM' ? (
+            (isCorrect || guessCount >= 2) && (
+              <button 
+                onClick={handleNext}
+                className="next-button"
+              >
+                Next Question
+              </button>
+            )
+          ) : (
+            <button 
+              onClick={handleNext}
+              className="next-button"
+            >
+              Next Question
+            </button>
+          )
         )}
       </div>
     );

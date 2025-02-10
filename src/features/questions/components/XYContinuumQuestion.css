@@ -1,0 +1,192 @@
+.xy-continuum-question {
+  --dot-size: 20px;
+  --dot-border: 2px;
+  --grid-size: 400px;
+  --square-size: 25%;
+  
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.prompt {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.xy-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.center-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.xy-grid {
+  position: relative;
+  width: var(--grid-size);
+  height: var(--grid-size);
+  background: linear-gradient(#e9ecef 1px, transparent 1px),
+              linear-gradient(90deg, #e9ecef 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 1px solid #dee2e6;
+  cursor: crosshair;
+}
+
+.xy-dot {
+  position: absolute;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  background: #007bff;
+  border: var(--dot-border) solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: background-color 0.2s;
+}
+
+.xy-dot.dragging {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.xy-dot.correct {
+  background: #28a745;
+}
+
+.guess-square {
+  position: absolute;
+  width: var(--square-size);
+  height: var(--square-size);
+  border: 2px dashed #007bff;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.guess-square.dragging {
+  cursor: grabbing;
+}
+
+.guess-square.correct {
+  border: 2px solid #28a745;
+  background: rgba(40, 167, 69, 0.1);
+}
+
+.guess-square.incorrect {
+  border: 2px solid #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.hint-quadrant {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  background: rgba(255, 193, 7, 0.2);
+  pointer-events: none;
+}
+
+.hint-quadrant.pulse {
+  animation: pulse-bg 2s infinite;
+}
+
+.hint-quadrant.top-left {
+  left: 0;
+  top: 0;
+}
+
+.hint-quadrant.top-right {
+  left: 50%;
+  top: 0;
+}
+
+.hint-quadrant.bottom-left {
+  left: 0;
+  top: 50%;
+}
+
+.hint-quadrant.bottom-right {
+  left: 50%;
+  top: 50%;
+}
+
+.x-axis-label,
+.y-axis-label {
+  font-size: 1rem;
+  color: #666;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.x-axis-label {
+  min-width: 100px;
+}
+
+.y-axis-label {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.submit-button {
+  align-self: center;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  color: white;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.feedback-message {
+  text-align: center;
+  color: #856404;
+  background-color: #fff3cd;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+}
+
+@keyframes pulse-bg {
+  0% { background-color: rgba(255, 193, 7, 0.1); }
+  50% { background-color: rgba(255, 193, 7, 0.3); }
+  100% { background-color: rgba(255, 193, 7, 0.1); }
+}
+
+@media (max-width: 600px) {
+  .xy-continuum-question {
+    --grid-size: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .xy-continuum-question {
+    --grid-size: 250px;
+  }
+  
+  .x-axis-label {
+    min-width: 60px;
+    font-size: 0.875rem;
+  }
+} 
