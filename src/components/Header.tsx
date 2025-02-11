@@ -21,7 +21,7 @@ export const Header: React.FC = () => {
     <header className="header">
       <div className="header-content">
         <div className="logo-section">
-          <div className="logo">DSET App</div>
+          <Link to="/" className="logo">DSET App</Link>
           <button 
             onClick={handleClearStorage}
             className="clear-storage-button"
@@ -31,6 +31,7 @@ export const Header: React.FC = () => {
         </div>
         <nav className="nav-links">
           <Link to="/">Questions</Link>
+          <Link to="/demo/progressive-avatars">Connections</Link>
           <div className="demo-links">
             Demos:
             <Link to="/demo/avatar-grid">Avatar Grid</Link>
