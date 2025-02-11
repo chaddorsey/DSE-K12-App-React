@@ -1,25 +1,64 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { usePerformanceMonitoring } from '../../monitoring/hooks/useMonitoring';
-import { apiClient } from '../../services/api';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 import { logger } from '../../utils/logger';
-import { refreshAuthToken, setupTokenRefresh } from './tokenRefresh';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface AuthContextType {
+interface AuthContextValue {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  isAuthenticated: boolean;
+  loading: boolean;
+  error: Error | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
-const TOKEN_KEY = 'auth_token';
-const USER_KEY = 'user';
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setLoading(false);
+    }, (error) => {
+      logger.error('Auth state change error:', error);
+      setError(error as Error);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      setError(null);
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      logger.error('Sign in error:', err);
+      setError(err as Error);
+      throw err;
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      setError(null);
+      await firebaseSignOut(auth);
+    } catch (err) {
+      logger.error('Sign out error:', err);
+      setError(err as Error);
+      throw err;
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, error, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -27,91 +66,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const storedUser = localStorage.getItem(USER_KEY);
-      return storedUser ? JSON.parse(storedUser) : null;
-    } catch (error) {
-      logger.error('Failed to parse stored user', { error });
-      return null;
-    }
-  });
-
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    return !!token;
-  });
-
-  usePerformanceMonitoring('AuthProvider');
-  
-  useEffect(() => {
-    if (user) {
-      const stopRefresh = setupTokenRefresh(async () => {
-        try {
-          await refreshAuthToken();
-          logger.info('Token refresh cycle completed');
-        } catch (error) {
-          logger.error('Token refresh cycle failed', { error });
-          logout();
-        }
-      });
-
-      return () => {
-        stopRefresh();
-      };
-    }
-  }, [user]);
-
-  const login = useCallback(async (email: string, password: string) => {
-    try {
-      const response = await apiClient.post<{ token: string; user: User }>('auth/login', {
-        email,
-        password
-      });
-
-      localStorage.setItem(TOKEN_KEY, response.token);
-      localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-      setUser(response.user);
-      setIsAuthenticated(true);
-
-      logger.info('User logged in successfully', { email });
-    } catch (error) {
-      logger.error('Login failed', { error, email });
-      throw error;
-    }
-  }, []);
-
-  const logout = useCallback(async () => {
-    try {
-      await apiClient.post('auth/logout');
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      setUser(null);
-      setIsAuthenticated(false);
-
-      logger.info('User logged out successfully');
-    } catch (error) {
-      logger.error('Logout failed', { error });
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-      setUser(null);
-      setIsAuthenticated(false);
-    }
-  }, []);
-
-  const value = {
-    user,
-    login,
-    logout,
-    isAuthenticated,
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
 }; 

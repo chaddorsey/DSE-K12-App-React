@@ -16,7 +16,10 @@
     "react-router-dom": "^6.21.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^4.2.4",
-    "yup": "^0.32.11"
+    "yup": "^0.32.11",
+    "firebase": "^10.8.0",
+    "@firebase/auth": "^1.6.0",
+    "@firebase/firestore": "^4.4.2"
   },
   "scripts": {
     "prestart": "bash scripts/setup-data.sh",
