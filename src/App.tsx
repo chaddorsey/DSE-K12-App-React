@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter } from 'react-router-dom';
-import { Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QuestionPlayground } from './features/questions/components/QuestionPlayground';
 import { AccessibilityProvider } from './features/accessibility/context/AccessibilityContext';
 import { AccessibilityControls } from './features/accessibility/components/AccessibilityControls';
@@ -12,6 +11,9 @@ import { QuestionTypesDemo } from './features/questions/components/QuestionTypes
 import { DataVisualizationDemo } from './features/visualization/components/DataVisualizationDemo';
 import { AuthProvider } from './features/auth/AuthContext';
 import { ProgressiveAvatarDemo } from './features/connections/components/ProgressiveAvatarDemo';
+import { QuestionBankProvider } from './features/questions/context/QuestionBankContext';
+import { OnboardingDemo } from './features/onboarding/components/OnboardingDemo';
+import { Home } from './features/home/components/Home';
 
 const AppContent = () => {
   const {
@@ -80,25 +82,29 @@ const AppContent = () => {
 
 export const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AccessibilityProvider>
-          <div className="app-container">
-            <Header />
-            <main>
-              <Routes>
-                <Route path="/" element={<QuestionPlayground />} />
-                <Route path="/demo">
-                  <Route path="avatar-grid" element={<AvatarGridDemo />} />
-                  <Route path="question-types" element={<QuestionTypesDemo />} />
-                  <Route path="visualization" element={<DataVisualizationDemo />} />
-                  <Route path="progressive-avatars" element={<ProgressiveAvatarDemo />} />
-                </Route>
-              </Routes>
-            </main>
-          </div>
-        </AccessibilityProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <QuestionBankProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AccessibilityProvider>
+            <div className="app-container">
+              <Header />
+              <main>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/onboarding" element={<OnboardingDemo />} />
+                  <Route path="/connections" element={<ProgressiveAvatarDemo />} />
+                  <Route path="/demo">
+                    <Route path="avatar-grid" element={<AvatarGridDemo />} />
+                    <Route path="question-types" element={<QuestionTypesDemo />} />
+                    <Route path="visualization" element={<DataVisualizationDemo />} />
+                    <Route path="progressive-avatars" element={<ProgressiveAvatarDemo />} />
+                  </Route>
+                </Routes>
+              </main>
+            </div>
+          </AccessibilityProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QuestionBankProvider>
   );
 }; 

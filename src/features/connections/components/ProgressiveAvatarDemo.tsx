@@ -11,12 +11,32 @@ export const ProgressiveAvatarDemo: React.FC = () => {
   const [selections, setSelections] = useState<Record<string, ProgressiveSelection>>({});
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [users, setUsers] = useState<MockUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getMockUsers().then(mockUsers => {
-      setUsers(mockUsers.slice(0, 12)); // Show first 12 users
-    });
+    setIsLoading(true);
+    getMockUsers()
+      .then(mockUsers => {
+        setUsers(mockUsers.slice(0, 12));
+        setError(null);
+      })
+      .catch(err => {
+        console.error('Failed to load users:', err);
+        setError('Failed to load user data');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, []);
+
+  if (isLoading) {
+    return <div>Loading users...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   const handleUserSelect = (userId: string) => {
     setSelections(prev => {

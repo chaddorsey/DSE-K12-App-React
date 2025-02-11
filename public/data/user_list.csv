@@ -1,0 +1,13 @@
+id,name,avatar,cat_dog,star_wars_trek,professional_cat,num_tvs,secret
+1,Homer Simpson,homer_simpson.png,Dog person,Star Wars,Engineer,3,I'm afraid of birds
+2,Marge Simpson,marge_simpson.png,Cat person,Neither,Homemaker,2,I used to be a painter
+3,Bart Simpson,bart_simpson.png,Dog person,Star Wars,Student,4,I actually like school
+4,Lisa Simpson,lisa_simpson.png,Cat person,Star Trek,Student,1,I sometimes skip practice
+5,Ned Flanders,ned_flanders.png,Both,Neither,Small Business Owner,1,I once said darn
+6,Mr Burns,mr_burns.png,Neither,Neither,Executive,5,I'm not really that rich
+7,Apu,apu_nahasapeemapetilon.png,Dog person,Star Trek,Small Business Owner,2,I hate slushies
+8,Moe Szyslak,moe_szyslak.png,Cat person,Star Wars,Small Business Owner,1,I'm actually happy
+9,Chief Wiggum,chief_wiggum.png,Dog person,Star Trek,Law Enforcement,3,I'm afraid of donuts
+10,Ralph Wiggum,ralph_wiggum.png,Cat person,Both,Student,2,I'm actually a genius
+11,Milhouse,milhouse_van_houten.png,Cat person,Star Trek,Student,2,I don't need glasses
+12,Comic Book Guy,comic_book_guy.png,Neither,Both,Small Business Owner,4,I prefer Marvel 
