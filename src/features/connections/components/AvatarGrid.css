@@ -1,0 +1,52 @@
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.avatar-grid.high-contrast {
+  background: #000;
+  color: #fff;
+}
+
+.high-contrast .animated-avatar {
+  background: #000;
+  border: 2px solid #fff;
+  box-shadow: none;
+}
+
+.high-contrast .avatar-name {
+  color: #fff;
+}
+
+.high-contrast .avatar-level {
+  color: #fff;
+  opacity: 0.8;
+}
+
+.high-contrast .animated-avatar:focus {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.no-results {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.high-contrast .no-results {
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .avatar-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+} 
