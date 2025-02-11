@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QuestionPlayground } from './features/questions/components/QuestionPlayground';
 import { AccessibilityProvider } from './features/accessibility/context/AccessibilityContext';
 import { AccessibilityControls } from './features/accessibility/components/AccessibilityControls';
@@ -10,13 +10,14 @@ import { Header } from './components/Header';
 import { QuestionTypesDemo } from './features/questions/components/QuestionTypesDemo';
 import { DataVisualizationDemo } from './features/visualization/components/DataVisualizationDemo';
 import { AuthProvider } from './features/auth/AuthContext';
+import { NetworkProvider } from './features/network/NetworkProvider';
 import { ProgressiveAvatarDemo } from './features/connections/components/ProgressiveAvatarDemo';
 import { QuestionBankProvider } from './features/questions/context/QuestionBankContext';
 import { OnboardingProvider } from './features/onboarding/context/OnboardingContext';
 import { Home } from './features/home/components/Home';
 import { QuestionBankEditor } from './features/questions/components/QuestionBankEditor';
 import { QuestionEditorDemo } from './features/questions/components/QuestionEditorDemo';
-import { OnboardingFlow } from './features/onboarding/components/OnboardingFlow';
+import { OnboardingDemo } from './features/onboarding/components/OnboardingDemo';
 
 const AppContent = () => {
   const {
@@ -72,46 +73,44 @@ const AppContent = () => {
   ]);
 
   return (
-    <div className="app">
-      <div className="sr-only" role="status" aria-live="polite">
-        Press Alt + H for high contrast, Alt + F for font size, 
-        Alt + M for motion settings, or Alt + K for keyboard mode
-      </div>
-      <AccessibilityControls />
-      <QuestionPlayground />
+    <div className="App">
+      <Header 
+        links={[
+          { to: '/', label: 'Home' },
+          { to: '/question-playground', label: 'Quiz' },
+          { to: '/connections', label: 'Connections' }
+        ]} 
+      />
+      <main>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/onboarding" element={<OnboardingDemo />} />
+          <Route path="/question-playground" element={<QuestionPlayground />} />
+          <Route path="/connections" element={<ProgressiveAvatarDemo />} />
+          <Route path="/question-editor" element={<QuestionEditorDemo />} />
+          <Route path="/demo">
+            <Route path="editor" element={<QuestionBankEditor />} />
+          </Route>
+        </Routes>
+      </main>
     </div>
   );
 };
 
 export const App: React.FC = () => {
   return (
-    <AccessibilityProvider>
-      <QuestionBankProvider>
-        <OnboardingProvider>
-          <BrowserRouter>
+    <Router>
+      <AccessibilityProvider>
+        <QuestionBankProvider>
+          <OnboardingProvider>
             <AuthProvider>
-              <div className="app-container">
-                <Header />
-                <main>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/onboarding" element={<OnboardingFlow />} />
-                    <Route path="/connections" element={<ProgressiveAvatarDemo />} />
-                    <Route path="/question-editor" element={<QuestionEditorDemo />} />
-                    <Route path="/demo">
-                      <Route path="avatar-grid" element={<AvatarGridDemo />} />
-                      <Route path="question-types" element={<QuestionTypesDemo />} />
-                      <Route path="visualization" element={<DataVisualizationDemo />} />
-                      <Route path="progressive-avatars" element={<ProgressiveAvatarDemo />} />
-                    </Route>
-                    <Route path="/admin/questions" element={<QuestionBankEditor />} />
-                  </Routes>
-                </main>
-              </div>
+              <NetworkProvider>
+                <AppContent />
+              </NetworkProvider>
             </AuthProvider>
-          </BrowserRouter>
-        </OnboardingProvider>
-      </QuestionBankProvider>
-    </AccessibilityProvider>
+          </OnboardingProvider>
+        </QuestionBankProvider>
+      </AccessibilityProvider>
+    </Router>
   );
 }; 

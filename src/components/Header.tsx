@@ -30,14 +30,9 @@ export const Header: React.FC = () => {
           </button>
         </div>
         <nav className="nav-links">
-          <Link to="/">Questions</Link>
+          <Link to="/onboarding">Onboarding</Link>
           <Link to="/demo/progressive-avatars">Connections</Link>
-          <div className="demo-links">
-            Demos:
-            <Link to="/demo/avatar-grid">Avatar Grid</Link>
-            <Link to="/demo/question-types">Question Types</Link>
-            <Link to="/demo/visualization">Visualization</Link>
-          </div>
+          <Link to="/question-playground">Quiz</Link>
           {isAuthenticated && (
             <div className="user-section">
               <span className="user-name">{user?.name}</span>

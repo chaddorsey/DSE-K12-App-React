@@ -31,7 +31,7 @@
 
 .nav-links {
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
   align-items: center;
 }
 
@@ -39,23 +39,23 @@
   color: #666;
   text-decoration: none;
   font-weight: 500;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
 }
 
 .nav-links a:hover {
   color: #333;
-}
-
-.demo-links {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  color: #666;
+  background: #f5f5f5;
 }
 
 .user-section {
   display: flex;
   gap: 1rem;
   align-items: center;
+  margin-left: 2rem;
+  padding-left: 2rem;
+  border-left: 1px solid #eee;
 }
 
 .user-name {

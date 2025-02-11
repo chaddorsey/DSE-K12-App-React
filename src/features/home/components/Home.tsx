@@ -8,8 +8,12 @@ export const Home: React.FC = () => {
       <h1>Welcome to DSET</h1>
       <div className="demo-links">
         <Link to="/onboarding" className="demo-link">
-          <h2>Start Onboarding</h2>
-          <p>Take a quick quiz to help us get to know you</p>
+          <h2>Onboarding Demo</h2>
+          <p>Try out the onboarding flow</p>
+        </Link>
+        <Link to="/question-playground" className="demo-link">
+          <h2>Question Playground</h2>
+          <p>Try out different question types</p>
         </Link>
         <Link to="/connections" className="demo-link">
           <h2>Connections Demo</h2>
