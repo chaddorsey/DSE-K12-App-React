@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ProgressiveAvatarGrid } from './ProgressiveAvatarGrid';
 import { getMockUsers } from '../data/mockData';
 import type { MockUser } from '../types/mock-data';
 import type { RecognitionLevel, ProgressiveSelection } from '../types/progressive-selection';
+import { ProgressiveAvatar } from './ProgressiveAvatar';
+import { SearchBar } from '../../../components/SearchBar';
+import { useAvatarData } from '../hooks/useAvatarData';
 import './ProgressiveAvatarDemo.css';
 
 export const ProgressiveAvatarDemo: React.FC = () => {
@@ -13,6 +16,8 @@ export const ProgressiveAvatarDemo: React.FC = () => {
   const [users, setUsers] = useState<MockUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { avatars, isLoading: avatarsLoading, error: avatarsError } = useAvatarData();
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setIsLoading(true);
@@ -30,12 +35,26 @@ export const ProgressiveAvatarDemo: React.FC = () => {
       });
   }, []);
 
-  if (isLoading) {
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query.toLowerCase());
+  }, []);
+
+  const filteredUsers = React.useMemo(() => {
+    if (!searchQuery) return users;
+    
+    return users.filter(user => 
+      user.name.toLowerCase().includes(searchQuery) ||
+      user.role?.toLowerCase().includes(searchQuery) ||
+      user.department?.toLowerCase().includes(searchQuery)
+    );
+  }, [users, searchQuery]);
+
+  if (isLoading || avatarsLoading) {
     return <div>Loading users...</div>;
   }
 
-  if (error) {
-    return <div>Error: {error}</div>;
+  if (error || avatarsError) {
+    return <div>Error: {error || avatarsError?.message}</div>;
   }
 
   const handleUserSelect = (userId: string) => {
@@ -106,8 +125,16 @@ export const ProgressiveAvatarDemo: React.FC = () => {
         )}
       </div>
 
+      <div className="controls-section">
+        <SearchBar 
+          onSearch={handleSearch}
+          placeholder="Search by name, role, or department..."
+          ariaLabel="Search users"
+        />
+      </div>
+
       <ProgressiveAvatarGrid
-        users={users}
+        users={filteredUsers}
         currentLevel={currentLevel}
         selections={selections}
         isProgressiveMode={isProgressiveMode}
@@ -124,6 +151,12 @@ export const ProgressiveAvatarDemo: React.FC = () => {
               <strong>{level}:</strong> {getLevelProgress(level)} recognized
             </div>
           ))}
+        </div>
+      )}
+
+      {filteredUsers.length === 0 && (
+        <div className="no-results">
+          No users found matching "{searchQuery}"
         </div>
       )}
     </div>
