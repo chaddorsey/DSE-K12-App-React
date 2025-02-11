@@ -1,0 +1,44 @@
+{
+  "questions": [
+    {
+      "id": "p1",
+      "type": "MC",
+      "text": "Are you more of a cat person or a dog person?",
+      "label": "cat_dog_preference",
+      "category": "PERSONALITY",
+      "number": 1,
+      "options": ["Cat person", "Dog person", "Both", "Neither"],
+      "requiredForOnboarding": true,
+      "includeInOnboarding": true
+    },
+    {
+      "id": "p2",
+      "type": "MC",
+      "text": "Do you consider yourself more introverted or extroverted?",
+      "label": "intro_extrovert",
+      "category": "PERSONALITY",
+      "number": 2,
+      "options": ["Introverted", "Extroverted", "Somewhere in between"],
+      "includeInOnboarding": true
+    },
+    {
+      "id": "p3",
+      "type": "MC",
+      "text": "Are you a morning person or night owl?",
+      "label": "morning_night",
+      "category": "PERSONALITY",
+      "number": 3,
+      "options": ["Morning person", "Night owl", "Neither"]
+    },
+    {
+      "id": "p4",
+      "type": "OP",
+      "text": "Nobody knows that I...",
+      "label": "secret",
+      "category": "PERSONALITY",
+      "number": 4,
+      "maxLength": 500,
+      "requiredForOnboarding": true
+    }
+  ]
+} 

@@ -17,6 +17,8 @@ interface FormNavigationState {
   goToPrevious: () => void;
   markAnswered: (questionId: string) => void;
   handleKeyDown: (event: KeyboardEvent) => void;
+  progress: number;
+  handleNavigation: (direction: 'prev' | 'next') => void;
 }
 
 export const useFormNavigation = ({ 
@@ -61,6 +63,18 @@ export const useFormNavigation = ({
     }
   }, [goToNext, goToPrevious]);
 
+  const progress = questions.length > 0 
+    ? (answeredQuestions.size / questions.length) * 100 
+    : 0;
+
+  const handleNavigation = useCallback((direction: 'prev' | 'next') => {
+    if (direction === 'next') {
+      goToNext();
+    } else {
+      goToPrevious();
+    }
+  }, [goToNext, goToPrevious]);
+
   useEffect(() => {
     if (isComplete) {
       onComplete();
@@ -84,6 +98,8 @@ export const useFormNavigation = ({
     goToNext,
     goToPrevious,
     markAnswered,
-    handleKeyDown
+    handleKeyDown,
+    progress,
+    handleNavigation,
   };
 }; 

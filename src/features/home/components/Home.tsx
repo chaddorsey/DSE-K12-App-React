@@ -15,6 +15,10 @@ export const Home: React.FC = () => {
           <h2>Connections Demo</h2>
           <p>Try our progressive recognition interface</p>
         </Link>
+        <Link to="/question-editor" className="demo-link">
+          <h2>Question Editor Demo</h2>
+          <p>Create and edit questions</p>
+        </Link>
         {/* ... other demo links ... */}
       </div>
     </div>

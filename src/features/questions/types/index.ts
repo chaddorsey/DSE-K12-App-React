@@ -1,34 +1,52 @@
-export interface BaseQuestionType {
+export type QuestionCategory = 
+  | 'PERSONALITY'
+  | 'INTERESTS'
+  | 'PROFESSIONAL'
+  | 'DEMOGRAPHIC'
+  | 'BACKGROUND';
+
+export interface BaseQuestion {
   id: string;
-  prompt: string;
+  text: string;
   type: string;
+  label: string;
+  category: QuestionCategory;
+  number: number;
+  requiredForOnboarding: boolean;
+  includeInOnboarding: boolean;
 }
 
-export interface MultipleChoiceQuestionType extends BaseQuestionType {
-  type: 'MULTIPLE_CHOICE';
+export interface MultipleChoiceQuestion extends BaseQuestion {
+  type: 'MC';
   options: string[];
+  allowMultiple?: boolean;
+  allowOther?: boolean;
 }
 
-export interface OpenResponseQuestionType extends BaseQuestionType {
-  type: 'OPEN_RESPONSE';
+export interface OpenResponseQuestion extends BaseQuestion {
+  type: 'OP';
   maxLength: number;
 }
 
-export interface NumericQuestionType extends BaseQuestionType {
-  type: 'NUMERIC';
+export interface NumericQuestion extends BaseQuestion {
+  type: 'NM';
   min: number;
   max: number;
   step: number;
 }
 
-export interface SliderQuestionType extends BaseQuestionType {
-  type: 'SLIDER';
-  leftOption: string;
-  rightOption: string;
-  defaultValue?: number;
+export interface SliderQuestion extends BaseQuestion {
+  type: 'SCALE';
+  min: number;
+  max: number;
+  step: number;
+  labels?: {
+    min: string;
+    max: string;
+  };
 }
 
-export interface SegmentedSliderQuestionType extends BaseQuestionType {
+export interface SegmentedSliderQuestionType extends BaseQuestion {
   type: 'SEGMENTED_SLIDER';
   segments: {
     value: number;
@@ -37,7 +55,7 @@ export interface SegmentedSliderQuestionType extends BaseQuestionType {
   defaultSegment?: number;
 }
 
-export interface XYContinuumQuestionType extends BaseQuestionType {
+export interface XYContinuumQuestionType extends BaseQuestion {
   type: 'XY_CONTINUUM';
   xAxis: {
     left: string;
@@ -104,7 +122,7 @@ export interface NumberAnimationDelightFactor extends DelightFactor {
   };
 }
 
-export interface QuizQuestion extends QuestionType {
+export interface QuizQuestion extends BaseQuestion {
   correctAnswer: string;
   distractors: string[];
 }
@@ -117,49 +135,33 @@ export interface QuizResponse {
 }
 
 export type QuestionType = 
-  | MultipleChoiceQuestionType 
-  | OpenResponseQuestionType 
-  | NumericQuestionType
-  | SliderQuestionType
-  | SegmentedSliderQuestionType
-  | XYContinuumQuestionType;
-
-interface BaseQuestion {
-  id: string;
-  type: QuestionType;
-  prompt: string;
-}
-
-export interface MultipleChoiceQuestion extends BaseQuestion {
-  type: 'MULTIPLE_CHOICE';
-  options: string[];
-}
-
-export interface OpenResponseQuestion extends BaseQuestion {
-  type: 'OPEN_RESPONSE';
-  maxLength: number;
-}
-
-export interface NumericQuestion extends BaseQuestion {
-  type: 'NUMERIC';
-  min: number;
-  max: number;
-  step: number;
-}
-
-export interface SliderQuestion extends BaseQuestion {
-  type: 'SLIDER';
-  min: number;
-  max: number;
-  step: number;
-  labels?: {
-    min?: string;
-    max?: string;
-  };
-}
-
-export type Question = 
   | MultipleChoiceQuestion 
   | OpenResponseQuestion 
   | NumericQuestion 
-  | SliderQuestion; 
+  | SliderQuestion 
+  | SegmentedSliderQuestionType;
+
+export interface QuestionFormData {
+  type: 'MC' | 'NM' | 'OP' | 'SCALE';
+  text: string;
+  label: string;
+  category: QuestionCategory;
+  options?: string[];
+  min?: number;
+  max?: number;
+  step?: number;
+  maxLength?: number;
+  labels?: {
+    min: string;
+    max: string;
+  };
+  requiredForOnboarding: boolean;
+  includeInOnboarding: boolean;
+}
+
+// Question type with all required fields
+export type Question =
+  | (MultipleChoiceQuestion & { requiredForOnboarding: boolean; includeInOnboarding: boolean })
+  | (OpenResponseQuestion & { requiredForOnboarding: boolean; includeInOnboarding: boolean })
+  | (NumericQuestion & { requiredForOnboarding: boolean; includeInOnboarding: boolean })
+  | (SliderQuestion & { requiredForOnboarding: boolean; includeInOnboarding: boolean }); 

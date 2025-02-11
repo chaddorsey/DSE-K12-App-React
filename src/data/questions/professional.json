@@ -1,0 +1,25 @@
+{
+  "questions": [
+    {
+      "id": "pr1",
+      "type": "MC",
+      "text": "What is your primary occupation?",
+      "label": "occupation",
+      "category": "PROFESSIONAL",
+      "number": 1,
+      "options": ["Engineer", "Designer", "Product Manager", "Researcher", "Student", "Other"],
+      "requiredForOnboarding": true
+    },
+    {
+      "id": "pr2",
+      "type": "NM",
+      "text": "How many years of professional experience do you have?",
+      "label": "years_experience",
+      "category": "PROFESSIONAL",
+      "number": 2,
+      "min": 0,
+      "max": 50,
+      "step": 1
+    }
+  ]
+} 

@@ -1,0 +1,14 @@
+{
+  "questions": [
+    {
+      "id": "d1",
+      "type": "MC",
+      "text": "Which region do you live in?",
+      "label": "region_current",
+      "category": "DEMOGRAPHIC",
+      "number": 1,
+      "options": ["North", "South", "East", "West"],
+      "includeInOnboarding": true
+    }
+  ]
+} 

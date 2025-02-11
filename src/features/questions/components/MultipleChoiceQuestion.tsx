@@ -1,18 +1,19 @@
 import React, { useState, useRef, useCallback } from 'react';
-import type { MultipleChoiceQuestionType, QuestionResponse } from '../types';
+import type { MultipleChoiceQuestion as MCQuestion } from '../types';
+import type { QuestionResponse } from '../types';
 import classNames from 'classnames';
 import './MultipleChoiceQuestion.css';
 import { useAccessibility } from '../../../features/accessibility/context/AccessibilityContext';
 import { useKeyboardNavigation } from '../../accessibility/hooks/useKeyboardNavigation';
 
-interface Props {
-  question: MultipleChoiceQuestionType;
+interface MultipleChoiceQuestionProps {
+  question: MCQuestion;
   onAnswer: (response: QuestionResponse) => void;
   correctAnswer?: string;
   disabled?: boolean;
 }
 
-export const MultipleChoiceQuestion: React.FC<Props> = ({
+export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
   question,
   onAnswer,
   correctAnswer,
@@ -81,7 +82,7 @@ export const MultipleChoiceQuestion: React.FC<Props> = ({
         className="prompt"
         id={`question-${question.id}-prompt`}
       >
-        {question.prompt}
+        {question.text}
       </div>
       <div
         role="radiogroup"

@@ -1,18 +1,31 @@
-import type { Question, QuestionResponse, QuestionCategory } from '../types/question';
+import type { Question, QuestionType, QuestionCategory } from '../types';
+import { questionStore } from '../../../data/questions';
+import { generateTestQuestions } from '../../../data/questions/generateTestData';
+import { questionConfig } from '../../../config/questions';
+import { ensureQuestionFields } from '../utils/questionUtils';
 
 export class QuestionBankManager {
-  private questions: Map<string, Question> = new Map();
+  private questions: Question[];
   private categorizedQuestions: Map<QuestionCategory, Set<string>> = new Map();
   private responseValidators: Map<string, (response: any) => boolean> = new Map();
 
-  constructor(questions: Question[]) {
-    this.initializeQuestions(questions);
+  constructor(initialQuestions: QuestionType[]) {
+    console.log('QuestionBankManager constructor:', {
+      initialQuestionsLength: initialQuestions.length,
+      initialQuestions
+    });
+    this.questions = []; // Initialize empty array first
+    this.initializeQuestions(initialQuestions.map(ensureQuestionFields));
   }
 
   private initializeQuestions(questions: Question[]) {
+    console.log('QuestionBankManager initializing with:', {
+      questionsLength: questions.length,
+      questions
+    });
+    this.questions = questions;
+    
     questions.forEach(question => {
-      this.questions.set(question.id, question);
-      
       // Initialize category sets
       if (!this.categorizedQuestions.has(question.category)) {
         this.categorizedQuestions.set(question.category, new Set());
@@ -37,10 +50,11 @@ export class QuestionBankManager {
         };
 
       case 'NM':
-        return (response: number) => {
-          if (typeof response !== 'number') return false;
-          if (question.min !== undefined && response < question.min) return false;
-          if (question.max !== undefined && response > question.max) return false;
+        return (response: any) => {
+          const numValue = typeof response === 'string' ? parseInt(response, 10) : response;
+          if (typeof numValue !== 'number' || isNaN(numValue)) return false;
+          if (question.min !== undefined && numValue < question.min) return false;
+          if (question.max !== undefined && numValue > question.max) return false;
           return true;
         };
 
@@ -74,14 +88,12 @@ export class QuestionBankManager {
   }
 
   getQuestion(id: string): Question | undefined {
-    return this.questions.get(id);
+    return this.questions.find(q => q.id === id);
   }
 
   getQuestionsByCategory(category: QuestionCategory): Question[] {
     const questionIds = this.categorizedQuestions.get(category) || new Set();
-    return Array.from(questionIds)
-      .map(id => this.questions.get(id))
-      .filter((q): q is Question => q !== undefined);
+    return this.questions.filter(q => questionIds.has(q.id));
   }
 
   validateResponse(questionId: string, response: any): boolean {
@@ -90,6 +102,10 @@ export class QuestionBankManager {
   }
 
   getAllQuestions(): Question[] {
-    return Array.from(this.questions.values());
+    console.log('getAllQuestions returning:', {
+      questionsLength: this.questions.length,
+      questions: this.questions
+    });
+    return this.questions;
   }
 } 

@@ -4,7 +4,8 @@ import type { Question } from '../types/question';
 function markRequiredForOnboarding(question: Question): Question {
   return {
     ...question,
-    requiredForOnboarding: true
+    requiredForOnboarding: true,
+    includeInOnboarding: true
   };
 }
 
@@ -63,5 +64,5 @@ export const questionBank: Question[] = [
   // ... other questions
 ];
 
-// Initialize the question bank manager
-export const questionBankManager = new QuestionBankManager(questionBank); 
+// Remove this line since we're managing the QuestionBankManager elsewhere
+// export const questionBankManager = new QuestionBankManager(questionBank); 

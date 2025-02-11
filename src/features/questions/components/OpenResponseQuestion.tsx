@@ -2,16 +2,17 @@ import React, { useState, useRef } from 'react';
 import classNames from 'classnames';
 import { useAccessibility } from '../../../features/accessibility/context/AccessibilityContext';
 import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
-import type { OpenResponseQuestionType, QuestionResponse } from '../types';
+import type { OpenResponseQuestion as ORQuestion } from '../types';
+import type { QuestionResponse } from '../types';
 import './OpenResponseQuestion.css';
 
-interface Props {
-  question: OpenResponseQuestionType;
+interface OpenResponseQuestionProps {
+  question: ORQuestion;
   onAnswer: (response: QuestionResponse) => void;
   disabled?: boolean;
 }
 
-export const OpenResponseQuestion: React.FC<Props> = ({
+export const OpenResponseQuestion: React.FC<OpenResponseQuestionProps> = ({
   question,
   onAnswer,
   disabled = false,
@@ -52,7 +53,7 @@ export const OpenResponseQuestion: React.FC<Props> = ({
         className="prompt"
         id={`question-${question.id}-prompt`}
       >
-        {question.prompt}
+        {question.text}
       </div>
       <div 
         className="input-container"

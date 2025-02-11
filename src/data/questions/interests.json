@@ -1,0 +1,36 @@
+{
+  "questions": [
+    {
+      "id": "i1",
+      "type": "MC",
+      "text": "Star Wars or Star Trek?",
+      "label": "star_wars_trek",
+      "category": "INTERESTS",
+      "number": 1,
+      "options": ["Star Wars", "Star Trek", "Both", "Neither"],
+      "requiredForOnboarding": true,
+      "includeInOnboarding": true
+    },
+    {
+      "id": "i2",
+      "type": "NM",
+      "text": "How many TVs do you have?",
+      "label": "num_tvs",
+      "category": "INTERESTS",
+      "number": 2,
+      "min": 0,
+      "max": 10,
+      "requiredForOnboarding": true,
+      "step": 1
+    },
+    {
+      "id": "i3",
+      "type": "MC",
+      "text": "What is your favorite season?",
+      "label": "favorite_season",
+      "category": "INTERESTS",
+      "number": 3,
+      "options": ["Spring", "Summer", "Fall", "Winter"]
+    }
+  ]
+} 

@@ -1,94 +1,223 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import classNames from 'classnames';
 import { useFormNavigation } from '../hooks/useFormNavigation';
 import { useQuestionValidation } from '../hooks/useQuestionValidation';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OpenResponseQuestion } from './OpenResponseQuestion';
 import { useAccessibility } from '../../../features/accessibility/context/AccessibilityContext';
-import type { Question, QuestionResponse } from '../types';
+import type { Question, QuestionCategory, QuestionFormData, QuestionResponse } from '../types';
 import './QuestionForm.css';
+import { useForm } from 'react-hook-form';
 
-interface Props {
-  questions: Question[];
-  onComplete: () => void;
-  onAnswer: (response: QuestionResponse) => void;
+interface QuestionFormProps {
+  question?: Question;
+  questions?: Question[];
+  isNew?: boolean;
+  onComplete: (question: Question) => void;
+  onClose?: () => void;
 }
 
-export const QuestionForm: React.FC<Props> = ({
-  questions,
-  onComplete,
-  onAnswer,
+const createCompleteQuestion = (data: QuestionFormData, existingQuestion?: Question, questionCount: number = 0): Question => {
+  const baseQuestion = {
+    id: existingQuestion?.id || `q${Date.now()}`,
+    number: existingQuestion?.number || questionCount + 1,
+    text: data.text,
+    label: data.label,
+    category: data.category as QuestionCategory,
+    requiredForOnboarding: Boolean(data.requiredForOnboarding),
+    includeInOnboarding: Boolean(data.includeInOnboarding)
+  };
+
+  switch (data.type) {
+    case 'MC':
+      return {
+        ...baseQuestion,
+        type: 'MC',
+        options: data.options || [],
+        allowMultiple: false
+      };
+    case 'NM':
+      return {
+        ...baseQuestion,
+        type: 'NM',
+        min: Number(data.min) || 0,
+        max: Number(data.max) || 100,
+        step: Number(data.step) || 1
+      };
+    case 'SCALE':
+      return {
+        ...baseQuestion,
+        type: 'SCALE',
+        min: Number(data.min) || 0,
+        max: Number(data.max) || 100,
+        step: Number(data.step) || 1,
+        labels: data.labels
+      };
+    case 'OP':
+      return {
+        ...baseQuestion,
+        type: 'OP',
+        maxLength: Number(data.maxLength) || 500
+      };
+    default:
+      throw new Error(`Unsupported question type: ${data.type}`);
+  }
+};
+
+export const QuestionForm: React.FC<QuestionFormProps> = ({
+  question,
+  questions = [],
+  isNew = false,
+  onClose,
+  onComplete
 }) => {
   const { highContrast, fontSize, keyboardMode } = useAccessibility();
+  const { register, handleSubmit, watch } = useForm<QuestionFormData>({
+    defaultValues: question ? {
+      type: question.type,
+      text: question.text,
+      label: question.label,
+      category: question.category,
+      options: 'options' in question ? question.options : undefined,
+      min: 'min' in question ? question.min : undefined,
+      max: 'max' in question ? question.max : undefined,
+      step: 'step' in question ? question.step : undefined,
+      maxLength: 'maxLength' in question ? question.maxLength : undefined,
+      labels: 'labels' in question ? question.labels : undefined,
+      requiredForOnboarding: question.requiredForOnboarding,
+      includeInOnboarding: question.includeInOnboarding
+    } : {
+      type: 'MC',
+      text: '',
+      label: '',
+      category: 'PERSONALITY',
+      options: [],
+      requiredForOnboarding: false,
+      includeInOnboarding: false
+    }
+  });
+
   const {
     currentQuestion,
-    currentQuestionIndex,
     isFirstQuestion,
     isLastQuestion,
-    answeredQuestions,
-    goToNext,
-    goToPrevious,
-    markAnswered,
-    handleKeyDown
-  } = useFormNavigation({ questions, onComplete });
+    progress,
+    handleNavigation
+  } = useFormNavigation({
+    questions: questions || [],
+    onComplete: () => onComplete(currentQuestion as Question)
+  });
 
-  const {
-    errors,
-    validateQuestion,
-    clearError
-  } = useQuestionValidation({ questions });
+  const { errors, validateQuestion } = useQuestionValidation({
+    questions: questions || []
+  });
 
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  const questionType = watch('type');
 
-  const handleAnswer = (response: QuestionResponse) => {
-    onAnswer(response);
-    validateQuestion(response.questionId, response.answer);
-    if (!errors[response.questionId]) {
-      markAnswered(response.questionId);
-    }
-  };
+  const handleAnswer = useCallback((response: QuestionResponse) => {
+    // TODO: Implement save logic
+    console.log('Saving question:', response);
+    onClose?.();
+  }, [onClose]);
 
-  const handleNavigation = (direction: 'next' | 'prev') => {
-    if (direction === 'next') {
-      if (currentQuestion && !errors[currentQuestion.id]) {
-        goToNext();
-        if (currentQuestion.id in errors) {
-          clearError(currentQuestion.id);
-        }
-      } else if (currentQuestion) {
-        validateQuestion(currentQuestion.id, undefined);
-      }
-    } else {
-      goToPrevious();
-    }
-  };
-
-  const renderQuestion = (question: Question) => {
-    const error = errors[question.id];
-    
-    const commonProps = {
-      question,
-      onAnswer: handleAnswer,
-      error,
-      'aria-invalid': !!error,
-      'aria-errormessage': error ? `error-${question.id}` : undefined
-    };
-
+  const renderQuestion = useCallback((question: Question) => {
     switch (question.type) {
-      case 'MULTIPLE_CHOICE':
-        return <MultipleChoiceQuestion {...commonProps} />;
-      case 'OPEN_RESPONSE':
-        return <OpenResponseQuestion {...commonProps} />;
+      case 'MC':
+        return <MultipleChoiceQuestion 
+          question={question} 
+          onAnswer={handleAnswer}
+        />;
+      case 'OP':
+        return <OpenResponseQuestion 
+          question={question} 
+          onAnswer={handleAnswer}
+        />;
       default:
-        return null;
+        return <div>Unsupported question type: {question.type}</div>;
     }
+  }, [handleAnswer]);
+
+  const onSubmit = (data: QuestionFormData) => {
+    console.log('Form data:', data);
+    const completeQuestion = createCompleteQuestion(data, question, questions.length);
+    onComplete(completeQuestion);
   };
 
-  const progress = (answeredQuestions.size / questions.length) * 100;
+  // If we're in edit/create mode
+  if (question || isNew) {
+    return (
+      <form className="question-form" onSubmit={handleSubmit(onSubmit)}>
+        <h2>{isNew ? 'Add New Question' : 'Edit Question'}</h2>
 
+        <div className="form-group">
+          <label>Question Text</label>
+          <input {...register('text')} type="text" required />
+        </div>
+
+        <div className="form-group">
+          <label>Question Type</label>
+          <select {...register('type')} required>
+            <option value="MC">Multiple Choice</option>
+            <option value="NM">Numeric</option>
+            <option value="OP">Open Response</option>
+            <option value="SCALE">Scale</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label>Category</label>
+          <select {...register('category')} required>
+            <option value="DEMOGRAPHIC">Demographic</option>
+            <option value="PROFESSIONAL">Professional</option>
+            <option value="PERSONALITY">Personality</option>
+            <option value="INTERESTS">Interests</option>
+            <option value="BACKGROUND">Background</option>
+          </select>
+        </div>
+
+        {questionType === 'MC' && (
+          <div className="form-group">
+            <label>Options (one per line)</label>
+            <textarea {...register('options')} rows={5} />
+          </div>
+        )}
+
+        {questionType === 'NM' && (
+          <>
+            <div className="form-group">
+              <label>Minimum Value</label>
+              <input {...register('min')} type="number" />
+            </div>
+            <div className="form-group">
+              <label>Maximum Value</label>
+              <input {...register('max')} type="number" />
+            </div>
+          </>
+        )}
+
+        <div className="form-group">
+          <label>
+            <input {...register('requiredForOnboarding')} type="checkbox" />
+            Required for Onboarding
+          </label>
+        </div>
+
+        <div className="form-group">
+          <label>
+            <input {...register('includeInOnboarding')} type="checkbox" />
+            Include in Onboarding
+          </label>
+        </div>
+
+        <div className="form-actions">
+          <button type="submit">Save Question</button>
+          <button type="button" onClick={onClose}>Cancel</button>
+        </div>
+      </form>
+    );
+  }
+
+  // If we're in question answering mode
   return (
     <div 
       className={classNames('question-form', {

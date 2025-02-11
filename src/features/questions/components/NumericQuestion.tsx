@@ -1,77 +1,59 @@
 import React, { useState } from 'react';
-import type { NumericQuestionType, QuestionResponse } from '../types';
+import type { NumericQuestion as NMQuestion } from '../types';
+import type { QuestionResponse } from '../types';
 import './NumericQuestion.css';
 
 interface NumericQuestionProps {
-  question: NumericQuestionType;
+  question: NMQuestion;
   onAnswer: (response: QuestionResponse) => void;
   disabled?: boolean;
-  loading?: boolean;
 }
 
 export const NumericQuestion: React.FC<NumericQuestionProps> = ({
   question,
   onAnswer,
-  disabled = false,
-  loading = false,
+  disabled = false
 }) => {
   const [value, setValue] = useState<string>('');
-  const [error, setError] = useState<string>('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setValue(newValue);
-
-    const numValue = Number(newValue);
-    if (numValue < question.min || numValue > question.max) {
-      setError(`Value must be between ${question.min} and ${question.max}`);
-    } else {
-      setError('');
-    }
+    setValue(e.target.value);
   };
 
   const handleSubmit = () => {
-    if (value && !error) {
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue)) return;
+
+    if (numValue >= question.min && numValue <= question.max) {
       onAnswer({
         questionId: question.id,
-        answer: value,
+        answer: numValue, // Send as number, not string
+        value: numValue,  // Include both for type safety
         timestamp: Date.now()
       });
     }
   };
 
-  if (loading) {
-    return <div data-testid="question-loading">Loading...</div>;
-  }
-
   return (
-    <div className="question-container">
-      <h3 className="question-prompt">{question.prompt}</h3>
-      <div className="numeric-container">
-        <div className="input-row">
-          <input
-            type="number"
-            value={value}
-            onChange={handleChange}
-            min={question.min}
-            max={question.max}
-            step={question.step}
-            disabled={disabled}
-            className="numeric-input"
-            aria-label="numeric response"
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={disabled || !value || !!error}
-            className="submit-button"
-          >
-            Submit
-          </button>
-        </div>
-        {error && (
-          <div className="error-message" role="alert">
-            {error}
-          </div>
+    <div className="numeric-question">
+      <div className="question-text">{question.text}</div>
+      <div className="input-container">
+        <input
+          type="number"
+          min={question.min}
+          max={question.max}
+          step={question.step || 1}
+          value={value}
+          onChange={handleChange}
+          onBlur={handleSubmit}
+          disabled={disabled}
+          aria-label={question.text}
+        />
+        {question.labels?.min && (
+          <div className="min-label">{question.labels.min}</div>
+        )}
+        {question.labels?.max && (
+          <div className="max-label">{question.labels.max}</div>
         )}
       </div>
     </div>

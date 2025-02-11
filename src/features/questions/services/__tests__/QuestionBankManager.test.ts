@@ -1,5 +1,7 @@
 import { QuestionBankManager } from '../QuestionBankManager';
 import type { Question } from '../../types/question';
+import { generateTestQuestions } from '../../../../data/questions/generateTestData';
+import { questionStore } from '../../../../data/questions';
 
 describe('QuestionBankManager', () => {
   let manager: QuestionBankManager;
@@ -105,5 +107,27 @@ describe('QuestionBankManager', () => {
       const questions = manager.getQuestionsByCategory('INVALID' as any);
       expect(questions).toHaveLength(0);
     });
+  });
+
+  it('initializes with provided questions', () => {
+    const testQuestions = generateTestQuestions(5);
+    const manager = new QuestionBankManager(testQuestions);
+    expect(manager.getAllQuestions()).toHaveLength(5);
+  });
+
+  it('initializes with test data when configured', () => {
+    process.env.REACT_APP_USE_TEST_DATA = 'true';
+    process.env.REACT_APP_TEST_DATA_COUNT = '10';
+    
+    const manager = new QuestionBankManager();
+    expect(manager.getAllQuestions()).toHaveLength(10);
+  });
+
+  it('initializes with JSON data by default', () => {
+    process.env.REACT_APP_USE_TEST_DATA = 'false';
+    
+    const manager = new QuestionBankManager();
+    const jsonQuestions = questionStore.getAllQuestions();
+    expect(manager.getAllQuestions()).toHaveLength(jsonQuestions.length);
   });
 }); 
