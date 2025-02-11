@@ -1,0 +1,29 @@
+.question-types-demo {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.demo-section {
+  margin-bottom: 3rem;
+  padding: 1.5rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.demo-section h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.response-display {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.response-display pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+} 

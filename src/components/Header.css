@@ -1,10 +1,7 @@
 .header {
   background: #fff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-bottom: 1px solid #eee;
   padding: 1rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
 }
 
 .header-content {
@@ -16,64 +13,56 @@
 }
 
 .logo {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: bold;
   color: #333;
 }
 
 .nav-links {
   display: flex;
+  gap: 1.5rem;
   align-items: center;
+}
+
+.nav-links a {
+  color: #666;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-links a:hover {
+  color: #333;
+}
+
+.demo-links {
+  display: flex;
   gap: 1rem;
-}
-
-.nav-button {
-  padding: 0.5rem 1rem;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  color: #495057;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.nav-button:hover {
-  background-color: #e9ecef;
-  border-color: #ced4da;
+  align-items: center;
+  color: #666;
 }
 
 .user-section {
   display: flex;
-  align-items: center;
   gap: 1rem;
-  margin-left: 1rem;
-  padding-left: 1rem;
-  border-left: 1px solid #dee2e6;
+  align-items: center;
 }
 
 .user-name {
-  color: #666;
-  font-size: 0.9rem;
+  color: #333;
+  font-weight: 500;
 }
 
 .logout-button {
   padding: 0.5rem 1rem;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
+  border: none;
   border-radius: 4px;
-  color: #495057;
+  background: #f5f5f5;
+  color: #666;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.logout-button:hover:not(:disabled) {
-  background-color: #e9ecef;
-  border-color: #ced4da;
-}
-
-.logout-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.logout-button:hover {
+  background: #eee;
 }
 
 .error-message {

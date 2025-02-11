@@ -1,9 +1,16 @@
 import React, { useEffect } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { QuestionPlayground } from './features/questions/components/QuestionPlayground';
 import { AccessibilityProvider } from './features/accessibility/context/AccessibilityContext';
 import { AccessibilityControls } from './features/accessibility/components/AccessibilityControls';
 import { useAccessibility } from './features/accessibility/context/AccessibilityContext';
 import './App.css';
+import { AvatarGridDemo } from './features/connections/components/AvatarGridDemo';
+import { Header } from './components/Header';
+import { QuestionTypesDemo } from './features/questions/components/QuestionTypesDemo';
+import { DataVisualizationDemo } from './features/visualization/components/DataVisualizationDemo';
+import { AuthProvider } from './features/auth/AuthContext';
 
 const AppContent = () => {
   const {
@@ -70,10 +77,26 @@ const AppContent = () => {
   );
 };
 
-export const App = () => {
+export const App: React.FC = () => {
   return (
-    <AccessibilityProvider>
-      <AppContent />
-    </AccessibilityProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AccessibilityProvider>
+          <div className="app-container">
+            <Header />
+            <main>
+              <Routes>
+                <Route path="/" element={<QuestionPlayground />} />
+                <Route path="/demo">
+                  <Route path="avatar-grid" element={<AvatarGridDemo />} />
+                  <Route path="question-types" element={<QuestionTypesDemo />} />
+                  <Route path="visualization" element={<DataVisualizationDemo />} />
+                </Route>
+              </Routes>
+            </main>
+          </div>
+        </AccessibilityProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }; 
