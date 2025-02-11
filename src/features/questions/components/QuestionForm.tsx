@@ -90,7 +90,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
       type: 'MC',
       text: '',
       label: '',
-      category: 'PERSONALITY',
+      category: 'GENERAL',
       options: [],
       requiredForOnboarding: false,
       includeInOnboarding: false
@@ -167,11 +167,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
         <div className="form-group">
           <label>Category</label>
           <select {...register('category')} required>
-            <option value="DEMOGRAPHIC">Demographic</option>
-            <option value="PROFESSIONAL">Professional</option>
-            <option value="PERSONALITY">Personality</option>
-            <option value="INTERESTS">Interests</option>
-            <option value="BACKGROUND">Background</option>
+            <option value="GENERAL">General</option>
           </select>
         </div>
 

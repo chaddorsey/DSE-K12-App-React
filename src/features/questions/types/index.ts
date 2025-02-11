@@ -1,9 +1,5 @@
 export type QuestionCategory = 
-  | 'PERSONALITY'
-  | 'INTERESTS'
-  | 'PROFESSIONAL'
-  | 'DEMOGRAPHIC'
-  | 'BACKGROUND';
+  | 'GENERAL';
 
 export interface BaseQuestion {
   id: string;

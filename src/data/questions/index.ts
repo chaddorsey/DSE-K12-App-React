@@ -1,10 +1,7 @@
-import type { Question } from '../../features/questions/types';
-import personalityQuestions from './personality.json';
-import professionalQuestions from './professional.json';
-import demographicQuestions from './demographic.json';
-import interestQuestions from './interests.json';
+import type { Question, QuestionType } from '../../features/questions/types';
+import generalQuestions from './general.json';
 
-function validateQuestion(q: any): q is Question {
+function validateQuestion(q: QuestionType): q is Question {
   const baseFieldsValid = (
     typeof q.id === 'string' &&
     typeof q.type === 'string' &&
@@ -51,7 +48,7 @@ function safeLoadQuestions(jsonData: any): Question[] {
       console.warn('Invalid question data format:', jsonData);
       return [];
     }
-    const validQuestions = jsonData.questions.filter(q => {
+    const validQuestions = jsonData.questions.filter((q: QuestionType) => {
       const isValid = validateQuestion(q);
       if (!isValid) {
         console.warn('Invalid question format:', q);
@@ -68,24 +65,12 @@ function safeLoadQuestions(jsonData: any): Question[] {
 export const questionStore = {
   getAllQuestions(): Question[] {
     try {
-      const questions = [
-        ...safeLoadQuestions(personalityQuestions),
-        ...safeLoadQuestions(professionalQuestions),
-        ...safeLoadQuestions(demographicQuestions),
-        ...safeLoadQuestions(interestQuestions)
-      ];
+      const questions = safeLoadQuestions(generalQuestions);
       console.log('Loaded questions from store:', {
         total: questions.length,
-        byCategory: {
-          personality: questions.filter(q => q.category === 'PERSONALITY').length,
-          professional: questions.filter(q => q.category === 'PROFESSIONAL').length,
-          demographic: questions.filter(q => q.category === 'DEMOGRAPHIC').length,
-          interests: questions.filter(q => q.category === 'INTERESTS').length
-        },
         questions: questions.map(q => ({
           id: q.id,
           type: q.type,
-          category: q.category,
           text: q.text.substring(0, 30) + '...'
         }))
       });
