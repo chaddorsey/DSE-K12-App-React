@@ -144,42 +144,72 @@ export const QuestionBankProvider: React.FC<QuestionBankProviderProps> = ({
   children,
   initialQuestions = INITIAL_QUESTIONS
 }) => {
-  // Initialize with either stored questions, question store, or initial questions
   const [questions, setQuestions] = useState<Question[]>(() => {
+    console.log('Initializing QuestionBankProvider...');
+    
     try {
-      // First try to get from localStorage
-      const savedQuestions = localStorage.getItem('questionBank');
-      if (savedQuestions) {
-        try {
-          const parsed = JSON.parse(savedQuestions);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            console.log('Using saved questions:', { length: parsed.length });
-            return parsed;
-          }
-        } catch (parseError) {
-          console.error('Error parsing saved questions:', parseError);
-        }
-      }
-
-      // Then try to get from question store
-      try {
-        const storeQuestions = questionStore.getAllQuestions();
-        if (storeQuestions.length > 0) {
-          console.log('Using question store:', { length: storeQuestions.length });
-          return storeQuestions.map(q => ensureQuestionFields(q));
-        }
-      } catch (storeError) {
-        console.error('Error loading from question store:', storeError);
+      // First load base questions from general.json
+      console.log('Loading base questions from general.json...');
+      const baseQuestions = questionStore.getAllQuestions();
+      
+      // Then check localStorage for edits
+      console.log('Checking for edits in localStorage...');
+      const savedEdits = localStorage.getItem('questionEdits');
+      if (savedEdits) {
+        const edits = JSON.parse(savedEdits) as Record<string, Question>;
+        
+        // Merge edits with base questions
+        const mergedQuestions = baseQuestions.map(q => 
+          edits[q.id] ? { ...q, ...edits[q.id] } : q
+        );
+        
+        console.log('Merged questions with edits:', {
+          baseCount: baseQuestions.length,
+          editCount: Object.keys(edits).length,
+          mergedCount: mergedQuestions.length
+        });
+        
+        return mergedQuestions;
       }
       
-      // Finally fall back to initial questions
-      console.log('Using initial questions:', { length: initialQuestions.length });
-      return initialQuestions;
+      return baseQuestions;
     } catch (error) {
-      console.error('Error in questions initialization:', error);
+      console.error('Error initializing questions:', error);
       return initialQuestions;
     }
   });
+
+  // Save only the edits to localStorage
+  useEffect(() => {
+    try {
+      // Get base questions to compare against
+      const baseQuestions = questionStore.getAllQuestions();
+      
+      // Find questions that differ from base
+      const edits: Record<string, Question> = {};
+      questions.forEach(q => {
+        const baseQuestion = baseQuestions.find(bq => bq.id === q.id);
+        if (!baseQuestion || JSON.stringify(baseQuestion) !== JSON.stringify(q)) {
+          edits[q.id] = q;
+        }
+      });
+      
+      // Save edits to localStorage
+      localStorage.setItem('questionEdits', JSON.stringify(edits));
+      console.log('Saved edits to localStorage:', {
+        editCount: Object.keys(edits).length,
+        edits
+      });
+    } catch (error) {
+      console.error('Error saving edits to localStorage:', error);
+    }
+  }, [questions]);
+
+  // For debugging - clear edits
+  // useEffect(() => {
+  //   localStorage.removeItem('questionEdits');
+  //   console.log('Cleared question edits');
+  // }, []);
 
   const [manager, setManager] = useState<QuestionBankManager | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -216,10 +246,16 @@ export const QuestionBankProvider: React.FC<QuestionBankProviderProps> = ({
     });
   }, [questions, isLoading, error, manager]);
 
-  // Clear localStorage for testing
-  useEffect(() => {
-    // Uncomment to clear localStorage for testing
-    // localStorage.removeItem('questionBank');
+  const updateQuestion = useCallback((updatedQuestion: Question) => {
+    console.log('Updating question:', updatedQuestion);
+    setQuestions(prev => {
+      const updated = prev.map(q => 
+        q.id === updatedQuestion.id 
+          ? { ...q, ...updatedQuestion } // Merge existing with updates
+          : q
+      );
+      return updated;
+    });
   }, []);
 
   const value: QuestionBankContextType = {
@@ -237,15 +273,7 @@ export const QuestionBankProvider: React.FC<QuestionBankProviderProps> = ({
     error,
     questions, // Expose questions directly
     getQuestions: useCallback(() => questions, [questions]),
-    updateQuestion: useCallback((updatedQuestion: Question) => {
-      console.log('Updating question:', updatedQuestion);
-      setQuestions(prev => {
-        const updated = prev.map(q => 
-          q.id === updatedQuestion.id ? updatedQuestion : q
-        );
-        return updated;
-      });
-    }, []),
+    updateQuestion,
     deleteQuestion: useCallback(async (id: string) => {
       setQuestions(prev => prev.filter(q => q.id !== id));
     }, []),

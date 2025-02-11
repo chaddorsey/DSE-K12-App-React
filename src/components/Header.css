@@ -12,6 +12,12 @@
   align-items: center;
 }
 
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .logo {
   font-size: 1.25rem;
   font-weight: bold;
@@ -69,4 +75,24 @@
   color: #dc3545;
   font-size: 0.8rem;
   margin-left: 1rem;
+}
+
+.clear-storage-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.clear-storage-button:hover {
+  background-color: #c82333;
+}
+
+.clear-storage-button:active {
+  background-color: #bd2130;
 } 

@@ -1,6 +1,8 @@
 import type { Question, QuestionType } from '../../features/questions/types';
 import generalQuestions from './general.json';
 
+console.log('Imported general.json:', generalQuestions);
+
 function validateQuestion(q: QuestionType): q is Question {
   const baseFieldsValid = (
     typeof q.id === 'string' &&
@@ -65,13 +67,15 @@ function safeLoadQuestions(jsonData: any): Question[] {
 export const questionStore = {
   getAllQuestions(): Question[] {
     try {
+      console.log('Loading questions from general.json...');
       const questions = safeLoadQuestions(generalQuestions);
-      console.log('Loaded questions from store:', {
+      console.log('Loaded questions from general.json:', {
         total: questions.length,
         questions: questions.map(q => ({
           id: q.id,
           type: q.type,
-          text: q.text.substring(0, 30) + '...'
+          text: q.text.substring(0, 30) + '...',
+          options: 'options' in q ? q.options : undefined
         }))
       });
       return questions;

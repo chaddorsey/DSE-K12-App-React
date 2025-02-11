@@ -29,13 +29,24 @@ const createCompleteQuestion = (data: QuestionFormData, existingQuestion?: Quest
   };
 
   switch (data.type) {
-    case 'MC':
+    case 'MC': {
+      // Ensure options is always an array
+      let optionsArray: string[];
+      if (Array.isArray(data.options)) {
+        optionsArray = data.options;
+      } else if (typeof data.options === 'string') {
+        optionsArray = data.options.split('\n').filter(Boolean);
+      } else {
+        optionsArray = [];
+      }
+
       return {
         ...baseQuestion,
         type: 'MC',
-        options: data.options || [],
+        options: optionsArray,
         allowMultiple: false
       };
+    }
     case 'NM':
       return {
         ...baseQuestion,
@@ -72,13 +83,15 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
   onComplete
 }) => {
   const { highContrast, fontSize, keyboardMode } = useAccessibility();
-  const { register, handleSubmit, watch } = useForm<QuestionFormData>({
+  const { register, handleSubmit, watch, setValue } = useForm<QuestionFormData>({
     defaultValues: question ? {
       type: question.type,
       text: question.text,
       label: question.label,
       category: question.category,
-      options: 'options' in question ? question.options : undefined,
+      options: 'options' in question ? 
+        Array.isArray(question.options) ? 
+          question.options.join('\n') : question.options : '',
       min: 'min' in question ? question.min : undefined,
       max: 'max' in question ? question.max : undefined,
       step: 'step' in question ? question.step : undefined,
@@ -91,7 +104,7 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
       text: '',
       label: '',
       category: 'GENERAL',
-      options: [],
+      options: '',
       requiredForOnboarding: false,
       includeInOnboarding: false
     }
@@ -140,6 +153,12 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({
   const onSubmit = (data: QuestionFormData) => {
     console.log('Form data:', data);
     const completeQuestion = createCompleteQuestion(data, question, questions.length);
+    
+    if (question) {
+      completeQuestion.id = question.id;
+      completeQuestion.number = question.number;
+    }
+    
     onComplete(completeQuestion);
   };
 

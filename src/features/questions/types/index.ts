@@ -142,7 +142,7 @@ export interface QuestionFormData {
   text: string;
   label: string;
   category: QuestionCategory;
-  options?: string[];
+  options?: string[] | string;
   min?: number;
   max?: number;
   step?: number;

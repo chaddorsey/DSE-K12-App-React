@@ -6,17 +6,35 @@ import { NumericQuestion } from '../../questions/components/NumericQuestion';
 import { SliderQuestion } from '../../questions/components/SliderQuestion';
 import { SegmentedSliderQuestion } from '../../questions/components/SegmentedSliderQuestion';
 import type { Question } from '../../questions/types';
+import { useQuestionBank } from '../../questions/context/QuestionBankContext';
 import './OnboardingFlow.css';
 
 export const OnboardingFlow: React.FC = () => {
   const { 
-    currentQuestion, 
-    progress, 
-    isComplete, 
-    handleAnswer, 
-    handleSkip,
-    canSkip 
+    currentQuestion,
+    currentStep,
+    totalSteps,
+    isComplete,
+    nextStep,
+    previousStep,
+    saveResponse
   } = useOnboarding();
+
+  const { getAllQuestions } = useQuestionBank();
+  
+  // Get all questions and filter for onboarding ones
+  const onboardingQuestions = React.useMemo(() => {
+    const allQuestions = getAllQuestions();
+    return allQuestions
+      .filter(q => q.includeInOnboarding)
+      .sort((a, b) => {
+        // Required questions first, then by number
+        if (a.requiredForOnboarding !== b.requiredForOnboarding) {
+          return a.requiredForOnboarding ? -1 : 1;
+        }
+        return a.number - b.number;
+      });
+  }, [getAllQuestions]);
 
   if (isComplete) {
     return (
@@ -30,6 +48,13 @@ export const OnboardingFlow: React.FC = () => {
   if (!currentQuestion) {
     return <div>Loading...</div>;
   }
+
+  const handleAnswer = (response: QuestionResponse) => {
+    saveResponse(response);
+    nextStep();
+  };
+
+  const progress = (currentStep / totalSteps) * 100;
 
   const renderQuestion = (question: Question) => {
     switch (question.type) {
@@ -73,7 +98,6 @@ export const OnboardingFlow: React.FC = () => {
         return (
           <div className="error-message">
             This question type ({question.type}) is not yet supported.
-            {canSkip && <p>You may skip this question.</p>}
           </div>
         );
     }
@@ -86,7 +110,7 @@ export const OnboardingFlow: React.FC = () => {
           <h3>Debug Info</h3>
           <p>Current Question: {currentQuestion?.id}</p>
           <p>Progress: {progress.toFixed(1)}%</p>
-          <p>Can Skip: {canSkip ? 'Yes' : 'No'}</p>
+          <p>Step: {currentStep + 1} of {totalSteps}</p>
           <p>Required: {currentQuestion?.requiredForOnboarding ? 'Yes' : 'No'}</p>
         </div>
       )}
@@ -106,14 +130,19 @@ export const OnboardingFlow: React.FC = () => {
         {renderQuestion(currentQuestion)}
       </div>
 
-      {canSkip && (
+      <div className="navigation-buttons">
         <button 
-          onClick={handleSkip}
-          className="skip-button"
+          onClick={previousStep}
+          disabled={currentStep === 0}
         >
-          Skip this question
+          Previous
         </button>
-      )}
+        {!currentQuestion.requiredForOnboarding && (
+          <button onClick={nextStep}>
+            Skip
+          </button>
+        )}
+      </div>
     </div>
   );
 }; 

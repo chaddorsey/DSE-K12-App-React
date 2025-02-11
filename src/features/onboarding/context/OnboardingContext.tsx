@@ -1,78 +1,69 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import type { Question, QuestionResponse } from '../../questions/types';
 import { useQuestionBank } from '../../questions/context/QuestionBankContext';
+import type { Question, QuestionResponse } from '../../questions/types';
 
 interface OnboardingContextType {
+  currentStep: number;
+  totalSteps: number;
   currentQuestion: Question | null;
-  progress: number;
   isComplete: boolean;
-  handleAnswer: (response: QuestionResponse) => void;
-  handleSkip: () => void;
-  canSkip: boolean;
+  responses: Record<string, QuestionResponse>;
+  nextStep: () => void;
+  previousStep: () => void;
+  saveResponse: (response: QuestionResponse) => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
-interface OnboardingProviderProps {
-  children: React.ReactNode;
-  questions: Question[];
-}
+export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { getAllQuestions } = useQuestionBank();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [responses, setResponses] = useState<Record<string, QuestionResponse>>({});
 
-export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
-  children,
-  questions
-}) => {
-  const { validateResponse } = useQuestionBank();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [responses, setResponses] = useState<Map<string, QuestionResponse>>(new Map());
-
-  const currentQuestion = questions[currentIndex] || null;
-  const progress = (currentIndex / questions.length) * 100;
-  const isComplete = currentIndex >= questions.length;
-
-  const canSkip = currentQuestion 
-    ? !currentQuestion.requiredForOnboarding
-    : false;
-
-  const handleAnswer = useCallback((response: QuestionResponse) => {
-    if (!currentQuestion) return;
-
-    // Convert string numbers to actual numbers for numeric questions
-    const processedResponse = currentQuestion.type === 'NM' 
-      ? {
-          ...response,
-          answer: typeof response.answer === 'string' 
-            ? parseInt(response.answer, 10) 
-            : response.answer
+  const onboardingQuestions = React.useMemo(() => {
+    const allQuestions = getAllQuestions();
+    return allQuestions
+      .filter(q => q.includeInOnboarding)
+      .sort((a, b) => {
+        if (a.requiredForOnboarding !== b.requiredForOnboarding) {
+          return a.requiredForOnboarding ? -1 : 1;
         }
-      : response;
+        return a.number - b.number;
+      });
+  }, [getAllQuestions]);
 
-    // Validate response using QuestionBank
-    if (!validateResponse(currentQuestion.id, processedResponse.answer)) {
-      console.error('Invalid response:', response);
-      return;
+  const currentQuestion = onboardingQuestions[currentStep] || null;
+  const totalSteps = onboardingQuestions.length;
+  const isComplete = currentStep >= totalSteps;
+
+  const nextStep = useCallback(() => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(prev => prev + 1);
     }
+  }, [currentStep, totalSteps]);
 
-    setResponses(prev => {
-      const next = new Map(prev);
-      next.set(currentQuestion.id, processedResponse);
-      return next;
-    });
-    setCurrentIndex(i => i + 1);
-  }, [currentQuestion, validateResponse]);
+  const previousStep = useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
+  }, [currentStep]);
 
-  const handleSkip = useCallback(() => {
-    if (!canSkip) return;
-    setCurrentIndex(i => i + 1);
-  }, [canSkip]);
+  const saveResponse = useCallback((response: QuestionResponse) => {
+    setResponses(prev => ({
+      ...prev,
+      [response.questionId]: response
+    }));
+  }, []);
 
   const value = {
+    currentStep,
+    totalSteps,
     currentQuestion,
-    progress,
     isComplete,
-    handleAnswer,
-    handleSkip,
-    canSkip
+    responses,
+    nextStep,
+    previousStep,
+    saveResponse
   };
 
   return (
@@ -82,10 +73,10 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   );
 };
 
-export function useOnboarding() {
+export const useOnboarding = () => {
   const context = useContext(OnboardingContext);
   if (!context) {
-    throw new Error('useOnboarding must be used within an OnboardingProvider');
+    throw new Error('useOnboarding must be used within OnboardingProvider');
   }
   return context;
-} 
+}; 
