@@ -11,6 +11,7 @@ import { Header } from './components/Header';
 import { QuestionTypesDemo } from './features/questions/components/QuestionTypesDemo';
 import { DataVisualizationDemo } from './features/visualization/components/DataVisualizationDemo';
 import { AuthProvider } from './features/auth/AuthContext';
+import { ProgressiveAvatarDemo } from './features/connections/components/ProgressiveAvatarDemo';
 
 const AppContent = () => {
   const {
@@ -91,6 +92,7 @@ export const App: React.FC = () => {
                   <Route path="avatar-grid" element={<AvatarGridDemo />} />
                   <Route path="question-types" element={<QuestionTypesDemo />} />
                   <Route path="visualization" element={<DataVisualizationDemo />} />
+                  <Route path="progressive-avatars" element={<ProgressiveAvatarDemo />} />
                 </Route>
               </Routes>
             </main>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, fireEvent, screen } from '@testing-library/react';
 import { useKeyboardNavigation } from '../useKeyboardNavigation';
+import { renderHook } from '@testing-library/react-hooks';
 
 const TestComponent: React.FC<{
   vertical?: boolean;
@@ -29,6 +30,112 @@ const TestComponent: React.FC<{
 };
 
 describe('useKeyboardNavigation', () => {
+  const mockContainer = document.createElement('div');
+  const items = ['1', '2', '3'].map(id => {
+    const item = document.createElement('div');
+    item.setAttribute('data-testid', `item-${id}`);
+    mockContainer.appendChild(item);
+    return item;
+  });
+
+  const containerRef = { current: mockContainer };
+  const mockOnSelect = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    items[0].focus();
+  });
+
+  it('handles arrow key navigation', () => {
+    const { result } = renderHook(() => useKeyboardNavigation({
+      containerRef,
+      itemSelector: '[data-testid^="item-"]',
+      onSelect: mockOnSelect
+    }));
+
+    // Right arrow
+    result.current.handleKeyDown({ 
+      key: 'ArrowRight', 
+      preventDefault: jest.fn() 
+    } as unknown as React.KeyboardEvent);
+    expect(document.activeElement).toBe(items[1]);
+
+    // Left arrow
+    result.current.handleKeyDown({ 
+      key: 'ArrowLeft', 
+      preventDefault: jest.fn() 
+    } as unknown as React.KeyboardEvent);
+    expect(document.activeElement).toBe(items[0]);
+  });
+
+  it('handles Home and End keys', () => {
+    const { result } = renderHook(() => useKeyboardNavigation({
+      containerRef,
+      itemSelector: '[data-testid^="item-"]',
+      onSelect: mockOnSelect
+    }));
+
+    // End key
+    result.current.handleKeyDown({ 
+      key: 'End', 
+      preventDefault: jest.fn() 
+    } as unknown as React.KeyboardEvent);
+    expect(document.activeElement).toBe(items[items.length - 1]);
+
+    // Home key
+    result.current.handleKeyDown({ 
+      key: 'Home', 
+      preventDefault: jest.fn() 
+    } as unknown as React.KeyboardEvent);
+    expect(document.activeElement).toBe(items[0]);
+  });
+
+  it('handles selection with Enter and Space', () => {
+    const { result } = renderHook(() => useKeyboardNavigation({
+      containerRef,
+      itemSelector: '[data-testid^="item-"]',
+      onSelect: mockOnSelect
+    }));
+
+    // Enter key
+    result.current.handleKeyDown({ 
+      key: 'Enter', 
+      preventDefault: jest.fn() 
+    } as unknown as React.KeyboardEvent);
+    expect(mockOnSelect).toHaveBeenCalledWith(items[0]);
+
+    // Space key
+    result.current.handleKeyDown({ 
+      key: ' ', 
+      preventDefault: jest.fn() 
+    } as unknown as React.KeyboardEvent);
+    expect(mockOnSelect).toHaveBeenCalledWith(items[0]);
+  });
+
+  it('wraps around when navigating past boundaries', () => {
+    const { result } = renderHook(() => useKeyboardNavigation({
+      containerRef,
+      itemSelector: '[data-testid^="item-"]',
+      onSelect: mockOnSelect
+    }));
+
+    // Navigate past end
+    items[items.length - 1].focus();
+    result.current.handleKeyDown({ 
+      key: 'ArrowRight', 
+      preventDefault: jest.fn() 
+    } as unknown as React.KeyboardEvent);
+    expect(document.activeElement).toBe(items[0]);
+
+    // Navigate before start
+    items[0].focus();
+    result.current.handleKeyDown({ 
+      key: 'ArrowLeft', 
+      preventDefault: jest.fn() 
+    } as unknown as React.KeyboardEvent);
+    expect(document.activeElement).toBe(items[items.length - 1]);
+  });
+
   it('handles vertical navigation', () => {
     render(<TestComponent vertical />);
     const options = screen.getAllByRole('option');
@@ -83,20 +190,6 @@ describe('useKeyboardNavigation', () => {
     // Navigate to last element and try to go further
     options[2].focus();
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' });
-    expect(options[2]).toHaveFocus();
-  });
-
-  it('handles Home and End keys', () => {
-    render(<TestComponent />);
-    const options = screen.getAllByRole('option');
-    options[1].focus();
-
-    // Navigate to first element
-    fireEvent.keyDown(document.activeElement!, { key: 'Home' });
-    expect(options[0]).toHaveFocus();
-
-    // Navigate to last element
-    fireEvent.keyDown(document.activeElement!, { key: 'End' });
     expect(options[2]).toHaveFocus();
   });
 

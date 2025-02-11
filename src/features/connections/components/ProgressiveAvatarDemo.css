@@ -1,0 +1,57 @@
+.progressive-avatar-demo {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.demo-controls {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.mode-controls {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.progress-info {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #ddd;
+}
+
+.instruction {
+  color: #666;
+  font-size: 1.1rem;
+  margin: 1rem 0;
+}
+
+.level-progress {
+  font-weight: 500;
+  color: #0066cc;
+  margin: 1rem 0;
+}
+
+.next-level {
+  background: #0066cc;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.selection-review {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.level-summary {
+  margin: 0.5rem 0;
+} 

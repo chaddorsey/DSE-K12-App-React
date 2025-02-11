@@ -1,87 +1,58 @@
-import { useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 
-interface KeyboardNavigationOptions {
+interface UseKeyboardNavigationProps {
   containerRef: React.RefObject<HTMLElement>;
-  selector: string;
-  onEscape?: () => void;
-  wrap?: boolean;
-  vertical?: boolean;
-  horizontal?: boolean;
+  itemSelector: string;
+  onSelect?: (element: HTMLElement) => void;
 }
 
-export const useKeyboardNavigation = ({
+export function useKeyboardNavigation({
   containerRef,
-  selector,
-  onEscape,
-  wrap = true,
-  vertical = true,
-  horizontal = true
-}: KeyboardNavigationOptions) => {
-  const currentFocusIndex = useRef(-1);
+  itemSelector,
+  onSelect
+}: UseKeyboardNavigationProps) {
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (!containerRef.current) return;
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const currentElement = document.activeElement as HTMLElement;
+    const items = Array.from(containerRef.current.querySelectorAll(itemSelector)) as HTMLElement[];
+    const currentIndex = items.indexOf(currentElement);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const elements = Array.from(container.querySelectorAll<HTMLElement>(selector));
-      if (!elements.length) return;
-
-      // Update current focus index based on active element
-      const activeElement = document.activeElement;
-      currentFocusIndex.current = elements.findIndex(el => el === activeElement);
-
-      const handleDirectionalNavigation = (direction: 'next' | 'prev') => {
-        e.preventDefault();
-        const current = currentFocusIndex.current;
-        let next = direction === 'next' ? current + 1 : current - 1;
-
-        if (wrap) {
-          next = (next + elements.length) % elements.length;
-          if (next < 0) next = elements.length - 1;
-        } else {
-          next = Math.max(0, Math.min(next, elements.length - 1));
-        }
-
-        if (next !== current) {
-          elements[next]?.focus();
-          currentFocusIndex.current = next;
-        }
-      };
-
-      switch (e.key) {
-        case 'ArrowDown':
-          if (vertical) handleDirectionalNavigation('next');
-          break;
-        case 'ArrowUp':
-          if (vertical) handleDirectionalNavigation('prev');
-          break;
-        case 'ArrowRight':
-          if (horizontal) handleDirectionalNavigation('next');
-          break;
-        case 'ArrowLeft':
-          if (horizontal) handleDirectionalNavigation('prev');
-          break;
-        case 'Home':
-          e.preventDefault();
-          elements[0]?.focus();
-          currentFocusIndex.current = 0;
-          break;
-        case 'End':
-          e.preventDefault();
-          elements[elements.length - 1]?.focus();
-          currentFocusIndex.current = elements.length - 1;
-          break;
-        case 'Escape':
-          if (onEscape) {
-            e.preventDefault();
-            onEscape();
-          }
-          break;
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown': {
+        event.preventDefault();
+        const nextIndex = (currentIndex + 1) % items.length;
+        items[nextIndex]?.focus();
+        break;
       }
-    };
+      case 'ArrowLeft':
+      case 'ArrowUp': {
+        event.preventDefault();
+        const prevIndex = currentIndex === 0 ? items.length - 1 : currentIndex - 1;
+        items[prevIndex]?.focus();
+        break;
+      }
+      case 'Home': {
+        event.preventDefault();
+        items[0]?.focus();
+        break;
+      }
+      case 'End': {
+        event.preventDefault();
+        items[items.length - 1]?.focus();
+        break;
+      }
+      case ' ':
+      case 'Enter': {
+        event.preventDefault();
+        if (currentElement && onSelect) {
+          onSelect(currentElement);
+        }
+        break;
+      }
+    }
+  }, [containerRef, itemSelector, onSelect]);
 
-    container.addEventListener('keydown', handleKeyDown);
-    return () => container.removeEventListener('keydown', handleKeyDown);
-  }, [containerRef, selector, onEscape, wrap, vertical, horizontal]);
-}; 
+  return { handleKeyDown };
+} 

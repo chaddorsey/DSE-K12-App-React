@@ -1,0 +1,108 @@
+.progressive-avatar-grid {
+  padding: 1rem;
+  min-height: 400px; /* Maintain layout stability */
+}
+
+.grid-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.level-indicator {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.avatar-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.avatar-cell:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+.avatar-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 0.5rem;
+}
+
+.avatar-name {
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.selected-face {
+  background: rgba(0, 102, 204, 0.1);
+}
+
+.selected-name {
+  background: rgba(0, 102, 204, 0.2);
+}
+
+.selected-talked {
+  background: rgba(0, 102, 204, 0.3);
+}
+
+.selected-know_well {
+  background: rgba(0, 102, 204, 0.4);
+}
+
+.current-level {
+  border: 2px dashed #0066cc;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-progress {
+  width: 100%;
+  height: 4px;
+  background: #eee;
+  border-radius: 2px;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #0066cc;
+  width: var(--progress, 0%);
+  transition: width 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar {
+    transition: none;
+  }
+} 

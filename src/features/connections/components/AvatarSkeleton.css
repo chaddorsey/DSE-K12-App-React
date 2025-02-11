@@ -1,0 +1,42 @@
+.avatar-skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.avatar-skeleton-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #eee;
+  margin-bottom: 0.5rem;
+}
+
+.avatar-skeleton-name {
+  width: 70%;
+  height: 1rem;
+  background: #eee;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.avatar-skeleton-level {
+  width: 40%;
+  height: 0.8rem;
+  background: #eee;
+  border-radius: 4px;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-skeleton {
+    animation: none;
+  }
+} 
