@@ -1,37 +1,37 @@
 import path from 'path';
-import { Configuration } from 'webpack';
+import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
-const config: Configuration = {
+const config: webpack.Configuration = {
   entry: './src/index.tsx',
   module: {
     rules: [
       {
         test: /\.(ts|tsx)$/,
-        exclude: /node_modules\/(?!(@remix-run|@types)\/).*/,
-        use: [
-          {
-            loader: 'babel-loader',
-            options: {
-              presets: [
-                '@babel/preset-env',
-                '@babel/preset-react',
-                '@babel/preset-typescript'
-              ],
-              plugins: ['@babel/plugin-transform-typescript']
-            }
-          }
-        ]
+        exclude: /node_modules/,
+        use: {
+          loader: 'ts-loader',
+          options: {
+            transpileOnly: true,
+          },
+        },
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.(png|jpe?g|gif|svg)$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'images/[name][ext]'
+        }
       }
     ]
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    extensions: ['.tsx', '.ts', '.js'],
     plugins: [new TsconfigPathsPlugin()],
     modules: [
       path.resolve(__dirname, 'src'),
@@ -42,7 +42,9 @@ const config: Configuration = {
       "fs": false
     },
     alias: {
-      '@remix-run/router': path.resolve(__dirname, 'node_modules/@remix-run/router/dist/router.js')
+      '@remix-run/router': path.resolve(__dirname, 'node_modules/@remix-run/router/dist/router.js'),
+      'react': path.resolve('./node_modules/react'),
+      'react-dom': path.resolve('./node_modules/react-dom'),
     }
   },
   output: {
@@ -51,8 +53,11 @@ const config: Configuration = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, 'public/index.html')
-    })
+      template: 'public/index.html'
+    }),
+    new webpack.ProvidePlugin({
+      React: 'react',
+    }),
   ]
 };
 
