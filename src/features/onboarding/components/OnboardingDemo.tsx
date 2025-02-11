@@ -30,16 +30,8 @@ export const OnboardingDemo: React.FC = () => {
   };
 
   const getProgressLabel = () => {
-    const requiredCount = questions.filter(q => q.requiredForOnboarding).length;
-    const requiredCompleted = Object.keys(responses)
-      .filter(id => questions.find(q => q.id === id)?.requiredForOnboarding)
-      .length;
-
     return (
-      <div className="progress">
-        <div className="required-progress">
-          Required: {requiredCompleted} of {requiredCount}
-        </div>
+      <div className="progress" role="status" aria-live="polite">
         <div className="overall-progress">
           Question {currentIndex + 1} of {questions.length}
           {currentQuestion.requiredForOnboarding && ' (Required)'}

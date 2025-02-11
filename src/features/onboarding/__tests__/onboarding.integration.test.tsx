@@ -30,10 +30,30 @@ describe('Onboarding Flow', () => {
     const catOption = screen.getByText('Cat person');
     fireEvent.click(catOption);
 
-    // Answer numeric question
+    // Answer Star Wars/Trek question
+    const starWarsOption = await screen.findByText('Star Wars');
+    fireEvent.click(starWarsOption);
+
+    // Answer occupation question
+    const occupationOption = await screen.findByText('Engineer');
+    fireEvent.click(occupationOption);
+
+    // Answer TV count question
     const numInput = await screen.findByRole('spinbutton');
     fireEvent.change(numInput, { target: { value: '2' } });
     fireEvent.blur(numInput);
+
+    // Answer secret question
+    const secretInput = await screen.findByRole('textbox');
+    fireEvent.change(secretInput, { target: { value: 'I secretly love tests' } });
+    fireEvent.blur(secretInput);
+
+    // Answer optional questions
+    const regionOption = await screen.findByText('North');
+    fireEvent.click(regionOption);
+
+    const personalityOption = await screen.findByText('Introverted');
+    fireEvent.click(personalityOption);
 
     // Should see completion message
     await waitFor(() => {

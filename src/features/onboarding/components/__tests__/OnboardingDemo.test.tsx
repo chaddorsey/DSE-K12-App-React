@@ -23,7 +23,24 @@ jest.mock('../../hooks/useOnboardingQuestions', () => ({
       },
       {
         id: 'q2',
-        number: 2,
+        type: 'MC',
+        label: 'star_wars_trek',
+        text: 'Star Wars or Star Trek?',
+        category: 'INTERESTS',
+        options: ['Star Wars', 'Star Trek', 'Both', 'Neither'],
+        requiredForOnboarding: true
+      },
+      {
+        id: 'q3',
+        type: 'MC',
+        label: 'professional_cat',
+        text: 'What is your primary occupation?',
+        category: 'PROFESSIONAL',
+        options: ['Engineer', 'Designer', 'Product Manager', 'Researcher', 'Student', 'Other'],
+        requiredForOnboarding: true
+      },
+      {
+        id: 'q4',
         type: 'NM',
         label: 'num_tvs',
         text: 'How many TVs do you have?',
@@ -31,6 +48,33 @@ jest.mock('../../hooks/useOnboardingQuestions', () => ({
         min: 0,
         max: 10,
         requiredForOnboarding: true
+      },
+      {
+        id: 'q5',
+        type: 'OP',
+        label: 'secret',
+        text: 'Nobody knows that I...',
+        category: 'PERSONALITY',
+        maxLength: 500,
+        requiredForOnboarding: true
+      },
+      {
+        id: 'q6',
+        type: 'MC',
+        label: 'region_current',
+        text: 'Which region do you live in?',
+        category: 'DEMOGRAPHIC',
+        options: ['North', 'South', 'East', 'West'],
+        requiredForOnboarding: false
+      },
+      {
+        id: 'q7',
+        type: 'MC',
+        label: 'intro_extrovert',
+        text: 'Do you consider yourself more introverted or extroverted?',
+        category: 'PERSONALITY',
+        options: ['Introverted', 'Extroverted', 'Somewhere in between'],
+        requiredForOnboarding: false
       }
     ],
     validateResponse: () => true
@@ -76,8 +120,7 @@ describe('OnboardingDemo', () => {
 
   it('shows progress correctly', () => {
     renderOnboarding();
-    expect(screen.getByText('Question 1 of 2')).toBeInTheDocument();
-    expect(screen.getByText('Required: 0 of 2')).toBeInTheDocument();
+    expect(screen.getByText('Question 1 of 7')).toBeInTheDocument();
   });
 
   describe('accessibility', () => {

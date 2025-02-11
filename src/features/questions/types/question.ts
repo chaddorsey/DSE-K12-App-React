@@ -11,6 +11,7 @@ export interface BaseQuestion {
   required?: boolean;
   metadata?: Record<string, any>;
   requiredForOnboarding?: boolean;
+  includeInOnboarding?: boolean;
 }
 
 export interface MultipleChoiceQuestion extends BaseQuestion {
