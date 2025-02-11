@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { QuestionForm } from '../QuestionForm';
 import { AccessibilityProvider } from '../../../../features/accessibility/context/AccessibilityContext';
 import type { Question, QuestionResponse } from '../../types';
@@ -26,6 +26,12 @@ describe('QuestionForm', () => {
   beforeEach(() => {
     mockOnComplete.mockClear();
     mockOnAnswer.mockClear();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   const renderForm = () => {
@@ -166,5 +172,39 @@ describe('QuestionForm', () => {
     // Provide valid answer
     fireEvent.click(screen.getByText('A'));
     expect(screen.queryByText('Please select an option')).not.toBeInTheDocument();
+  });
+
+  it('applies transition classes during navigation', () => {
+    renderForm();
+    
+    // Initial state
+    const questionContainer = screen.getByTestId('question-container');
+    expect(questionContainer).not.toHaveClass('slide-exit', 'slide-exit-forward');
+    
+    // Start forward transition
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    expect(questionContainer).toHaveClass('slide-exit', 'slide-exit-forward');
+    
+    // After transition
+    act(() => {
+      jest.advanceTimersByTime(300); // Full transition duration
+    });
+    expect(questionContainer).not.toHaveClass('slide-exit', 'slide-exit-forward');
+  });
+
+  it('prevents rapid navigation during transitions', () => {
+    renderForm();
+    
+    // Start transition
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    
+    // Try to navigate again immediately
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    
+    // Should still be on second question after transition
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(screen.getByText('Second question')).toBeInTheDocument();
   });
 });

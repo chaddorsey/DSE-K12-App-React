@@ -4,6 +4,7 @@ import { AccessibilityProvider } from './features/accessibility/context/Accessib
 import { AccessibilityControls } from './features/accessibility/components/AccessibilityControls';
 import { useAccessibility } from './features/accessibility/context/AccessibilityContext';
 import './App.css';
+import { QuestionFormPlayground } from './playground/QuestionFormPlayground';
 
 const AppContent = () => {
   const {
@@ -65,7 +66,7 @@ const AppContent = () => {
         Alt + M for motion settings, or Alt + K for keyboard mode
       </div>
       <AccessibilityControls />
-      <QuestionPlayground />
+      <QuestionFormPlayground />
     </div>
   );
 };

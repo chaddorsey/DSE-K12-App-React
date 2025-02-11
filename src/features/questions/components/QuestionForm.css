@@ -94,4 +94,69 @@
 /* High contrast mode */
 .high-contrast .error-message {
   border: 2px solid var(--error-color);
+}
+
+/* Remove old transition classes */
+.question-container {
+  /* Remove this section */
+}
+
+.questions-wrapper {
+  position: relative;
+  min-height: 200px;
+  margin-bottom: 2rem;
+}
+
+.question-card {
+  position: relative; /* Default for non-transitioning */
+  width: 100%;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all var(--transition-duration) ease-in-out;
+}
+
+/* Make transitioning cards absolute */
+.question-card.slide-exit,
+.question-card.slide-enter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+}
+
+/* Exit */
+.slide-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.slide-exit-forward {
+  opacity: 0;
+  transform: translateX(-100px);
+}
+
+.slide-exit-backward {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+/* Enter */
+.slide-enter {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+.slide-enter-forward,
+.slide-enter-backward {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .question-card {
+    transition: none;
+  }
 } 
