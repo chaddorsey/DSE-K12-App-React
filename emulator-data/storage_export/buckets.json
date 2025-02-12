@@ -2,6 +2,9 @@
   "buckets": [
     {
       "id": "dse-k12-connections.firebasestorage.app"
+    },
+    {
+      "id": "demo-project.appspot.com"
     }
   ]
 }

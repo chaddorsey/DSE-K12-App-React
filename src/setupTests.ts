@@ -4,6 +4,10 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { toHaveNoViolations } from 'jest-axe';
 import 'jest-axe/extend-expect';
+import { connectAuthEmulator } from 'firebase/auth';
+import { connectFirestoreEmulator } from 'firebase/firestore';
+import { connectStorageEmulator } from 'firebase/storage';
+import { auth, db, storage } from './config/firebase';
 
 // Mock fetch globally
 global.fetch = jest.fn(() => 
@@ -85,6 +89,12 @@ beforeAll(() => {
     }
     originalError.call(console, ...args);
   };
+
+  if (process.env.NODE_ENV === 'test') {
+    connectAuthEmulator(auth, 'http://localhost:9099');
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    connectStorageEmulator(storage, 'localhost', 9199);
+  }
 });
 
 afterAll(() => {

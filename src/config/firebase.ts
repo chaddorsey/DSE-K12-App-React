@@ -45,10 +45,10 @@ export const analytics = typeof window !== 'undefined' && process.env.NODE_ENV =
 
 if (process.env.NODE_ENV === 'development') {
   console.log('Connecting to Firebase emulators...');
-  connectAuthEmulator(auth, 'http://localhost:5005');
-  connectFirestoreEmulator(db, 'localhost', 5006);
+  connectAuthEmulator(auth, 'http://localhost:9099');
+  connectFirestoreEmulator(db, 'localhost', 8080);
   if (storage) {
-    connectStorageEmulator(storage, 'localhost', 5008);
+    connectStorageEmulator(storage, 'localhost', 9199);
   }
   console.log('Emulator connections established');
 }
