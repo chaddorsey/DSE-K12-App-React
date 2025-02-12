@@ -15,7 +15,12 @@ export interface IInteractionEvent {
   metadata?: Record<string, unknown>;
 }
 
-export class MonitoringService {
+export interface IMonitoringService {
+  trackEvent: (event: IAnalyticsEvent) => void;
+  trackError: (name: string, error: Error, context?: Record<string, unknown>) => void;
+}
+
+export class MonitoringService implements IMonitoringService {
   private static instance: MonitoringService;
   private transitions: IStateTransition[] = [];
   private errors: IErrorReport[] = [];
@@ -40,12 +45,15 @@ export class MonitoringService {
     this.checkHealthMetrics();
   }
 
-  public trackError(error: Error, context: Record<string, unknown>, handled = true): void {
+  public trackError(name: string, error: Error, context?: Record<string, unknown>): void {
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error tracked:', { name, error, context });
+    }
     this.errors.push({
       error,
-      context,
+      context: context || {},
       timestamp: Date.now(),
-      handled
+      handled: true
     });
     this.checkHealthMetrics();
   }
@@ -59,8 +67,9 @@ export class MonitoringService {
   }
 
   public trackEvent(event: IAnalyticsEvent): void {
-    // Implementation for analytics tracking
-    console.log('Analytics event:', event);
+    if (process.env.NODE_ENV !== 'test') {
+      console.log('Event tracked:', event);
+    }
   }
 
   public trackInteraction(event: IInteractionEvent): void {
@@ -87,7 +96,7 @@ export class MonitoringService {
 
   private getRecentPerformance(timeWindow = 5 * 60 * 1000): IPerformanceMetrics[] {
     const now = Date.now();
-    return this.metrics.filter(m => now - m.timestamp < timeWindow);
+    return this.metrics.filter(m => (m.timestamp || 0) < now - timeWindow);
   }
 
   private shouldTriggerAlert(errors: IErrorReport[], metrics: IPerformanceMetrics[]): boolean {

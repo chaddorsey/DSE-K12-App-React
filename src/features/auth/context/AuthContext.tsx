@@ -2,7 +2,7 @@
  * Authentication context and provider
  */
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { authService } from '../services/AuthService';
@@ -19,9 +19,10 @@ const initialState: IAuthState = {
   initialized: false
 };
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<IAuthState>(initialState);
   const monitoring = MonitoringService.getInstance();
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -34,13 +35,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loading: false,
             initialized: true
           }));
-          monitoring.trackEvent({
-            type: 'auth',
-            category: 'user',
-            action: 'state_changed',
-            label: 'signed_in',
-            metadata: { uid: userData.uid }
-          });
+          if (!isInitialMount.current) {
+            monitoring.trackEvent({
+              type: 'auth',
+              category: 'user',
+              action: 'state_changed',
+              label: 'signed_in',
+              metadata: { uid: userData.uid }
+            });
+          }
         } else {
           setState(prev => ({
             ...prev,
@@ -48,12 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             loading: false,
             initialized: true
           }));
-          monitoring.trackEvent({
-            type: 'auth',
-            category: 'user',
-            action: 'state_changed',
-            label: 'signed_out'
-          });
+          if (!isInitialMount.current) {
+            monitoring.trackEvent({
+              type: 'auth',
+              category: 'user',
+              action: 'state_changed',
+              label: 'signed_out'
+            });
+          }
         }
       } catch (error) {
         setState(prev => ({
@@ -62,12 +67,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           loading: false,
           initialized: true
         }));
-        monitoring.trackError(
-          'auth_error',
-          new Error('Auth state change failed'),
-          { context: 'auth_state_change' }
-        );
+        if (!isInitialMount.current && error.code !== 'auth/operation-not-allowed') {
+          monitoring.trackError(
+            'auth_error',
+            error,
+            { context: 'auth_state_change' }
+          );
+        }
       }
+      isInitialMount.current = false;
     });
 
     return () => unsubscribe();

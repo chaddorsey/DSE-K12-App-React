@@ -1,22 +1,16 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
-import HtmlWebpackPlugin from 'html-webpack-plugin';
-import webpack from 'webpack';
-import dotenv from 'dotenv';
+const path = require('path');
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load environment variables
-dotenv.config();
-
-const config = {
+module.exports = {
   mode: 'development',
-  entry: path.resolve(__dirname, 'src/index.tsx'),
+  entry: './src/index.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
-    publicPath: '/',
+    filename: '[name].bundle.js',
+    publicPath: '/'
   },
   module: {
     rules: [
@@ -62,8 +56,9 @@ const config = {
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'public/index.html'),
     }),
-    new webpack.DefinePlugin({
-      'process.env': JSON.stringify(process.env)
+    new Dotenv({
+      systemvars: true,
+      defaults: false
     }),
   ],
   devServer: {
@@ -79,6 +74,4 @@ const config = {
     }
   },
   devtool: 'inline-source-map'
-};
-
-export default config; 
+}; 

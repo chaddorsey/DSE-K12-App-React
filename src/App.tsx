@@ -19,7 +19,8 @@ import { QuestionBankEditor } from './features/questions/components/QuestionBank
 import { QuestionEditorDemo } from './features/questions/components/QuestionEditorDemo';
 import { OnboardingDemo } from './features/onboarding/components/OnboardingDemo';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { FirebaseTest } from './components/FirebaseTest';
+import { SignIn } from './features/auth/components/SignIn';
+import { Footer } from './components/Footer';
 
 const AppContent = () => {
   const {
@@ -101,8 +102,10 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
+          <Route path="/login" element={<SignIn />} />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 };
@@ -114,7 +117,6 @@ export function App() {
         <OnboardingProvider>
           <AuthProvider>
             <NetworkProvider>
-              <FirebaseTest />
               <AppContent />
             </NetworkProvider>
           </AuthProvider>

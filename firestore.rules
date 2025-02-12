@@ -4,7 +4,7 @@ service cloud.firestore {
     // Test mode - allow read/write to authenticated users
     // TODO: Replace with production rules before deployment
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;  // WARNING: Only for development!
     }
 
     // Keep our dummy data rules even in test mode
@@ -27,6 +27,10 @@ service cloud.firestore {
     match /connections/{connectionId} {
       allow read: if request.auth != null;
       allow write: if request.auth.uid == resource.data.userId;
+    }
+
+    match /_test_/{document=**} {
+      allow read, write: if true;
     }
   }
 } 

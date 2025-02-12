@@ -4,8 +4,8 @@
 
 export type PerformanceEventType = 
   // Page and Component Events
-  | 'page_load'
-  | 'api_call'
+  | 'page-load'
+  | 'api-call'
   | 'component_mount'
   | 'component_unmount'
   | 'state_update'
@@ -48,53 +48,22 @@ export type PerformanceEventType =
   | 'share_error';
 
 export interface IPerformanceMetrics {
-  type: PerformanceEventType;
-  component?: string;
-  timestamp?: number;
   totalTime: number;
-  queryKey?: string;
-  duration?: number;
-  componentRender?: number;
-  stateUpdate?: number;
-  apiCall?: number;
-  // Performance monitoring fields
-  isInitial?: boolean;
-  interaction?: string;
-  name?: string;
-  tags?: string[] | Record<string, string>;
-  success?: boolean;
-  error?: Error;
-  // Query-specific metrics
-  queryTime?: number;
-  resultCount?: number;
-  cacheStatus?: 'hit' | 'miss' | 'stale';
-  dedupeCount?: number;
-  // Search-specific metrics
-  searchTerm?: string;
-  filterCount?: number;
-  suggestionCount?: number;
-  selectedIndex?: number;
-  // Component-specific metrics
-  renderCount?: number;
-  interactionType?: string;
-  measureName?: string;
-  markName?: string;
-  // Keep metadata for additional properties
-  metadata?: Record<string, any>;
-  data?: Record<string, unknown>;
+  timestamp: number;
+  type: PerformanceEventType;
+  metadata?: Record<string, unknown>;
 }
 
 export interface IStateTransition {
   from: string;
   to: string;
-  action: string;
   timestamp: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface IErrorReport {
   error: Error;
-  context: Record<string, unknown>;
+  context?: Record<string, unknown>;
   timestamp: number;
   handled: boolean;
 }
@@ -105,7 +74,7 @@ export interface IAnalyticsEvent {
   action: string;
   label?: string;
   value?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface IPerformanceBaseline {

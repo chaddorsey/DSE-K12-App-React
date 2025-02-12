@@ -1,10 +1,26 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator, signInAnonymously } from 'firebase/auth';
+import { 
+  getFirestore, 
+  connectFirestoreEmulator, 
+  collection, 
+  doc, 
+  getDoc, 
+  setDoc,
+  deleteDoc 
+} from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
-import { getAnalytics } from 'firebase/analytics';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 
-const firebaseConfig = {
+const firebaseConfig = process.env.NODE_ENV === 'development' ? {
+  apiKey: "test-api-key",
+  authDomain: "localhost",
+  projectId: "demo-project",
+  storageBucket: "demo-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456",
+  measurementId: "G-ABCDEF123"
+} : {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
@@ -14,28 +30,50 @@ const firebaseConfig = {
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
+console.log('Initializing Firebase with config:', {
+  ...firebaseConfig,
+  apiKey: '***' // Hide actual API key
+});
+
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const analytics = getAnalytics(app);
+export const analytics = process.env.NODE_ENV === 'production' ? 
+  isSupported().then(() => getAnalytics(app)) : 
+  Promise.resolve(null);
 
 if (process.env.NODE_ENV === 'development') {
-  connectAuthEmulator(auth, 'http://localhost:9099');
-  connectFirestoreEmulator(db, 'localhost', 8080);
-  if (process.env.REACT_APP_USE_EMULATORS === 'true') {
-    const host = process.env.REACT_APP_EMULATOR_HOST || 'localhost';
-    connectStorageEmulator(storage, host, 9199);
-  }
+  console.log('Connecting to Firebase emulators...');
+  connectAuthEmulator(auth, 'http://localhost:9098');
+  connectFirestoreEmulator(db, 'localhost', 8081);
+  connectStorageEmulator(storage, 'localhost', 9198);
+  console.log('Emulator connections established');
 }
 
-export const testFirebaseConnection = async () => {
+export const testFirestoreConnection = async () => {
   try {
-    await auth.signInAnonymously();
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Testing Firestore emulator connection...');
+      const testCollection = collection(db, 'test');
+      await setDoc(doc(testCollection, 'test'), { timestamp: new Date() });
+      
+      console.log('Firebase emulator connection successful');
+      return true;
+    }
+    
     console.log('Firebase connection successful');
     return true;
   } catch (error) {
-    console.error('Firebase connection failed:', error);
+    console.error('Firestore connection failed:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+      rules: 'Make sure firestore.rules is deployed to emulator'
+    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Make sure Firebase emulators are running: npm run emulators');
+    }
     return false;
   }
 }; 
