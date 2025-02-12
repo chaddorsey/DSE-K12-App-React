@@ -3,7 +3,7 @@
  */
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, updateProfile as firebaseUpdateProfile } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { authService } from '../services/AuthService';
 import { IUser, IAuthContext, IAuthState } from '../types/auth';
@@ -20,59 +20,46 @@ const initialState: IAuthState = {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<IAuthState>(initialState);
+  const [state, setState] = useState<IAuthState>({
+    user: null,
+    loading: true,
+    error: null,
+    initialized: false
+  });
   const monitoring = MonitoringService.getInstance();
   const isInitialMount = useRef(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          const userData = await authService.getUserData(firebaseUser.uid);
-          setState(prev => ({
-            ...prev,
-            user: userData,
-            loading: false,
-            initialized: true
-          }));
-          if (!isInitialMount.current) {
-            monitoring.trackEvent({
-              type: 'auth',
-              category: 'user',
-              action: 'state_changed',
-              label: 'signed_in',
-              metadata: { uid: userData.uid }
-            });
-          }
-        } else {
-          setState(prev => ({
-            ...prev,
-            user: null,
-            loading: false,
-            initialized: true
-          }));
-          if (!isInitialMount.current) {
-            monitoring.trackEvent({
-              type: 'auth',
-              category: 'user',
-              action: 'state_changed',
-              label: 'signed_out'
-            });
-          }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        console.log('Firebase user:', firebaseUser);
+        // Convert Firebase user to our IUser type
+        const user: IUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+          emailVerified: firebaseUser.emailVerified,
+        };
+        setState(prev => ({ ...prev, user, loading: false, initialized: true }));
+        if (!isInitialMount.current) {
+          monitoring.trackEvent({
+            type: 'auth',
+            category: 'user',
+            action: 'state_changed',
+            label: 'signed_in',
+            metadata: { uid: user.uid }
+          });
         }
-      } catch (error) {
-        setState(prev => ({
-          ...prev,
-          error: error instanceof Error ? error : new Error('Authentication error'),
-          loading: false,
-          initialized: true
-        }));
-        if (!isInitialMount.current && error.code !== 'auth/operation-not-allowed') {
-          monitoring.trackError(
-            'auth_error',
-            error,
-            { context: 'auth_state_change' }
-          );
+      } else {
+        setState(prev => ({ ...prev, user: null, loading: false, initialized: true }));
+        if (!isInitialMount.current) {
+          monitoring.trackEvent({
+            type: 'auth',
+            category: 'user',
+            action: 'state_changed',
+            label: 'signed_out'
+          });
         }
       }
       isInitialMount.current = false;
@@ -137,17 +124,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateProfile = async (updates: Partial<IUser>) => {
+  const updateProfile = async (updates: {
+    displayName?: string | null;
+    photoURL?: string | null;
+  }) => {
+    if (!auth.currentUser) {
+      throw new Error('No authenticated user');
+    }
+
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
-      if (!state.user) throw new Error('No user logged in');
-      // Implementation pending
-      setState(prev => ({ ...prev, loading: false }));
+      console.log('Updating user profile with:', updates);
+      await firebaseUpdateProfile(auth.currentUser, updates);
+      
+      // Force a refresh of the user object
+      const user = auth.currentUser;
+      if (user) {
+        await user.reload();
+      }
+      
+      console.log('Profile updated successfully');
     } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
+  const refreshUser = async () => {
+    if (auth.currentUser) {
+      // Force a reload of the user's data
+      await auth.currentUser.reload();
+      // Update our state with the fresh data
       setState(prev => ({
         ...prev,
-        error: error instanceof Error ? error : new Error('Profile update failed'),
-        loading: false
+        user: auth.currentUser
       }));
     }
   };
@@ -158,7 +167,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     signUp,
     resetPassword,
-    updateProfile
+    updateProfile,
+    refreshUser
   };
 
   return (

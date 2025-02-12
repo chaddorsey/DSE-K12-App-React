@@ -1,45 +1,44 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Avatar } from '@/components/Avatar';
-import { storage } from '@/config/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import { PhotoUploadService } from '@/features/profile/services/PhotoUploadService';
 
 export const ProfileSettings: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateProfile, refreshUser } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const uploadService = new PhotoUploadService();
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    console.log('Current user in handlePhotoUpload:', user);
+    if (!file || !user?.uid) return;
 
     try {
       setUploading(true);
       setError(null);
 
-      // Create a reference to the storage location
-      const storageRef = ref(storage, `avatars/${user.uid}/${file.name}`);
+      console.log('Attempting upload with user ID:', user.uid);
+      
+      // Upload using PhotoUploadService
+      const photoURL = await uploadService.uploadPhoto(file, user.uid);
 
-      // Upload the file
-      await uploadBytes(storageRef, file);
-
-      // Get the download URL
-      const photoURL = await getDownloadURL(storageRef);
-
-      // Update auth profile
-      await updateProfile(user, { photoURL });
+      // Update auth profile using context
+      await updateProfile({ photoURL });
 
       // Update Firestore document
       await updateDoc(doc(db, 'users', user.uid), {
         photoURL
       });
 
+      // Refresh the user data to show new photo
+      await refreshUser();
+
     } catch (err) {
       console.error('Error uploading photo:', err);
-      setError('Failed to upload photo. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to upload photo. Please try again.');
     } finally {
       setUploading(false);
     }

@@ -4,9 +4,18 @@ import userEvent from '@testing-library/user-event';
 import { AuthProvider, useAuth } from '../AuthContext';
 import { authService } from '../../services/AuthService';
 import { IUser } from '../../types/auth';
+import { auth } from '@/config/firebase';
 
 // Mock the auth service
 jest.mock('../../services/AuthService');
+
+jest.mock('@/config/firebase', () => ({
+  auth: {
+    currentUser: null,
+    onAuthStateChanged: jest.fn(),
+    reload: jest.fn()
+  }
+}));
 
 const mockUser: IUser = {
   uid: 'test-uid',
@@ -128,6 +137,58 @@ describe('AuthContext', () => {
     await waitFor(() => {
       expect(mockOnAuthStateChanged).toHaveBeenCalled();
       expect(screen.getByText(`User: ${mockUser.email}`)).toBeInTheDocument();
+    });
+  });
+
+  describe('refreshUser', () => {
+    it('reloads user data when user is authenticated', async () => {
+      const mockUser = {
+        uid: 'test-uid',
+        reload: jest.fn()
+      };
+      (auth.currentUser as any) = mockUser;
+
+      const TestComponent = () => {
+        const { refreshUser } = useAuth();
+        React.useEffect(() => {
+          refreshUser();
+        }, [refreshUser]);
+        return null;
+      };
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(mockUser.reload).toHaveBeenCalled();
+      });
+    });
+
+    it('does nothing when no user is authenticated', async () => {
+      (auth.currentUser as any) = null;
+      const mockReload = jest.fn();
+      auth.reload = mockReload;
+
+      const TestComponent = () => {
+        const { refreshUser } = useAuth();
+        React.useEffect(() => {
+          refreshUser();
+        }, [refreshUser]);
+        return null;
+      };
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(mockReload).not.toHaveBeenCalled();
+      });
     });
   });
 }); 

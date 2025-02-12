@@ -2,7 +2,7 @@ export interface IUser {
   uid: string;
   email: string | null;
   displayName: string | null;
-  photoURL?: string | null;
+  photoURL: string | null;
   emailVerified: boolean;
   createdAt: Date;
   lastLoginAt: Date;
@@ -24,7 +24,8 @@ export interface IAuthContext extends IAuthState {
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateProfile: (updates: Partial<IUser>) => Promise<void>;
+  updateProfile: (updates: { displayName?: string; photoURL?: string }) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 export interface KnownUser {

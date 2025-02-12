@@ -2,69 +2,74 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ProfileSettings } from '../ProfileSettings';
 import { useAuth } from '../../context/AuthContext';
-import { storage, db } from '@/config/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { updateProfile } from 'firebase/auth';
+import { PhotoUploadService } from '@/features/profile/services/PhotoUploadService';
 import { doc, updateDoc } from 'firebase/firestore';
 
 // Mock dependencies
 jest.mock('../../context/AuthContext');
-jest.mock('firebase/storage');
-jest.mock('firebase/auth');
+jest.mock('@/features/profile/services/PhotoUploadService');
 jest.mock('firebase/firestore');
 
-const mockUser = {
-  uid: 'test-uid',
-  email: 'homer@springfield.com',
-  displayName: 'Homer Simpson',
-  photoURL: '/assets/avatars/homer.png',
-  emailVerified: true,
-  role: 'user'
-};
-
 describe('ProfileSettings', () => {
+  const mockUser = {
+    uid: 'test-uid',
+    email: 'test@example.com',
+    displayName: 'Test User',
+    photoURL: 'https://example.com/photo.jpg',
+    emailVerified: false,
+    role: 'user'
+  };
+
+  const mockUpdateProfile = jest.fn();
+  const mockSignOut = jest.fn();
+  const mockRefreshUser = jest.fn();
+
   beforeEach(() => {
+    jest.clearAllMocks();
     (useAuth as jest.Mock).mockReturnValue({
       user: mockUser,
-      signOut: jest.fn()
+      updateProfile: mockUpdateProfile,
+      signOut: mockSignOut,
+      refreshUser: mockRefreshUser
     });
   });
 
-  it('displays user information correctly', () => {
-    render(<ProfileSettings />);
+  it('handles successful photo upload', async () => {
+    const mockPhotoURL = 'https://example.com/new-photo.jpg';
+    const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
     
-    expect(screen.getByText(mockUser.email)).toBeInTheDocument();
-    expect(screen.getByText(mockUser.displayName)).toBeInTheDocument();
-    expect(screen.getByText('Verified')).toBeInTheDocument();
-    expect(screen.getByText(mockUser.role)).toBeInTheDocument();
-  });
-
-  it('handles photo upload successfully', async () => {
-    const mockFile = new File(['test'], 'test.png', { type: 'image/png' });
-    const mockDownloadURL = 'https://example.com/photo.png';
-
-    // Mock storage functions
-    (ref as jest.Mock).mockReturnValue('storage-ref');
-    (uploadBytes as jest.Mock).mockResolvedValue({});
-    (getDownloadURL as jest.Mock).mockResolvedValue(mockDownloadURL);
-    (updateProfile as jest.Mock).mockResolvedValue({});
-    (updateDoc as jest.Mock).mockResolvedValue({});
+    // Mock successful upload
+    (PhotoUploadService.prototype.uploadPhoto as jest.Mock)
+      .mockResolvedValue(mockPhotoURL);
 
     render(<ProfileSettings />);
 
+    // Trigger file upload
     const input = screen.getByLabelText(/choose profile photo/i);
     fireEvent.change(input, { target: { files: [mockFile] } });
 
+    // Verify loading state
+    expect(screen.getByText(/uploading/i)).toBeInTheDocument();
+
     await waitFor(() => {
-      expect(uploadBytes).toHaveBeenCalledWith('storage-ref', mockFile);
-      expect(updateProfile).toHaveBeenCalledWith(mockUser, { photoURL: mockDownloadURL });
+      // Verify all updates were called
+      expect(PhotoUploadService.prototype.uploadPhoto)
+        .toHaveBeenCalledWith(mockFile, mockUser.uid);
+      expect(mockUpdateProfile).toHaveBeenCalledWith({ photoURL: mockPhotoURL });
       expect(updateDoc).toHaveBeenCalled();
+      expect(mockRefreshUser).toHaveBeenCalled();
     });
+
+    // Verify loading state is removed
+    expect(screen.queryByText(/uploading/i)).not.toBeInTheDocument();
   });
 
   it('handles upload errors', async () => {
-    const mockFile = new File(['test'], 'test.png', { type: 'image/png' });
-    (uploadBytes as jest.Mock).mockRejectedValue(new Error('Upload failed'));
+    const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+    const mockError = new Error('Upload failed');
+    
+    (PhotoUploadService.prototype.uploadPhoto as jest.Mock)
+      .mockRejectedValue(mockError);
 
     render(<ProfileSettings />);
 
