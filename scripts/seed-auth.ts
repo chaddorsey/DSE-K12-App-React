@@ -1,6 +1,12 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
+import { 
+  getAuth, 
+  connectAuthEmulator, 
+  createUserWithEmailAndPassword
+} from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, setDoc } from 'firebase/firestore';
+import { fetchWithRetry } from '../src/utils/fetch';
 
 const app = initializeApp({
   apiKey: "test-api-key",
@@ -11,8 +17,21 @@ const app = initializeApp({
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-connectAuthEmulator(auth, "http://localhost:9099");
-connectFirestoreEmulator(db, 'localhost', 8080);
+const waitForEmulators = async () => {
+  try {
+    await fetchWithRetry('http://localhost:9098/', { maxRetries: 5, delayMs: 1000 });
+    console.log('Auth emulator is ready');
+    
+    await fetchWithRetry('http://localhost:8081/', { maxRetries: 5, delayMs: 1000 });
+    console.log('Firestore emulator is ready');
+  } catch (error) {
+    console.error('Failed to connect to emulators:', error);
+    process.exit(1);
+  }
+};
+
+connectAuthEmulator(auth, "http://localhost:9098", { disableWarnings: true });
+connectFirestoreEmulator(db, 'localhost', 8081);
 
 const testUsers = [
   {
@@ -30,11 +49,13 @@ const testUsers = [
 ];
 
 async function seedUsers() {
+  await waitForEmulators();
+  console.log('Starting user seeding...');
+  
   for (const user of testUsers) {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, user.email, user.password);
       
-      // Add user data to Firestore
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         uid: userCredential.user.uid,
         email: user.email,
@@ -46,7 +67,15 @@ async function seedUsers() {
       });
 
       console.log(`Created user: ${user.email}`);
-    } catch (error) {
+    } catch (error: unknown) {
+      if (
+        error instanceof FirebaseError && 
+        'code' in error && 
+        error.code === 'auth/email-already-in-use'
+      ) {
+        console.log(`User ${user.email} already exists, skipping...`);
+        continue;
+      }
       console.error(`Error creating user ${user.email}:`, error);
     }
   }
