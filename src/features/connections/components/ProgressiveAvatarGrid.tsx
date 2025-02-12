@@ -7,6 +7,7 @@ import classNames from 'classnames';
 import './ProgressiveAvatarGrid.css';
 import { AvatarSkeleton } from './AvatarSkeleton';
 import { useVisibleItemPriority } from '../hooks/useVisibleItemPriority';
+import { AnimatedAvatar } from './AnimatedAvatar';
 
 export interface ProgressiveAvatarGridProps {
   users: User[];

@@ -122,6 +122,7 @@ const AppContent = () => {
               <QuestionBankEditor />
             </AdminRoute>
           } />
+          <Route path="/demo/progressive-avatars" element={<ProgressiveAvatarDemo />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <div>Dashboard (Protected)</div>

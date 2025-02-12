@@ -2,5 +2,7 @@ export interface User {
   id: string;
   name: string;
   avatar: string;
-  recognitionLevel?: RecognitionLevel;
+  role: string;
+  department: string;
+  email: string;
 }

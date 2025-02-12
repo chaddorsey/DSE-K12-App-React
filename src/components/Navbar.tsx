@@ -20,4 +20,18 @@ export const Navbar = () => {
       </Link>
     </div>
   );
-}; 
+};
+
+<nav>
+  <ul>
+    <li><Link to="/dashboard">Dashboard</Link></li>
+    <li><Link to="/visualizations">Visualizations</Link></li>
+    <li><Link to="/demo/progressive-avatars">Progressive Avatars</Link></li>
+    {user?.role === 'admin' && (
+      <>
+        <li><Link to="/question-editor">Question Editor</Link></li>
+        <li><Link to="/demo/editor">Question Bank</Link></li>
+      </>
+    )}
+  </ul>
+</nav> 
