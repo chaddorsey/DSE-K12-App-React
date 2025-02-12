@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ProgressiveAvatarGrid } from './ProgressiveAvatarGrid';
 import { useUsers } from '../hooks/useUsers';
 import type { RecognitionLevel, ProgressiveSelection } from '../types/progressive-selection';
-import { ProgressiveAvatar } from './ProgressiveAvatar';
 import { SearchBar } from '../../../components/SearchBar';
 import { useAvatarData } from '../hooks/useAvatarData';
 import './ProgressiveAvatarDemo.css';
@@ -35,7 +34,7 @@ export const ProgressiveAvatarDemo: React.FC = () => {
   }
 
   if (error || avatarsError) {
-    return <div>Error: {error || avatarsError?.message}</div>;
+    return <div>Error: {(error || avatarsError)?.toString()}</div>;
   }
 
   const handleUserSelect = (userId: string) => {

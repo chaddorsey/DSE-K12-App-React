@@ -17,6 +17,7 @@ export interface ProgressiveAvatarGridProps {
   onUserSelect: (userId: string) => void;
   onLevelChange: (level: RecognitionLevel) => void;
   onModeToggle: () => void;
+  onLevelComplete?: (level: string) => void;
   loading?: boolean;
   loadingProgress?: number;
   partialLoading?: Record<string, boolean>;
@@ -31,6 +32,7 @@ export const ProgressiveAvatarGrid: React.FC<ProgressiveAvatarGridProps> = ({
   onUserSelect,
   onLevelChange,
   onModeToggle,
+  onLevelComplete,
   loading = false,
   loadingProgress = 0,
   partialLoading = {},
