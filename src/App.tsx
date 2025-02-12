@@ -19,6 +19,7 @@ import { QuestionBankEditor } from './features/questions/components/QuestionBank
 import { QuestionEditorDemo } from './features/questions/components/QuestionEditorDemo';
 import { OnboardingDemo } from './features/onboarding/components/OnboardingDemo';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { FirebaseTest } from './components/FirebaseTest';
 
 const AppContent = () => {
   const {
@@ -113,6 +114,7 @@ export function App() {
         <OnboardingProvider>
           <AuthProvider>
             <NetworkProvider>
+              <FirebaseTest />
               <AppContent />
             </NetworkProvider>
           </AuthProvider>
