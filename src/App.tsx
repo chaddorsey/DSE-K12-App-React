@@ -87,22 +87,40 @@ const AppContent = () => {
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/onboarding" element={<OnboardingDemo />} />
-          <Route path="/question-playground" element={<QuestionPlayground />} />
-          <Route path="/connections" element={<ProgressiveAvatarDemo />} />
-          <Route path="/question-editor" element={<QuestionEditorDemo />} />
-          <Route path="/demo">
-            <Route path="editor" element={<QuestionBankEditor />} />
-          </Route>
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <div>Dashboard (Protected)</div>
-              </ProtectedRoute>
-            }
-          />
           <Route path="/login" element={<SignIn />} />
+          
+          {/* Protected Routes */}
+          <Route path="/onboarding" element={
+            <ProtectedRoute>
+              <OnboardingDemo />
+            </ProtectedRoute>
+          } />
+          <Route path="/question-playground" element={
+            <ProtectedRoute>
+              <QuestionPlayground />
+            </ProtectedRoute>
+          } />
+          <Route path="/connections" element={
+            <ProtectedRoute>
+              <ProgressiveAvatarDemo />
+            </ProtectedRoute>
+          } />
+          <Route path="/visualizations" element={<DataVisualizationDemo />} />
+          <Route path="/question-editor" element={
+            <ProtectedRoute>
+              <QuestionEditorDemo />
+            </ProtectedRoute>
+          } />
+          <Route path="/demo/editor" element={
+            <ProtectedRoute>
+              <QuestionBankEditor />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <div>Dashboard (Protected)</div>
+            </ProtectedRoute>
+          } />
         </Routes>
       </main>
       <Footer />
