@@ -1,9 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Test mode - allow read/write to authenticated users
+    // TODO: Replace with production rules before deployment
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Keep our dummy data rules even in test mode
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
+      allow write: if request.auth != null 
+        && (
+          // Allow writes to dummy data in development
+          (resource.data.isDummy == true && request.auth.token.firebase.sign_in_provider == 'custom')
+          // Or if user is modifying their own data
+          || request.auth.uid == userId
+        );
     }
     
     match /profiles/{userId} {

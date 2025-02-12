@@ -3,41 +3,78 @@
  */
 
 import path from 'path';
-import { Configuration as WebpackConfiguration } from 'webpack';
-import { Configuration as WebpackDevServerConfiguration } from 'webpack-dev-server';
-import HtmlWebpackPlugin from 'html-webpack-plugin';
+import { fileURLToPath } from 'url';
 import webpack from 'webpack';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin';
 import dotenv from 'dotenv';
 import CopyPlugin from 'copy-webpack-plugin';
-const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+
+// ES Module dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables
 const env = dotenv.config().parsed || {};
 
-interface Configuration extends WebpackConfiguration {
-  devServer?: WebpackDevServerConfiguration;
-}
+// Type definitions
+type Configuration = {
+  mode: 'development' | 'production' | 'none';
+  entry: string;
+  output: {
+    path: string;
+    filename: string;
+    publicPath: string;
+  };
+  module: {
+    rules: Array<{
+      test: RegExp;
+      use: string | Array<{
+        loader: string;
+        options?: any;
+      }>;
+      exclude?: RegExp;
+    }>;
+  };
+  resolve: {
+    extensions: string[];
+    alias: Record<string, string>;
+    plugins: any[];
+    modules: string[];
+    fallback: Record<string, boolean>;
+  };
+  plugins: any[];
+  devServer: {
+    historyApiFallback: boolean;
+    port: number;
+    hot: boolean;
+    open: boolean;
+  };
+  devtool: string;
+};
 
 const config: Configuration = {
   mode: 'development',
   entry: './src/index.tsx',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: '[name].bundle.js',
+    publicPath: '/'
+  },
   module: {
     rules: [
       {
         test: /\.(ts|tsx)$/,
-        exclude: /node_modules/,
         use: [
           {
-            loader: 'babel-loader',
+            loader: 'ts-loader',
             options: {
-              presets: [
-                '@babel/preset-env',
-                '@babel/preset-react',
-                '@babel/preset-typescript'
-              ]
+              transpileOnly: true,
+              configFile: path.resolve(__dirname, 'tsconfig.json')
             }
           }
-        ]
+        ],
+        exclude: /node_modules/
       },
       {
         test: /\.css$/,
@@ -47,6 +84,9 @@ const config: Configuration = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    alias: {
+      '@': path.resolve(__dirname, 'src')
+    },
     plugins: [new TsconfigPathsPlugin()],
     modules: [
       path.resolve(__dirname, 'src'),
@@ -57,23 +97,20 @@ const config: Configuration = {
       "fs": false
     }
   },
-  output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist'),
-    publicPath: '/'
-  },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, 'public/index.html')
+      template: './public/index.html'
     }),
+    new webpack.HotModuleReplacementPlugin(),
     new webpack.DefinePlugin({
+      'process.env': JSON.stringify(env),
       'window.__CONFIG__': JSON.stringify({
         apiUrl: env.REACT_APP_API_URL || 'http://localhost:3000/api',
         environment: 'development',
         debug: true
       })
     }),
-    new (CopyPlugin as any)({
+    new CopyPlugin({
       patterns: [
         { 
           from: path.resolve(__dirname, 'public/mockServiceWorker.js'),
@@ -84,9 +121,6 @@ const config: Configuration = {
     })
   ],
   devServer: {
-    static: {
-      directory: path.join(__dirname, 'public'),
-    },
     historyApiFallback: true,
     port: 3000,
     hot: true,

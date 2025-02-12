@@ -16,9 +16,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": "./src",
+    "baseUrl": "src",
     "paths": {
-      "*": ["*"],
       "@/*": ["*"],
       "@components/*": ["components/*"],
       "@features/*": ["features/*"],
@@ -27,7 +26,9 @@
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
-    ]
+    ],
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
   "include": [
     "src/**/*.ts",
@@ -38,5 +39,11 @@
     "src/**/*.test.tsx",
     "src/custom.d.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "**/*.js"
+  ]
 } 
