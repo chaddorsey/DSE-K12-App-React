@@ -1,6 +1,7 @@
 /// <reference types="@testing-library/jest-dom" />
 
 import '@testing-library/jest-dom';
+import { cleanup } from '@testing-library/react';
 import { toHaveNoViolations } from 'jest-axe';
 
 // Mock fetch globally
@@ -20,8 +21,27 @@ Object.defineProperty(window, 'navigator', {
   configurable: true
 });
 
-// Clear all mocks after each test
+// Mock Firebase
+jest.mock('firebase/auth', () => ({
+  getAuth: jest.fn(),
+  onAuthStateChanged: jest.fn(() => jest.fn()),
+  signInWithEmailAndPassword: jest.fn(),
+  createUserWithEmailAndPassword: jest.fn(),
+  signOut: jest.fn(),
+  updateProfile: jest.fn()
+}));
+
+jest.mock('firebase/firestore', () => ({
+  getFirestore: jest.fn(),
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  setDoc: jest.fn(),
+  updateDoc: jest.fn()
+}));
+
+// Clean up after each test
 afterEach(() => {
+  cleanup();
   jest.clearAllMocks();
 });
 
