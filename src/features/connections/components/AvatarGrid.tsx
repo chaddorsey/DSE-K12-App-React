@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
 import { useFilteredUsers } from '../hooks/useFilteredUsers';
 import { AnimatedAvatar } from './AnimatedAvatar';
-import { useKeyboardNavigation } from '../../../features/accessibility/hooks/useKeyboardNavigation';
-import { useAccessibility } from '../../../features/accessibility/context/AccessibilityContext';
+import { useKeyboardNavigation } from '../../accessibility/hooks/useKeyboardNavigation';
+import { useAccessibility } from '../../accessibility/context/AccessibilityContext';
 import type { AvatarGridProps } from '../types';
 import './AvatarGrid.css';
 

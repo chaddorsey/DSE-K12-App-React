@@ -4,7 +4,7 @@ import { useFormNavigation } from '../hooks/useFormNavigation';
 import { useQuestionValidation } from '../hooks/useQuestionValidation';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OpenResponseQuestion } from './OpenResponseQuestion';
-import { useAccessibility } from '../../../features/accessibility/context/AccessibilityContext';
+import { useAccessibility } from '../../accessibility/context/AccessibilityContext';
 import type { Question, QuestionCategory, QuestionFormData, QuestionResponse } from '../types';
 import './QuestionForm.css';
 import { useForm } from 'react-hook-form';

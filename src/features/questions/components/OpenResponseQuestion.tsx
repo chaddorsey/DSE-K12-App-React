@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import classNames from 'classnames';
-import { useAccessibility } from '../../../features/accessibility/context/AccessibilityContext';
+import { useAccessibility } from '../../accessibility/context/AccessibilityContext';
 import { useVirtualKeyboard } from '../hooks/useVirtualKeyboard';
 import type { OpenResponseQuestion as ORQuestion } from '../types';
 import type { QuestionResponse } from '../types';

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import type { User } from '../types/user';
 import type { RecognitionLevel, ProgressiveSelection } from '../types/progressive-selection';
-import { useKeyboardNavigation } from '../../../features/accessibility/hooks/useKeyboardNavigation';
+import { useKeyboardNavigation } from '../../accessibility/hooks/useKeyboardNavigation';
 import { useProgressiveFocus } from '../hooks/useProgressiveFocus';
 import classNames from 'classnames';
 import './ProgressiveAvatarGrid.css';

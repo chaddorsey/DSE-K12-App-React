@@ -6,7 +6,7 @@ import React from 'react';
 import * as yup from 'yup';
 import { useForm } from '../hooks/useForm';
 import { TextField } from './Form/Field/TextField';
-import { Button } from '../components/Button';
+import { Button } from './Button';
 import './ResetPasswordForm.css';
 
 interface IResetPasswordFormValues {

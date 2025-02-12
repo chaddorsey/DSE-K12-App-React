@@ -3,7 +3,7 @@ import type { MultipleChoiceQuestion as MCQuestion } from '../types';
 import type { QuestionResponse } from '../types';
 import classNames from 'classnames';
 import './MultipleChoiceQuestion.css';
-import { useAccessibility } from '../../../features/accessibility/context/AccessibilityContext';
+import { useAccessibility } from '../../accessibility/context/AccessibilityContext';
 import { useKeyboardNavigation } from '../../accessibility/hooks/useKeyboardNavigation';
 
 interface MultipleChoiceQuestionProps {

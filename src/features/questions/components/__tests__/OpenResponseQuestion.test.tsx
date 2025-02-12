@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { OpenResponseQuestion } from '../OpenResponseQuestion';
 import type { OpenResponseQuestionType } from '../../types';
-import { AccessibilityProvider } from '../../../../features/accessibility/context/AccessibilityContext';
+import { AccessibilityProvider } from '../../../accessibility/context/AccessibilityContext';
 
 describe('OpenResponseQuestion', () => {
   const mockQuestion: OpenResponseQuestionType = {

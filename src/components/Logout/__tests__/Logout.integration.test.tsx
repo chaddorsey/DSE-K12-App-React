@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Logout } from '../Logout';
 import { AuthProvider } from '../../../features/auth/AuthContext';
-import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { ErrorBoundary } from '../../ErrorBoundary';
 
 describe('Logout Integration', () => {
   it('handles logout flow correctly', async () => {

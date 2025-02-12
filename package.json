@@ -23,7 +23,7 @@
     "yup": "^0.32.11"
   },
   "scripts": {
-    "dev": "webpack serve --config webpack.config.dev.ts --env development",
+    "dev": "cross-env NODE_ENV=development webpack serve --config webpack.config.dev.js",
     "dev:init": "ts-node --project tsconfig.webpack.json scripts/init-dev-env.ts",
     "build": "webpack --config webpack.config.ts",
     "start": "npm run dev",

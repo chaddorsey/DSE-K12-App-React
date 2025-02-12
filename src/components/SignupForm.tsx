@@ -7,7 +7,7 @@ import * as yup from 'yup';
 import { useForm } from '../hooks/useForm';
 import { useAuth } from '../hooks/useAuth';
 import { TextField } from './Form/Field/TextField';
-import { Button } from '../components/Button';
+import { Button } from './Button';
 import './SignupForm.css';
 import { MonitoringService } from '../monitoring/MonitoringService';
 

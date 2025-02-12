@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QuestionForm } from '../QuestionForm';
-import { AccessibilityProvider } from '../../../../features/accessibility/context/AccessibilityContext';
+import { AccessibilityProvider } from '../../../accessibility/context/AccessibilityContext';
 import type { Question, QuestionResponse } from '../../types';
 
 const mockQuestions: Question[] = [

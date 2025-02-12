@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MultipleChoiceQuestion } from '../MultipleChoiceQuestion';
 import type { MultipleChoiceQuestionType } from '../../types';
-import { AccessibilityProvider } from '../../../../features/accessibility/context/AccessibilityContext';
+import { AccessibilityProvider } from '../../../accessibility/context/AccessibilityContext';
 
 describe('MultipleChoiceQuestion', () => {
   const mockQuestion: MultipleChoiceQuestionType = {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent, screen } from '@testing-library/react';
 import { MultipleChoiceQuestion } from '../MultipleChoiceQuestion';
-import { AccessibilityProvider } from '../../../../features/accessibility/context/AccessibilityContext';
+import { AccessibilityProvider } from '../../../accessibility/context/AccessibilityContext';
 
 const mockQuestion = {
   id: 'q1',
