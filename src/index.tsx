@@ -1,14 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
 import './index.css';
 
 async function prepare() {
   if (process.env.NODE_ENV === 'development') {
     const { startWorker } = await import('./mocks/browser');
-    console.log('Starting mock service worker...');
     await startWorker();
-    console.log('Mock service worker started');
   }
 }
 
@@ -19,7 +18,9 @@ const root = createRoot(container);
 prepare().then(() => {
   root.render(
     <React.StrictMode>
-      <App />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </React.StrictMode>
   );
 }); 

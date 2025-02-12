@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { QuestionPlayground } from './features/questions/components/QuestionPlayground';
 import { AccessibilityProvider } from './features/accessibility/context/AccessibilityContext';
 import { AccessibilityControls } from './features/accessibility/components/AccessibilityControls';
@@ -9,7 +9,7 @@ import { AvatarGridDemo } from './features/connections/components/AvatarGridDemo
 import { Header } from './components/Header';
 import { QuestionTypesDemo } from './features/questions/components/QuestionTypesDemo';
 import { DataVisualizationDemo } from './features/visualization/components/DataVisualizationDemo';
-import { AuthProvider } from './features/auth/AuthContext';
+import { AuthProvider } from './features/auth/context/AuthContext';
 import { NetworkProvider } from './features/network/NetworkProvider';
 import { ProgressiveAvatarDemo } from './features/connections/components/ProgressiveAvatarDemo';
 import { QuestionBankProvider } from './features/questions/context/QuestionBankContext';
@@ -18,6 +18,7 @@ import { Home } from './features/home/components/Home';
 import { QuestionBankEditor } from './features/questions/components/QuestionBankEditor';
 import { QuestionEditorDemo } from './features/questions/components/QuestionEditorDemo';
 import { OnboardingDemo } from './features/onboarding/components/OnboardingDemo';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 const AppContent = () => {
   const {
@@ -91,26 +92,34 @@ const AppContent = () => {
           <Route path="/demo">
             <Route path="editor" element={<QuestionBankEditor />} />
           </Route>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <div>Dashboard (Protected)</div>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
     </div>
   );
 };
 
-export const App: React.FC = () => {
+export function App() {
   return (
-    <Router>
-      <AccessibilityProvider>
-        <QuestionBankProvider>
-          <OnboardingProvider>
-            <AuthProvider>
-              <NetworkProvider>
-                <AppContent />
-              </NetworkProvider>
-            </AuthProvider>
-          </OnboardingProvider>
-        </QuestionBankProvider>
-      </AccessibilityProvider>
-    </Router>
+    <AccessibilityProvider>
+      <QuestionBankProvider>
+        <OnboardingProvider>
+          <AuthProvider>
+            <NetworkProvider>
+              <AppContent />
+            </NetworkProvider>
+          </AuthProvider>
+        </OnboardingProvider>
+      </QuestionBankProvider>
+    </AccessibilityProvider>
   );
-}; 
+}
+
+export default App; 

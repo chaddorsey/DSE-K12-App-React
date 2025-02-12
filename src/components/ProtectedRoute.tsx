@@ -3,31 +3,29 @@
  */
 
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../features/auth/AuthContext';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../features/auth/context/AuthContext';
 import { MonitoringService } from '../monitoring/MonitoringService';
 import { logger } from '../utils/logger';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  redirectTo?: string;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+export function ProtectedRoute({ 
+  children, 
+  redirectTo = '/login' 
+}: ProtectedRouteProps) {
+  const { user } = useAuth();
   const monitoring = MonitoringService.getInstance();
-  const location = useLocation();
 
-  React.useEffect(() => {
-    logger.info('ProtectedRoute check', { 
-      isAuthenticated, 
-      path: location.pathname 
-    });
-  }, [isAuthenticated, location]);
-
-  if (!isAuthenticated) {
-    logger.info('Redirecting to login', { from: location.pathname });
-    return <Navigate to="/login" replace />;
+  if (!user) {
+    logger.info('Redirecting to login', { from: redirectTo });
+    return <Navigate to={redirectTo} replace />;
   }
 
   return <>{children}</>;
-}; 
+}
+
+export default ProtectedRoute; 

@@ -2,110 +2,99 @@
  * Authentication context and provider
  */
 
-import React, { createContext, useCallback, useEffect, useState } from 'react';
-import { MonitoringService } from '../../../monitoring/MonitoringService';
-import { apiClient } from '../../../services/api';
-import { logger } from '../../../utils/logger';
-import type { IUser } from '../types';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { User } from 'firebase/auth';
+import { auth } from '@/config/firebase';
+import { IUser } from '../types/user';
+import { MonitoringService } from '@/monitoring/MonitoringService';
+import { IAnalyticsEvent } from '@/monitoring/types';
 
-interface IAuthContext {
+interface AuthContextValue {
   user: IUser | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
+  loading: boolean;
   error: Error | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  signup: (userData: Partial<IUser>) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  signUp: (email: string, password: string, displayName: string) => Promise<void>;
 }
 
-const AuthContext = createContext<IAuthContext | null>(null);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<IUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-
-  const login = useCallback(async (email: string, password: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await apiClient.post<IUser>('auth.login', { email, password });
-      setUser(response);
-      MonitoringService.getInstance().trackEvent('auth_login_success');
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Login failed'));
-      MonitoringService.getInstance().trackError('auth_login_failed', err);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const logout = useCallback(async () => {
-    try {
-      await apiClient.post('auth.logout');
-      setUser(null);
-      MonitoringService.getInstance().trackEvent('auth_logout_success');
-    } catch (err) {
-      logger.error('Logout failed', err);
-      MonitoringService.getInstance().trackError('auth_logout_failed', err);
-    }
-  }, []);
-
-  const signup = useCallback(async (userData: Partial<IUser>) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await apiClient.post<IUser>('auth.signup', userData);
-      setUser(response);
-      MonitoringService.getInstance().trackEvent('auth_signup_success');
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Signup failed'));
-      MonitoringService.getInstance().trackError('auth_signup_failed', err);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const monitoring = MonitoringService.getInstance();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      setLoading(true);
       try {
-        const user = await apiClient.get<IUser>('auth.check');
-        setUser(user);
+        if (firebaseUser) {
+          const userData: IUser = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || undefined,
+            photoURL: firebaseUser.photoURL || undefined,
+            isEmailVerified: firebaseUser.emailVerified,
+            createdAt: new Date(),
+            lastLoginAt: new Date(),
+            role: 'student',
+          };
+          setUser(userData);
+          monitoring.trackEvent({
+            type: 'auth',
+            category: 'user',
+            action: 'state_changed',
+            label: 'signed_in',
+            metadata: { uid: userData.uid }
+          });
+        } else {
+          setUser(null);
+          monitoring.trackEvent({
+            type: 'auth',
+            category: 'user',
+            action: 'state_changed',
+            label: 'signed_out'
+          });
+        }
       } catch (err) {
-        logger.error('Auth check failed', err);
+        setError(err instanceof Error ? err : new Error('Authentication error'));
+        monitoring.trackError(
+          'auth_error',
+          new Error('Auth state change failed'),
+          { context: 'auth_state_change' }
+        );
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
-    };
+    });
 
-    checkAuth();
+    return () => unsubscribe();
   }, []);
 
+  const value: AuthContextValue = {
+    user,
+    loading,
+    error,
+    signIn: async () => {/* implementation */},
+    signOut: async () => {/* implementation */},
+    signUp: async () => {/* implementation */},
+  };
+
   return (
-    <AuthContext.Provider 
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        error,
-        login,
-        logout,
-        signup
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = (): IAuthContext => {
-  const context = React.useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}
 
 export default AuthContext; 

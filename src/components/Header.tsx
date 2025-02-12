@@ -1,10 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../features/auth/AuthContext';
+import { useAuth } from '../features/auth/context/AuthContext';
 import './Header.css';
 
-export const Header: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+interface HeaderProps {
+  links?: Array<{ to: string; label: string }>;
+}
+
+export function Header({ links = [] }: HeaderProps) {
+  const { user, signOut } = useAuth();
 
   const handleClearStorage = () => {
     try {
@@ -33,19 +37,24 @@ export const Header: React.FC = () => {
           <Link to="/onboarding">Onboarding</Link>
           <Link to="/demo/progressive-avatars">Connections</Link>
           <Link to="/question-playground">Quiz</Link>
-          {isAuthenticated && (
-            <div className="user-section">
-              <span className="user-name">{user?.name}</span>
+          {user ? (
+            <>
+              <Link to="/dashboard">Dashboard</Link>
               <button
-                onClick={logout}
+                onClick={signOut}
                 className="logout-button"
               >
-                Logout
+                Sign Out
               </button>
-            </div>
+              <span className="user-name">{user.displayName || 'User'}</span>
+            </>
+          ) : (
+            <Link to="/login">Sign In</Link>
           )}
         </nav>
       </div>
     </header>
   );
-}; 
+}
+
+export default Header; 
