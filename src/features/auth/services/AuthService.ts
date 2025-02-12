@@ -7,12 +7,16 @@ import {
   User as FirebaseUser,
   sendEmailVerification,
   setPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
+  updatePassword,
+  signInWithCustomToken,
+  getAuth
 } from 'firebase/auth';
 import { auth, db } from '@/config/firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { IUser, UserRole, KnownUser } from '../types/auth';
 import { getAvatarUrl } from '@/utils/avatar';
+import { findKnownUser } from '@/utils/known-users';
 
 export class AuthService {
   constructor() {
@@ -110,4 +114,59 @@ export class AuthService {
   }
 }
 
-export const authService = new AuthService(); 
+export const authService = new AuthService();
+
+export async function isKnownEmail(email: string): Promise<boolean> {
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('email', '==', email));
+  const snapshot = await getDocs(q);
+  return !snapshot.empty;
+}
+
+export async function registerKnownUser(email: string, password: string): Promise<void> {
+  try {
+    // Check if email is in known users CSV
+    const knownUserData = await findKnownUser(email);
+    
+    if (!knownUserData) {
+      throw new Error('Email not found in authorized users list');
+    }
+
+    // Create the new auth user
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+    // Update their profile with pre-populated data
+    await firebaseUpdateProfile(userCredential.user, {
+      displayName: knownUserData.displayName,
+      photoURL: knownUserData.photoURL || null
+    });
+
+    // Create their Firestore document with pre-populated data
+    await setDoc(doc(db, 'users', userCredential.user.uid), {
+      email: email,
+      displayName: knownUserData.displayName,
+      photoURL: knownUserData.photoURL || null,
+      role: knownUserData.role || 'user',
+      organization: knownUserData.organization,
+      createdAt: new Date().toISOString(),
+      authComplete: true
+    });
+
+    // Send verification email
+    await sendEmailVerification(userCredential.user);
+
+  } catch (error) {
+    console.error('Error registering user:', error);
+    throw error;
+  }
+}
+
+export async function signInUser(email: string, password: string) {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  } catch (error) {
+    console.error('Error signing in:', error);
+    throw error;
+  }
+} 

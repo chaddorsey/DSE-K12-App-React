@@ -13,13 +13,13 @@ import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = process.env.NODE_ENV === 'development' ? {
-  apiKey: "test-api-key",
-  authDomain: "localhost",
+  apiKey: "demo-api-key",
+  authDomain: "demo-project.firebaseapp.com",
   projectId: "demo-project",
   storageBucket: "demo-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456",
-  measurementId: "G-ABCDEF123"
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:0000000000000000000000",
+  measurementId: "G-0000000000"
 } : {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -38,8 +38,8 @@ console.log('Initializing Firebase with config:', {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
-export const analytics = process.env.NODE_ENV === 'production' ? 
+export const storage = typeof window !== 'undefined' ? getStorage(app) : null;
+export const analytics = typeof window !== 'undefined' && process.env.NODE_ENV === 'production' ? 
   isSupported().then(() => getAnalytics(app)) : 
   Promise.resolve(null);
 
@@ -47,7 +47,9 @@ if (process.env.NODE_ENV === 'development') {
   console.log('Connecting to Firebase emulators...');
   connectAuthEmulator(auth, 'http://localhost:5005');
   connectFirestoreEmulator(db, 'localhost', 5006);
-  connectStorageEmulator(storage, 'localhost', 5008);
+  if (storage) {
+    connectStorageEmulator(storage, 'localhost', 5008);
+  }
   console.log('Emulator connections established');
 }
 
@@ -65,10 +67,11 @@ export const testFirestoreConnection = async () => {
     console.log('Firebase connection successful');
     return true;
   } catch (error) {
+    const err = error as { message?: string; code?: string; stack?: string };
     console.error('Firestore connection failed:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
+      message: err.message,
+      code: err.code,
+      stack: err.stack,
       rules: 'Make sure firestore.rules is deployed to emulator'
     });
     if (process.env.NODE_ENV === 'development') {

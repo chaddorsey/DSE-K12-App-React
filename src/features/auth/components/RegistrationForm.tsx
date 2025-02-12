@@ -6,11 +6,13 @@ import * as yup from 'yup';
 import { authService } from '../services/AuthService';
 import { Button } from '@/components/Button';
 import './SignIn.css';  // Reuse SignIn styles
+import { isKnownEmail, registerKnownUser } from '../services/AuthService';
 
 interface RegistrationFormData {
   email: string;
   confirmEmail: string;
   password: string;
+  confirmPassword: string;
 }
 
 const schema = yup.object({
@@ -35,11 +37,12 @@ const schema = yup.object({
 export const RegistrationForm: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setError
+    setError: setFormError
   } = useForm<RegistrationFormData>({
     resolver: yupResolver(schema)
   });
@@ -47,18 +50,37 @@ export const RegistrationForm: React.FC = () => {
   const onSubmit = async (data: RegistrationFormData) => {
     try {
       setLoading(true);
-      await authService.signUp(
-        data.email,
-        data.password,
-      );
-      authService.sendVerificationEmail().catch(console.error);
+      setError(null);
+
+      // Check if passwords match
+      if (data.password !== data.confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+
+      // Check if this is a known email
+      const known = await isKnownEmail(data.email);
+      if (!known) {
+        setError('Email not found in authorized users list');
+        return;
+      }
+
+      // Register the user
+      await registerKnownUser(data.email, data.password);
+      
+      // Success! Show verification message and redirect
+      setError('Please check your email for verification link');
       navigate('/');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      setError('root', {
-        type: 'manual',
-        message: errorMessage
-      });
+    } catch (error: any) {
+      let errorMessage = 'Registration failed';
+      
+      if (error.message.includes('already exists')) {
+        errorMessage = error.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
       console.error('Registration error:', error);
     } finally {
       setLoading(false);
@@ -77,11 +99,7 @@ export const RegistrationForm: React.FC = () => {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          {errors.root && (
-            <div className="error-message" role="alert">
-              {errors.root.message}
-            </div>
-          )}
+          {error && <div className="error">{error}</div>}
           
           <div className="form-group">
             <label htmlFor="email">Email</label>
@@ -125,6 +143,19 @@ export const RegistrationForm: React.FC = () => {
             </p>
           </div>
 
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <input
+              id="confirmPassword"
+              type="password"
+              {...register('confirmPassword')}
+              className={errors.confirmPassword ? 'error' : ''}
+            />
+            {errors.confirmPassword && (
+              <span className="error-text">{errors.confirmPassword.message}</span>
+            )}
+          </div>
+
           <Button
             type="submit"
             disabled={loading}
@@ -141,6 +172,10 @@ export const RegistrationForm: React.FC = () => {
             Already have an account?{' '}
             <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
               Sign in here
+            </Link>
+            {' or '}
+            <Link to="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
+              reset your password
             </Link>
           </p>
         </div>
