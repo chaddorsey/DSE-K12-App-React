@@ -27,7 +27,7 @@ export async function getKnownUsers(): Promise<KnownUserData[]> {
   // Add photoURL for each user
   knownUsersCache = users.map(user => ({
     ...user,
-    photoURL: user.image ? `/assets/avatars/${user.image}` : undefined
+    photoURL: user.image ? `assets/avatars/${user.image}` : undefined
   }));
 
   return knownUsersCache;

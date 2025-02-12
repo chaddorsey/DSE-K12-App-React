@@ -56,9 +56,15 @@ export const ProfileSettings: React.FC = () => {
           <Avatar 
             src={user.photoURL} 
             name={user.displayName || user.email || 'User'} 
-            size="lg"
-            className="w-24 h-24"
+            size="xl"
+            className="ring-4 ring-gray-200 hover:ring-indigo-500 transition-colors"
           />
+          {process.env.NODE_ENV === 'development' && (
+            <div className="text-xs text-gray-500">
+              <p>Photo URL: {user.photoURL || 'none'}</p>
+              <p>Display Name: {user.displayName || 'none'}</p>
+            </div>
+          )}
           <div>
             <label className="block">
               <span className="sr-only">Choose profile photo</span>

@@ -1,84 +1,74 @@
 import React from 'react';
-import { getAvatarUrl } from '@/utils/avatar';
+import classNames from 'classnames';
+import './Avatar.css';
 
 interface AvatarProps {
   src?: string | null;
   name: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }
 
-const sizeClasses = {
-  xs: 'w-6 h-6',
-  sm: 'w-8 h-8',
-  md: 'w-12 h-12',
-  lg: 'w-16 h-16'
+const sizes = {
+  xs: '24px',
+  sm: '32px',
+  md: '48px',
+  lg: '64px',
+  xl: '96px'
 };
 
-const sizePx = {
-  xs: 24,
-  sm: 32,
-  md: 48,
-  lg: 64
+const fontSizes = {
+  xs: '0.75rem',
+  sm: '0.875rem',
+  md: '1rem',
+  lg: '1rem',
+  xl: '1rem'
 };
 
-// Ring styles for different states
-const ringStyles = {
-  default: 'before:border-gray-200',
-  hover: 'hover:before:border-indigo-500',
-  active: 'before:border-indigo-600'
-};
-
-export const Avatar: React.FC<AvatarProps> = ({
-  src,
-  name,
+export const Avatar: React.FC<AvatarProps> = ({ 
+  src, 
+  name, 
   size = 'md',
-  className = ''
+  className 
 }) => {
-  const avatarUrl = getAvatarUrl(src, name, sizePx[size]);
-  
+  const [imageError, setImageError] = React.useState(false);
+
+  const initials = name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <div 
-      className={`
-        relative
-        inline-flex
-        items-center
-        justify-center
-        ${sizeClasses[size]}
-        before:absolute
-        before:inset-0
-        before:rounded-full
-        before:border
-        ${ringStyles.default}
-        ${ringStyles.hover}
-        before:transition-colors
-        before:duration-200
-      `}
-    >
-      <img
-        src={avatarUrl}
-        alt={`Avatar for ${name}`}
-        className={`
-          w-full
-          h-full
-          !rounded-full
-          object-cover
-          relative
-          z-10
-          ${className}
-        `}
-        style={{
-          borderRadius: '9999px'
-        }}
-        width={sizePx[size]}
-        height={sizePx[size]}
-        onError={(e) => {
-          const img = e.target as HTMLImageElement;
-          if (!img.src.includes('ui-avatars.com')) {
-            img.src = getAvatarUrl(null, name, sizePx[size]);
-          }
-        }}
-      />
+      className={classNames(
+        'avatar',
+        className
+      )}
+      style={{
+        width: sizes[size],
+        height: sizes[size],
+      }}>
+      {src && !imageError ? (
+        <div className="w-full h-full">
+          <img
+            src={src}
+            alt={`${name}'s avatar`}
+            onError={() => setImageError(true)}
+          />
+        </div>
+      ) : (
+        <div className="avatar-initials">
+          <span 
+            style={{
+              fontSize: fontSizes[size]
+            }}
+          >
+            {initials}
+          </span>
+        </div>
+      )}
     </div>
   );
 }; 

@@ -132,6 +132,8 @@ export async function registerKnownUser(email: string, password: string): Promis
       throw new Error('Email not found in authorized users list');
     }
 
+    console.log('Known user data:', knownUserData); // Debug log
+
     // Create the new auth user
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -140,6 +142,11 @@ export async function registerKnownUser(email: string, password: string): Promis
       displayName: knownUserData.displayName,
       photoURL: knownUserData.photoURL || null
     });
+
+    console.log('Updated auth profile with:', {
+      displayName: knownUserData.displayName,
+      photoURL: knownUserData.photoURL
+    }); // Debug log
 
     // Create their Firestore document with pre-populated data
     await setDoc(doc(db, 'users', userCredential.user.uid), {

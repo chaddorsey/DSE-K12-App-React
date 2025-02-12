@@ -1,0 +1,19 @@
+.profile-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 3rem;    /* 48px */
+  padding: 0 0rem;
+  color: rgb(FF FF FF);  /* text-gray-600 */
+  background: white;
+  border: none;
+}
+
+.profile-button:hover {
+  color: white;  /* text-gray-900 */
+}
+
+.profile-text {
+  font-size: 0.875rem;  /* text-sm */
+  font-weight: 500;     /* font-medium */
+} 
