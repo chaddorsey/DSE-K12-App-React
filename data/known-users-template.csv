@@ -1,0 +1,4 @@
+email,displayName,role,organization,image
+admin1@school.edu,Jane Smith,admin,School District 1,https://example.com/avatars/jane.jpg
+user1@school.edu,John Doe,user,School District 1,user1-avatar.jpg
+admin@school.edu,Admin User,admin,School District 1,admin-avatar.png 

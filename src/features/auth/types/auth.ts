@@ -10,7 +10,7 @@ export interface IUser {
   metadata?: Record<string, any>;
 }
 
-export type UserRole = 'student' | 'teacher' | 'admin';
+export type UserRole = 'user' | 'admin';
 
 export interface IAuthState {
   user: IUser | null;
@@ -25,4 +25,13 @@ export interface IAuthContext extends IAuthState {
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateProfile: (updates: Partial<IUser>) => Promise<void>;
+}
+
+export interface KnownUser {
+  email: string;
+  displayName: string;
+  role: UserRole;
+  organization?: string;
+  image?: string;
+  // Add any other pre-known fields
 } 

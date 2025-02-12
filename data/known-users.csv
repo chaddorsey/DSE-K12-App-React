@@ -1,0 +1,4 @@
+email,displayName,role,organization
+teacher1@school.edu,Jane Smith,teacher,School District 1
+student1@school.edu,John Doe,student,School District 1
+admin@school.edu,Admin User,admin,School District 1 

@@ -21,6 +21,10 @@ import { OnboardingDemo } from './features/onboarding/components/OnboardingDemo'
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SignIn } from './features/auth/components/SignIn';
 import { Footer } from './components/Footer';
+import { RegistrationForm } from './features/auth/components/RegistrationForm';
+import { EmailVerification } from './features/auth/components/EmailVerification';
+import { AdminRoute } from './components/AdminRoute';
+import { ProfileSettings } from './features/auth/components/ProfileSettings';
 
 const AppContent = () => {
   const {
@@ -88,6 +92,8 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<SignIn />} />
+          <Route path="/register" element={<RegistrationForm />} />
+          <Route path="/verify-email" element={<EmailVerification />} />
           
           {/* Protected Routes */}
           <Route path="/onboarding" element={
@@ -107,18 +113,23 @@ const AppContent = () => {
           } />
           <Route path="/visualizations" element={<DataVisualizationDemo />} />
           <Route path="/question-editor" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <QuestionEditorDemo />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/demo/editor" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <QuestionBankEditor />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <div>Dashboard (Protected)</div>
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <ProfileSettings />
             </ProtectedRoute>
           } />
         </Routes>

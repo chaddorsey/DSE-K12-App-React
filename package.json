@@ -1,4 +1,3 @@
-
 {
   "name": "dset-app",
   "version": "0.1.0",
@@ -28,7 +27,9 @@
     "build": "webpack --config webpack.config.ts",
     "start": "npm run dev",
     "prestart": "ts-node scripts/setup-dev-env.ts",
-    "dev:emulators": "firebase emulators:start",
+    "emulators": "firebase emulators:start",
+    "emulators:export": "firebase emulators:export ./emulator-data",
+    "emulators:start": "firebase emulators:start --import=./emulator-data --export-on-exit",
     "dev:app": "webpack serve --config webpack.config.dev.ts",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -38,9 +39,12 @@
     "check-size": "ts-node scripts/check-bundle-size.ts",
     "track-size": "ts-node scripts/analyze-bundle.ts",
     "predev": "node scripts/check-dev-deps.mjs",
-    "emulators": "firebase emulators:start",
     "seed:auth": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\",\"isolatedModules\":false}' ts-node ./scripts/seed-auth.ts",
-    "dev:emulate": "npm-run-all -p emulators dev"
+    "dev:emulate": "npm-run-all -p emulators dev",
+    "emulators:init": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\",\"isolatedModules\":false}' ts-node scripts/init-emulators.ts",
+    "populate:known-users": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node scripts/populate-known-users.ts",
+    "create:users-template": "cp ./data/known-users-template.csv ./data/known-users.csv",
+    "migrate:roles": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node scripts/migrate-roles.ts"
   },
   "eslintConfig": {
     "extends": [

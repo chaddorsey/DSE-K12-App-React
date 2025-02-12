@@ -4,10 +4,25 @@ import { MemoryRouter } from 'react-router-dom';
 import { Header } from '../Header';
 import { AuthProvider } from '../../features/auth/AuthContext';
 import * as auth from '../../features/auth/AuthContext';
+import { useAuth } from '../../features/auth/context/AuthContext';
+import { BrowserRouter } from 'react-router-dom';
 
 jest.mock('../../utils/logger');
+jest.mock('../../features/auth/context/AuthContext');
+
+const renderWithRouter = (component: React.ReactElement) => {
+  return render(
+    <BrowserRouter>
+      {component}
+    </BrowserRouter>
+  );
+};
 
 describe('Header', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   const renderHeader = () => {
     return render(
       <MemoryRouter>
@@ -81,5 +96,48 @@ describe('Header', () => {
     await waitFor(() => {
       expect(screen.getByText(/error logging out/i)).toBeInTheDocument();
     });
+  });
+
+  it('shows sign in link when user is not authenticated', () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: null });
+    renderWithRouter(<Header />);
+    expect(screen.getByText('Sign In')).toBeInTheDocument();
+  });
+
+  it('shows user profile button when authenticated', () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      user: {
+        displayName: 'Test User',
+        email: 'test@example.com'
+      }
+    });
+    
+    renderWithRouter(<Header />);
+    expect(screen.getByLabelText('User profile settings')).toBeInTheDocument();
+  });
+
+  it('renders navigation links correctly', () => {
+    (useAuth as jest.Mock).mockReturnValue({ user: null });
+    const links = [
+      { to: '/test1', label: 'Test 1' },
+      { to: '/test2', label: 'Test 2' }
+    ];
+    
+    renderWithRouter(<Header links={links} />);
+    links.forEach(link => {
+      expect(screen.getByText(link.label)).toBeInTheDocument();
+    });
+  });
+
+  it('shows dashboard link when authenticated', () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      user: {
+        displayName: 'Test User',
+        email: 'test@example.com'
+      }
+    });
+    
+    renderWithRouter(<Header />);
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 }); 

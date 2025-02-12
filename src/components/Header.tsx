@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
+import { UserProfileButton } from '../features/auth/components/UserProfileButton';
 import './Header.css';
 
 interface HeaderProps {
@@ -40,13 +41,7 @@ export function Header({ links = [] }: HeaderProps) {
           {user ? (
             <>
               <Link to="/dashboard">Dashboard</Link>
-              <button
-                onClick={signOut}
-                className="logout-button"
-              >
-                Sign Out
-              </button>
-              <span className="user-name">{user.displayName || 'User'}</span>
+              <UserProfileButton />
             </>
           ) : (
             <Link to="/login">Sign In</Link>
