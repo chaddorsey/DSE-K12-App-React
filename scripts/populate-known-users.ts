@@ -1,107 +1,119 @@
+// At the top of the file
+require('dotenv').config();
+
+// Make it a module first
+export {};
+
+// Set environment
 process.env.NODE_ENV = 'development';
 
-import fs from 'fs';
-import path from 'path';
+// Import admin methods only
+import * as admin from 'firebase-admin';
 import { parse } from 'csv-parse';
-import { db, auth } from '../src/config/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { getEmulatorConfig } from './utils/get-emulator-config';
+
+// ANSI color codes
+const colors = {
+  reset: '\x1b[0m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  blue: '\x1b[34m'
+};
 
 interface UserData {
   email: string;
   displayName: string;
   role: string;
   organization: string;
-  image?: string;
+  image: string;
 }
 
-async function loadUsersFromCSV(filePath: string): Promise<UserData[]> {
-  const fileContent = fs.readFileSync(filePath, 'utf-8');
-  
-  return new Promise((resolve, reject) => {
-    const users: UserData[] = [];
-    
-    parse(fileContent, {
-      columns: true,
-      skip_empty_lines: true
-    })
-    .on('data', (row) => {
-      console.log('Processing row:', row);
-      users.push({
-        email: row.email,
-        displayName: row.displayName,
-        role: row.role || 'user',
-        organization: row.organization,
-        image: row.image
-      });
-    })
-    .on('end', () => resolve(users))
-    .on('error', reject);
-  });
-}
+type CsvParseCallback = (error: Error | undefined, records: UserData[]) => void;
 
-async function createUser(userData: UserData) {
+// Initialize admin SDK with unique name
+const app = admin.initializeApp({
+  projectId: 'dse-k12-connections',
+  storageBucket: 'dse-k12-connections.appspot.com'
+}, 'populate-users');
+
+const emulators = getEmulatorConfig();
+
+// Set up emulator environment variables with dynamic ports
+process.env.FIRESTORE_EMULATOR_HOST = `localhost:${emulators.firestore?.port || 8080}`;
+process.env.FIREBASE_AUTH_EMULATOR_HOST = `localhost:${emulators.auth?.port || 9099}`;
+process.env.FIREBASE_STORAGE_EMULATOR_HOST = `localhost:${emulators.storage?.port || 9199}`;
+
+// Initialize services
+const auth = app.auth();
+const db = app.firestore();
+
+// Log initialization
+console.log('Firebase initialized with emulators:', {
+  firestore: process.env.FIRESTORE_EMULATOR_HOST,
+  auth: process.env.FIREBASE_AUTH_EMULATOR_HOST,
+  storage: process.env.FIREBASE_STORAGE_EMULATOR_HOST,
+  environment: process.env.NODE_ENV
+});
+
+async function populateUsers(): Promise<void> {
   try {
-    const password = 'password123';
-    
-    // Create auth user
-    const userCredential = await createUserWithEmailAndPassword(
-      auth, 
-      userData.email, 
-      password
-    );
-
-    const photoURL = userData.image ? 
-      `/assets/avatars/${userData.image}` : 
-      null;
-
-    // Update the auth profile
-    await updateProfile(userCredential.user, {
-      displayName: userData.displayName,
-      photoURL
+    // Read and parse CSV
+    const csvContent = await fs.readFile(path.join(process.cwd(), 'public/data/simpsons_users.csv'), 'utf-8');
+    const records: UserData[] = await new Promise((resolve, reject) => {
+      parse(csvContent, {
+        columns: true,
+        skip_empty_lines: true,
+      }, ((err: Error | undefined, records: UserData[]) => {
+        if (err) reject(err);
+        else resolve(records);
+      }) as CsvParseCallback);
     });
 
-    // Add user data to Firestore
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-      email: userData.email,
-      displayName: userData.displayName,
-      role: userData.role,
-      organization: userData.organization,
-      photoURL,
-      createdAt: new Date().toISOString()
-    });
+    console.log(`${colors.blue}Found ${records.length} users to process${colors.reset}`);
 
-    console.log(`Created user: ${userData.email} with photo: ${photoURL || 'none'}`);
-  } catch (error: unknown) {
-    const err = error as { message?: string; code?: string };
-    console.error(`Failed to create user ${userData.email}:`, 
-      err.message || 'Unknown error'
-    );
-  }
-}
+    for (const record of records) {
+      try {
+        // Try to get existing user first
+        let userRecord;
+        try {
+          userRecord = await auth.getUserByEmail(record.email);
+          console.log(`${colors.blue}• User exists: ${record.email}${colors.reset}`);
+        } catch (error) {
+          // Create new user if doesn't exist
+          userRecord = await auth.createUser({
+            email: record.email,
+            password: 'temporary-password',
+            displayName: record.displayName
+          });
+          console.log(`${colors.green}✓ Created user: ${record.email}${colors.reset}`);
+        }
 
-async function populateUsers() {
-  try {
-    // Wait for emulators to be ready
-    console.log('Waiting for emulators to be ready...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const csvPath = path.join(__dirname, '../public/data/simpsons_users.csv');
-    const users = await loadUsersFromCSV(csvPath);
-    
-    console.log(`Found ${users.length} users in CSV`);
-    
-    for (const user of users) {
-      await createUser(user);
+        // Use a placeholder photo URL
+        const photoURL = '/assets/avatars/default-avatar.jpg';
+
+        // Create Firestore document
+        await db.collection('users').doc(userRecord.uid).set({
+          email: record.email,
+          displayName: record.displayName,
+          role: record.role,
+          organization: record.organization,
+          photoURL,
+          createdAt: new Date(),
+          lastLoginAt: new Date(),
+          needsPhotoUpload: true  // Flag to prompt for photo upload
+        });
+
+      } catch (error) {
+        console.error(`${colors.red}✗ Failed to process user ${record.email}:${colors.reset}`, error);
+      }
     }
-    
-    console.log('User population complete');
+
+    console.log(`${colors.green}\nPopulation complete!${colors.reset}`);
     process.exit(0);
-  } catch (error: unknown) {
-    const err = error as { message?: string };
-    console.error('Failed to populate users:', 
-      err.message || 'Unknown error'
-    );
+  } catch (error) {
+    console.error(`${colors.red}Population failed:${colors.reset}`, error);
     process.exit(1);
   }
 }

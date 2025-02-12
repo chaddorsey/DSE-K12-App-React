@@ -1,10 +1,20 @@
-import { storage } from '@/config/firebase';
-import { ref, uploadBytes, getDownloadURL, StorageError } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import type { FirebaseStorage } from 'firebase/storage';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export class PhotoUploadService {
+  private storage: FirebaseStorage;
+
+  constructor() {
+    const storage = getStorage();
+    if (!storage) {
+      throw new Error('Firebase Storage not initialized');
+    }
+    this.storage = storage;
+  }
+
   validateFile(file: File | null | undefined): void {
     if (!file) {
       throw new Error('No file provided');
@@ -35,7 +45,7 @@ export class PhotoUploadService {
       this.validateFile(file);
       
       const fileName = `profile_${file.name}`;
-      const storageRef = ref(storage, `users/${userId}/${fileName}`);
+      const storageRef = ref(this.storage, `users/${userId}/${fileName}`);
       
       console.log('Uploading to:', storageRef.fullPath);
       const snapshot = await uploadBytes(storageRef, file);

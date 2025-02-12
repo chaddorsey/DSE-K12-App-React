@@ -17,8 +17,7 @@
       "port": 9199
     },
     "ui": {
-      "enabled": true,
-      "port": 7004
+      "enabled": true
     },
     "singleProjectMode": true
   },

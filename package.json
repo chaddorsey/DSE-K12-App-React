@@ -45,7 +45,16 @@
     "populate:known-users": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node scripts/populate-known-users.ts",
     "create:users-template": "cp ./data/known-users-template.csv ./data/known-users.csv",
     "migrate:roles": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node scripts/migrate-roles.ts",
-    "populate:users": "cross-env NODE_ENV=development TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node ./scripts/populate-known-users.ts"
+    "populate:users": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/populate-known-users.ts",
+    "populate:users:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/populate-known-users.ts",
+    "upload:photos": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/upload-user-photos.ts",
+    "upload:photos:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/upload-user-photos.ts",
+    "update:photo": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/update-user-photo.ts",
+    "update:photo:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/update-user-photo.ts",
+    "update:photos": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/update-user-photos.ts",
+    "update:photos:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/update-user-photos.ts",
+    "load:users": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/load-users.ts",
+    "load:users:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/load-users.ts"
   },
   "eslintConfig": {
     "extends": [
