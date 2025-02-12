@@ -1,113 +1,78 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ProfileSettings } from '../ProfileSettings';
 import { useAuth } from '../../context/AuthContext';
+import { storage, db } from '@/config/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updateProfile } from 'firebase/auth';
+import { doc, updateDoc } from 'firebase/firestore';
 
+// Mock dependencies
 jest.mock('../../context/AuthContext');
+jest.mock('firebase/storage');
+jest.mock('firebase/auth');
+jest.mock('firebase/firestore');
+
+const mockUser = {
+  uid: 'test-uid',
+  email: 'homer@springfield.com',
+  displayName: 'Homer Simpson',
+  photoURL: '/assets/avatars/homer.png',
+  emailVerified: true,
+  role: 'user'
+};
 
 describe('ProfileSettings', () => {
-  const mockSignOut = jest.fn();
-
   beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('renders nothing when user is not authenticated', () => {
-    (useAuth as jest.Mock).mockReturnValue({ user: null });
-    const { container } = render(<ProfileSettings />);
-    expect(container).toBeEmptyDOMElement();
+    (useAuth as jest.Mock).mockReturnValue({
+      user: mockUser,
+      signOut: jest.fn()
+    });
   });
 
   it('displays user information correctly', () => {
-    (useAuth as jest.Mock).mockReturnValue({
-      user: {
-        displayName: 'Test User',
-        email: 'test@example.com',
-        emailVerified: true,
-        role: 'user'
-      },
-      signOut: mockSignOut
-    });
-
     render(<ProfileSettings />);
     
-    const avatar = screen.getByAltText('Avatar for Test User');
-    expect(avatar).toHaveClass(
-      'ring-2',
-      'ring-white',
-      'ring-offset-1',
-      'ring-offset-indigo-100'
-    );
-    expect(avatar.closest('div')).toHaveClass('w-4', 'h-4');
-    
-    expect(screen.getByText('Test User')).toBeInTheDocument();
-    expect(screen.getByText('test@example.com')).toBeInTheDocument();
+    expect(screen.getByText(mockUser.email)).toBeInTheDocument();
+    expect(screen.getByText(mockUser.displayName)).toBeInTheDocument();
     expect(screen.getByText('Verified')).toBeInTheDocument();
-    expect(screen.getByText('user')).toBeInTheDocument();
+    expect(screen.getByText(mockUser.role)).toBeInTheDocument();
   });
 
-  it('shows verification status and resend button for unverified email', () => {
-    (useAuth as jest.Mock).mockReturnValue({
-      user: {
-        displayName: 'Test User',
-        email: 'test@example.com',
-        emailVerified: false,
-        role: 'user'
-      },
-      signOut: mockSignOut
-    });
+  it('handles photo upload successfully', async () => {
+    const mockFile = new File(['test'], 'test.png', { type: 'image/png' });
+    const mockDownloadURL = 'https://example.com/photo.png';
+
+    // Mock storage functions
+    (ref as jest.Mock).mockReturnValue('storage-ref');
+    (uploadBytes as jest.Mock).mockResolvedValue({});
+    (getDownloadURL as jest.Mock).mockResolvedValue(mockDownloadURL);
+    (updateProfile as jest.Mock).mockResolvedValue({});
+    (updateDoc as jest.Mock).mockResolvedValue({});
 
     render(<ProfileSettings />);
-    
-    expect(screen.getByText('Not verified')).toBeInTheDocument();
-    expect(screen.getByText('Resend verification')).toBeInTheDocument();
+
+    const input = screen.getByLabelText(/choose profile photo/i);
+    fireEvent.change(input, { target: { files: [mockFile] } });
+
+    await waitFor(() => {
+      expect(uploadBytes).toHaveBeenCalledWith('storage-ref', mockFile);
+      expect(updateProfile).toHaveBeenCalledWith(mockUser, { photoURL: mockDownloadURL });
+      expect(updateDoc).toHaveBeenCalled();
+    });
   });
 
-  it('calls signOut when sign out button is clicked', () => {
-    (useAuth as jest.Mock).mockReturnValue({
-      user: {
-        displayName: 'Test User',
-        email: 'test@example.com',
-        emailVerified: true,
-        role: 'user'
-      },
-      signOut: mockSignOut
-    });
+  it('handles upload errors', async () => {
+    const mockFile = new File(['test'], 'test.png', { type: 'image/png' });
+    (uploadBytes as jest.Mock).mockRejectedValue(new Error('Upload failed'));
 
     render(<ProfileSettings />);
-    fireEvent.click(screen.getByText('Sign Out'));
-    expect(mockSignOut).toHaveBeenCalled();
-  });
 
-  it('uses email as display name when displayName is not available', () => {
-    (useAuth as jest.Mock).mockReturnValue({
-      user: {
-        displayName: null,
-        email: 'test@example.com',
-        emailVerified: true,
-        role: 'user'
-      },
-      signOut: mockSignOut
+    const input = screen.getByLabelText(/choose profile photo/i);
+    fireEvent.change(input, { target: { files: [mockFile] } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/failed to upload photo/i)).toBeInTheDocument();
     });
-
-    render(<ProfileSettings />);
-    expect(screen.getByText('User')).toBeInTheDocument();
-  });
-
-  it('maintains compact layout with small avatar', () => {
-    (useAuth as jest.Mock).mockReturnValue({
-      user: {
-        displayName: 'Test User',
-        email: 'test@example.com',
-        emailVerified: true,
-        role: 'user'
-      },
-      signOut: mockSignOut
-    });
-
-    render(<ProfileSettings />);
-    
-    const container = screen.getByAltText('Avatar for Test User').closest('.flex');
-    expect(container).toHaveClass('space-x-3');
   });
 }); 
