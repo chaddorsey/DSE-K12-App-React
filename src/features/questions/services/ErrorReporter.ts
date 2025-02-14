@@ -1,4 +1,5 @@
 import type { QuestionResponse } from '../types/response';
+import { BatchProcessingError } from '../types/errors';
 
 export interface ErrorReport {
   timestamp: Date;
@@ -24,17 +25,19 @@ export class ErrorReporter {
   private static readonly STORAGE_KEY = 'error_reports';
 
   static async reportError(
-    error: Error,
-    type: ErrorReport['type'],
-    context?: ErrorReport['context']
+    error: Error | BatchProcessingError,
+    context: string,
+    metadata?: Record<string, unknown>
   ): Promise<void> {
+    const errorCode = error instanceof BatchProcessingError ? error.code : 'UNKNOWN';
+    
     const report: ErrorReport = {
       timestamp: new Date(),
-      type,
-      code: error instanceof BatchProcessingError ? error.code : 'UNKNOWN',
+      type: 'processing',
+      code: errorCode,
       message: error.message,
       context: {
-        ...context,
+        ...metadata,
         deviceInfo: {
           online: navigator.onLine,
           storageAvailable: this.isStorageAvailable(),

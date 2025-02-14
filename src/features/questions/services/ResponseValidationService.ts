@@ -4,56 +4,45 @@ import type {
   XYResponseValue, 
   MultipleChoiceResponseValue 
 } from '../types/response';
-import { ResponseValidationError } from './ResponseValidationError';
+import { ResponseValidationError } from '../types/errors';
 
 export class ResponseValidationService {
-  validateResponse(response: Partial<QuestionResponse>): response is QuestionResponse {
-    if (!this.validateRequiredFields(response)) {
+  validateResponse(response: Partial<QuestionResponse>): void {
+    const value = response.value;
+    const metadata = response.metadata;
+
+    if (!value || !metadata) {
       throw new ResponseValidationError(
         'Missing required fields',
-        'response',
         'MISSING_REQUIRED_FIELDS',
         { missingFields: this.getMissingFields(response) }
       );
     }
 
     try {
-      this.validateValue(response.value);
+      this.validateValue(value);
     } catch (error) {
       throw new ResponseValidationError(
         'Invalid response value',
-        'value',
         'INVALID_VALUE',
         { originalError: error }
       );
     }
 
     try {
-      this.validateMetadata(response.metadata);
+      this.validateMetadata(metadata);
     } catch (error) {
       throw new ResponseValidationError(
         'Invalid metadata',
-        'metadata',
         'INVALID_METADATA',
         { originalError: error }
       );
     }
-
-    return true;
-  }
-
-  private validateRequiredFields(response: Partial<QuestionResponse>): boolean {
-    return !!(
-      response.questionId?.trim() &&
-      response.userId?.trim() &&
-      response.value &&
-      response.metadata
-    );
   }
 
   private getMissingFields(response: Partial<QuestionResponse>): string[] {
-    const required = ['questionId', 'userId', 'value', 'metadata'];
-    return required.filter(field => !response[field]);
+    const requiredFields = ['questionId', 'userId', 'value', 'metadata'] as const;
+    return requiredFields.filter(field => !response[field]);
   }
 
   private validateValue(value: unknown): value is ResponseValue {

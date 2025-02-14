@@ -1,7 +1,8 @@
 import { BatchProcessor } from '../BatchProcessor';
 import { ResponseService } from '../ResponseService';
 import { ResponseValidationService } from '../ResponseValidationService';
-import type { QuestionResponse } from '../../types/response';
+import { Timestamp } from 'firebase/firestore';
+import type { QuestionResponse, Device } from '../../types';
 import { db } from '@/config/firebase';
 
 jest.mock('../ResponseService');
@@ -13,22 +14,33 @@ describe('BatchProcessor', () => {
   let mockResponseService: jest.Mocked<ResponseService>;
   let mockValidationService: jest.Mocked<ResponseValidationService>;
 
+  const mockDevice: Device = {
+    type: 'desktop',
+    input: 'mouse'
+  };
+
   const mockResponse: QuestionResponse = {
-    id: 'test-1',
+    id: 'test1',
     questionId: 'q1',
     userId: 'user1',
     value: {
       type: 'XY',
       coordinates: { x: 0.5, y: 0.5 },
-      interactions: []
+      interactions: [
+        {
+          type: 'move',
+          position: { x: 0.3, y: 0.3 },
+          timestamp: Date.now()
+        }
+      ]
     },
     metadata: {
       timeToAnswer: 1000,
       interactionCount: 1,
       confidence: 0.8,
-      device: { type: 'desktop', input: 'mouse' }
+      device: mockDevice
     },
-    timestamp: new Date()
+    timestamp: Timestamp.now()
   };
 
   beforeEach(() => {

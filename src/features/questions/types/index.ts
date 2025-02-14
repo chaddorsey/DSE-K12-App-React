@@ -5,6 +5,7 @@ export type {
 } from './question';
 
 import type { QuestionCategory } from './question';
+import { Timestamp } from 'firebase/firestore';
 
 export interface BaseQuestion {
   id: string;
@@ -72,15 +73,28 @@ export interface XYContinuumQuestionType extends BaseQuestion {
   };
 }
 
+export type DeviceType = 'desktop' | 'mobile' | 'tablet';
+export type InputType = 'mouse' | 'touch' | 'keyboard';
+
+export interface Device {
+  type: DeviceType;
+  input: InputType;
+}
+
+export interface ResponseMetadata {
+  timeToAnswer: number;
+  interactionCount: number;
+  confidence: number;
+  device: Device;
+}
+
 export interface QuestionResponse {
+  id: string;
   questionId: string;
-  answer?: string;
-  value?: number;
-  position?: {
-    x: number;
-    y: number;
-  };
-  timestamp: number;
+  userId: string;
+  value: GuessValue;
+  metadata: ResponseMetadata;
+  timestamp: Timestamp;
 }
 
 // DelightFactor types
@@ -152,4 +166,54 @@ export interface QuestionFormData {
   };
   requiredForOnboarding: boolean;
   includeInOnboarding: boolean;
+}
+
+export interface Connection {
+  id: string;
+  users: [string, string];  // [requesterId, targetId]
+  status: ConnectionStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ConnectionStatus = 'pending' | 'accepted';
+
+export interface XYValue {
+  type: 'XY';
+  coordinates: { x: number; y: number; };
+  interactions: Array<{
+    type: 'move' | 'click';
+    position: { x: number; y: number; };
+    timestamp: number;
+  }>;
+}
+
+export interface MultipleChoiceValue {
+  type: 'MULTIPLE_CHOICE';
+  selectedOption: string;
+}
+
+export type GuessValue = XYValue | MultipleChoiceValue;
+
+export interface GuessMetadata {
+  timeToGuess: number;
+  confidence: number;
+  device: Device;
+}
+
+export interface GuessAccuracy {
+  distance?: number;    // For XY
+  correct?: boolean;    // For Multiple Choice
+  score: number;       // Normalized 0-1
+}
+
+export interface GuessResponse {
+  id: string;
+  userId: string;
+  targetUserId: string;
+  questionId: string;
+  value: GuessValue;
+  metadata: GuessMetadata;
+  timestamp: Timestamp;
+  accuracy?: GuessAccuracy;
 } 

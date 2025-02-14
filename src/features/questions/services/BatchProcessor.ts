@@ -2,8 +2,9 @@ import { ResponseService } from './ResponseService';
 import { ResponseValidationService } from './ResponseValidationService';
 import type { QuestionResponse } from '../types/response';
 import { ResponseValidationError } from './ResponseValidationError';
-import { BatchProcessingError } from './BatchProcessingError';
+import { BatchProcessingError } from '../types/errors';
 import { ErrorReporter } from './ErrorReporter';
+import { Timestamp } from 'firebase/firestore';
 
 interface QueuedResponse extends QuestionResponse {
   retryCount?: number;
@@ -17,11 +18,14 @@ interface ProcessResult {
   }>;
 }
 
+export type BatchErrorCode = 'QUEUE_FULL' | 'OFFLINE' | 'STORAGE_FULL' | 'VALIDATION_FAILED' | 'PROCESSING_ERROR';
+
 export class BatchProcessor {
   private static readonly STORAGE_KEY = 'response_queue';
   private static readonly MAX_QUEUE_SIZE = 1000;
   private static readonly MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
   private isProcessing = false;
+  private readonly expirationSeconds = 7 * 24 * 60 * 60; // 7 days
 
   constructor(
     private responseService: ResponseService,
@@ -38,11 +42,12 @@ export class BatchProcessor {
     try {
       this.validationService.validateResponse(response);
     } catch (error) {
-      await ErrorReporter.reportError(error, 'validation', {
+      const processedError = this.handleError(error);
+      await ErrorReporter.reportError(processedError, 'validation', {
         questionId: response.questionId,
         userId: response.userId
       });
-      throw error;
+      throw processedError;
     }
 
     if (this.queue.length >= BatchProcessor.MAX_QUEUE_SIZE) {
@@ -122,10 +127,9 @@ export class BatchProcessor {
   }
 
   private cleanupOldResponses(): void {
-    const now = Date.now();
+    const now = Timestamp.now();
     this.queue = this.queue.filter(response => {
-      const age = now - response.timestamp.getTime();
-      return age < BatchProcessor.MAX_AGE_MS;
+      return !this.isExpired(response.timestamp);
     });
   }
 
@@ -174,4 +178,19 @@ export class BatchProcessor {
   private handleOnline = (): void => {
     this.processQueue().catch(console.error);
   };
+
+  private isExpired(timestamp: Timestamp): boolean {
+    const now = Timestamp.now();
+    return now.seconds - timestamp.seconds > this.expirationSeconds;
+  }
+
+  private handleError(error: unknown): BatchProcessingError {
+    if (error instanceof BatchProcessingError) {
+      return error;
+    }
+    if (error instanceof Error) {
+      return new BatchProcessingError(error.message, 'PROCESSING_ERROR');
+    }
+    return new BatchProcessingError('Unknown error', 'PROCESSING_ERROR');
+  }
 } 

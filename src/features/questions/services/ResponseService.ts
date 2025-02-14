@@ -228,4 +228,18 @@ export class ResponseService {
 
     return patterns;
   }
+
+  async getResponse(userId: string, questionId: string): Promise<QuestionResponse | null> {
+    const responseDoc = await getDoc(doc(this.responsesRef, `${userId}_${questionId}`));
+    if (!responseDoc.exists()) {
+      return null;
+    }
+    return this.mapResponse(responseDoc);
+  }
+
+  private mapResponse(responseDoc: any): QuestionResponse | null {
+    // Implement the mapping logic based on the structure of your response document
+    // This is a placeholder and should be replaced with the actual implementation
+    return responseDoc.data() as QuestionResponse;
+  }
 } 

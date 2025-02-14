@@ -7,154 +7,165 @@ import {
   getDocs, 
   query, 
   where,
-  increment 
+  increment,
+  Timestamp
 } from 'firebase/firestore';
-import type { XYResponseValue } from '../../types/response';
+import type { XYValue, QuestionResponse, Device, MultipleChoiceValue } from '../../types';
 
 describe('ResponseService', () => {
   let service: ResponseService;
+
+  const mockDevice: Device = {
+    type: 'desktop' as const,
+    input: 'mouse' as const
+  };
+
+  const mockMetadata = {
+    timeToAnswer: 1000,
+    interactionCount: 1,
+    confidence: 0.8,
+    device: mockDevice
+  };
+
+  const mockXYValue: XYValue = {
+    type: 'XY',
+    coordinates: { x: 0.5, y: 0.5 },
+    interactions: [
+      { 
+        type: 'move' as const, 
+        position: { x: 0.3, y: 0.3 }, 
+        timestamp: Date.now() 
+      }
+    ]
+  };
+
+  const mockMultipleChoiceValue: MultipleChoiceValue = {
+    type: 'MULTIPLE_CHOICE',
+    selectedOption: 'option-1',
+    interactions: [
+      {
+        type: 'click' as const,
+        position: { x: 0.5, y: 0.5 },
+        timestamp: Date.now()
+      }
+    ]
+  };
 
   beforeEach(() => {
     service = new ResponseService();
   });
 
-  it('should submit multiple choice response and update metrics', async () => {
-    const response = await service.submitResponse(
-      'test-user',
-      'test-question',
-      {
-        type: 'MULTIPLE_CHOICE',
-        selectedOption: 'option-1'
-      },
-      {
-        timeToAnswer: 1000,
-        interactionCount: 1,
-        confidence: 0.8,
-        device: {
-          type: 'desktop',
-          input: 'mouse'
-        }
-      }
-    );
+  describe('Response Submission', () => {
+    it('submits multiple choice response and updates metrics', async () => {
+      const response = await service.submitResponse(
+        'test-user',
+        'test-question',
+        mockMultipleChoiceValue,
+        mockMetadata
+      );
 
-    // Verify response was stored
-    const responseDoc = await getDoc(doc(db, 'responses', response));
-    expect(responseDoc.exists()).toBe(true);
+      const responseDoc = await getDoc(doc(db, 'responses', response));
+      expect(responseDoc.exists()).toBe(true);
 
-    // Verify metrics were updated
-    const metricsDoc = await getDoc(doc(db, 'response_metrics', 'test-question'));
-    expect(metricsDoc.exists()).toBe(true);
-    expect(metricsDoc.data()?.distribution['option-1']).toBe(1);
-  });
+      const metricsDoc = await getDoc(doc(db, 'response_metrics', 'test-question'));
+      expect(metricsDoc.exists()).toBe(true);
+      expect(metricsDoc.data()?.distribution['option-1']).toBe(1);
+    });
 
-  it('should submit XY response and update metrics with quadrant distribution', async () => {
-    const xyResponse: XYResponseValue = {
-      type: 'XY',
-      coordinates: { x: 0.75, y: 0.25 }, // top-right quadrant
-      interactions: [
+    it('submits XY response and updates quadrant distribution', async () => {
+      const topRightXYValue: XYValue = {
+        ...mockXYValue,
+        coordinates: { x: 0.75, y: 0.25 }
+      };
+
+      const response = await service.submitResponse(
+        'test-user',
+        'test-xy-question',
+        topRightXYValue,
+        mockMetadata
+      );
+
+      const responseDoc = await getDoc(doc(db, 'responses', response));
+      expect(responseDoc.exists()).toBe(true);
+
+      const metricsDoc = await getDoc(doc(db, 'response_metrics', 'test-xy-question'));
+      const metrics = metricsDoc.data();
+      
+      expect(metrics).toBeDefined();
+      expect(metrics?.distribution['quadrant:top-right']).toBe(1);
+      expect(metrics?.totalResponses).toBe(1);
+      expect(metrics?.averageTimeToAnswer).toBe(1000);
+    });
+
+    it('updates XY metrics with grid-based distribution', async () => {
+      const topLeftXYValue: XYValue = {
+        ...mockXYValue,
+        coordinates: { x: 0.1, y: 0.9 }
+      };
+
+      await service.submitResponse(
+        'test-user',
+        'test-xy-question',
+        topLeftXYValue,
+        mockMetadata
+      );
+
+      const metricsDoc = await getDoc(doc(db, 'response_metrics', 'test-xy-question'));
+      const metrics = metricsDoc.data();
+
+      expect(metrics?.distribution['grid:0,2']).toBe(1); // top-left cell
+    });
+
+    it('tracks interaction patterns in XY metrics', async () => {
+      const interactiveXYValue: XYValue = {
+        ...mockXYValue,
+        interactions: [
+          { type: 'move' as const, position: { x: 0.2, y: 0.2 }, timestamp: Date.now() },
+          { type: 'move' as const, position: { x: 0.8, y: 0.2 }, timestamp: Date.now() + 100 },
+          { type: 'click' as const, position: { x: 0.5, y: 0.5 }, timestamp: Date.now() + 200 }
+        ]
+      };
+
+      await service.submitResponse(
+        'test-user',
+        'test-xy-question',
+        interactiveXYValue,
         {
-          type: 'move',
-          position: { x: 0.5, y: 0.5 },
-          timestamp: Date.now()
-        },
-        {
-          type: 'click',
-          position: { x: 0.75, y: 0.25 },
-          timestamp: Date.now()
+          ...mockMetadata,
+          timeToAnswer: 1500,
+          interactionCount: 3
         }
-      ]
-    };
+      );
 
-    const response = await service.submitResponse(
-      'test-user',
-      'test-xy-question',
-      xyResponse,
-      {
-        timeToAnswer: 2000,
-        interactionCount: 2,
-        confidence: 0.9,
-        device: {
-          type: 'desktop',
-          input: 'mouse'
-        }
-      }
-    );
+      const metricsDoc = await getDoc(doc(db, 'response_metrics', 'test-xy-question'));
+      const metrics = metricsDoc.data();
 
-    // Verify response was stored
-    const responseDoc = await getDoc(doc(db, 'responses', response));
-    expect(responseDoc.exists()).toBe(true);
-
-    // Verify metrics were updated
-    const metricsDoc = await getDoc(doc(db, 'response_metrics', 'test-xy-question'));
-    const metrics = metricsDoc.data();
-    
-    expect(metrics).toBeDefined();
-    expect(metrics?.distribution['quadrant:top-right']).toBe(1);
-    expect(metrics?.totalResponses).toBe(1);
-    expect(metrics?.averageTimeToAnswer).toBe(2000);
+      expect(metrics?.interactionPatterns).toBeDefined();
+      expect(metrics?.interactionPatterns.horizontalMoves).toBeGreaterThan(0);
+    });
   });
 
-  it('should update XY metrics with grid-based distribution', async () => {
-    const xyResponse: XYResponseValue = {
-      type: 'XY',
-      coordinates: { x: 0.1, y: 0.9 },
-      interactions: []
-    };
+  describe('Error Handling', () => {
+    it('handles validation errors gracefully', async () => {
+      const invalidValue = {
+        ...mockXYValue,
+        coordinates: { x: 1.5, y: 0.5 } // Invalid coordinates
+      };
 
-    await service.submitResponse(
-      'test-user',
-      'test-xy-question',
-      xyResponse,
-      {
-        timeToAnswer: 1000,
-        interactionCount: 1,
-        confidence: 0.8,
-        device: {
-          type: 'desktop',
-          input: 'mouse'
-        }
-      }
-    );
+      await expect(
+        service.submitResponse('test-user', 'test-question', invalidValue, mockMetadata)
+      ).rejects.toThrow();
+    });
 
-    const metricsDoc = await getDoc(doc(db, 'response_metrics', 'test-xy-question'));
-    const metrics = metricsDoc.data();
+    it('handles database errors gracefully', async () => {
+      // Mock a database error
+      jest.spyOn(db, 'collection').mockImplementationOnce(() => {
+        throw new Error('Database error');
+      });
 
-    // Check grid cell distribution (3x3 grid)
-    expect(metrics?.distribution['grid:0,2']).toBe(1); // top-left cell
+      await expect(
+        service.submitResponse('test-user', 'test-question', mockXYValue, mockMetadata)
+      ).rejects.toThrow('Database error');
+    });
   });
-
-  it('should track interaction patterns in XY metrics', async () => {
-    const xyResponse: XYResponseValue = {
-      type: 'XY',
-      coordinates: { x: 0.5, y: 0.5 },
-      interactions: [
-        { type: 'move', position: { x: 0.2, y: 0.2 }, timestamp: Date.now() },
-        { type: 'move', position: { x: 0.8, y: 0.2 }, timestamp: Date.now() + 100 },
-        { type: 'click', position: { x: 0.5, y: 0.5 }, timestamp: Date.now() + 200 }
-      ]
-    };
-
-    await service.submitResponse(
-      'test-user',
-      'test-xy-question',
-      xyResponse,
-      {
-        timeToAnswer: 1500,
-        interactionCount: 3,
-        confidence: 0.7,
-        device: {
-          type: 'desktop',
-          input: 'mouse'
-        }
-      }
-    );
-
-    const metricsDoc = await getDoc(doc(db, 'response_metrics', 'test-xy-question'));
-    const metrics = metricsDoc.data();
-
-    expect(metrics?.interactionPatterns).toBeDefined();
-    expect(metrics?.interactionPatterns.horizontalMoves).toBeGreaterThan(0);
-  });
-
-  // Add more tests...
 }); 

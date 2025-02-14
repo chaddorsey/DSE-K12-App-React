@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, setDoc, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { ResponseService } from './ResponseService';
 import { MetricsCalculator } from './MetricsCalculator';
@@ -8,14 +8,9 @@ import type {
   GuessValue, 
   GuessMetadata,
   XYValue,
-  MultipleChoiceValue
+  MultipleChoiceValue,
+  GuessAccuracy
 } from '../types';
-
-interface GuessAccuracy {
-  distance?: number;    // For XY
-  correct?: boolean;    // For Multiple Choice
-  score: number;       // Normalized 0-1
-}
 
 export class GuessService {
   private readonly guessesRef = collection(db, 'guesses');
@@ -47,7 +42,7 @@ export class GuessService {
       questionId,
       value,
       metadata,
-      timestamp: new Date()
+      timestamp: Timestamp.now()
     };
 
     // Calculate accuracy if target has responded
@@ -155,5 +150,15 @@ export class GuessService {
 
     const guessesSnapshot = await getDocs(guessesQuery);
     return guessesSnapshot.docs.map(doc => doc.data() as GuessResponse);
+  }
+
+  private mapResponse(doc: any): QuestionResponse {
+    const data = doc.data();
+    return {
+      ...data,
+      timestamp: data.timestamp instanceof Timestamp ? 
+        data.timestamp : 
+        Timestamp.fromDate(data.timestamp)
+    };
   }
 } 

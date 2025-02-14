@@ -1,3 +1,30 @@
+import type { GuessResponse, QuestionResponse } from './index';
+
+export interface MetricsSummary {
+  totalResponses: number;
+  averageAccuracy: number;
+  averageConfidence: number;
+  distributionByType: Record<string, number>;
+  timeStats: {
+    min: number;
+    max: number;
+    avg: number;
+  };
+}
+
+export interface ResponseMetrics {
+  accuracy: number;
+  confidence: number;
+  timeToAnswer: number;
+  interactionCount: number;
+  deviceType: string;
+}
+
+export interface GuessMetrics extends ResponseMetrics {
+  targetAccuracy: number;
+  targetConfidence: number;
+}
+
 interface ResponseMetrics {
   questionId: string;
   totalResponses: number;
