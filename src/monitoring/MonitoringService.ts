@@ -45,13 +45,13 @@ export class MonitoringService implements IMonitoringService {
     this.checkHealthMetrics();
   }
 
-  public trackError(name: string, error: Error, context?: Record<string, unknown>): void {
+  public trackError(eventName: string, error: Error, metadata?: Record<string, unknown>): void {
     if (process.env.NODE_ENV !== 'test') {
-      console.error('Error tracked:', { name, error, context });
+      console.error('Error tracked:', { name: eventName, error, context: metadata });
     }
     this.errors.push({
       error,
-      context: context || {},
+      context: metadata || {},
       timestamp: Date.now(),
       handled: true
     });

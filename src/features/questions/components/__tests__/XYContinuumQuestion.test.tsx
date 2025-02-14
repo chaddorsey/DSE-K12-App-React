@@ -5,18 +5,15 @@ import type { XYContinuumQuestionType } from '../../types';
 
 describe('XYContinuumQuestion', () => {
   const mockQuestion: XYContinuumQuestionType = {
-    id: 'xy1',
-    type: 'XY_CONTINUUM',
-    prompt: 'Plot your work style preferences:',
-    xAxis: {
-      left: 'Process-Oriented',
-      right: 'Results-Oriented'
-    },
-    yAxis: {
-      top: 'Independent',
-      bottom: 'Collaborative'
-    },
-    defaultPosition: { x: 0.5, y: 0.5 }
+    id: '1',
+    type: 'XY',
+    text: 'Test question',
+    config: {
+      axisLabels: {
+        x: { min: 'Left', max: 'Right' },
+        y: { min: 'Bottom', max: 'Top' }
+      }
+    }
   };
 
   const defaultProps = {
@@ -34,11 +31,11 @@ describe('XYContinuumQuestion', () => {
     it('renders the question prompt and axis labels', () => {
       render(<XYContinuumQuestion {...defaultProps} />);
       
-      expect(screen.getByText(mockQuestion.prompt)).toBeInTheDocument();
-      expect(screen.getByText(mockQuestion.xAxis.left)).toBeInTheDocument();
-      expect(screen.getByText(mockQuestion.xAxis.right)).toBeInTheDocument();
-      expect(screen.getByText(mockQuestion.yAxis.top)).toBeInTheDocument();
-      expect(screen.getByText(mockQuestion.yAxis.bottom)).toBeInTheDocument();
+      expect(screen.getByText(mockQuestion.text)).toBeInTheDocument();
+      expect(screen.getByText(mockQuestion.config.axisLabels.x.min)).toBeInTheDocument();
+      expect(screen.getByText(mockQuestion.config.axisLabels.x.max)).toBeInTheDocument();
+      expect(screen.getByText(mockQuestion.config.axisLabels.y.min)).toBeInTheDocument();
+      expect(screen.getByText(mockQuestion.config.axisLabels.y.max)).toBeInTheDocument();
     });
 
     it('renders a draggable dot at the default position', () => {

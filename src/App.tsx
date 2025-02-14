@@ -27,6 +27,7 @@ import { AdminRoute } from './components/AdminRoute';
 import { ProfileSettings } from './features/auth/components/ProfileSettings';
 import { QuestionDemo } from './features/questions/demo/QuestionDemo';
 import { DemoBanner } from './components/DemoBanner';
+import { ProfileDemo } from './features/profile/components/ProfileDemo';
 
 const AppContent = () => {
   const {
@@ -137,6 +138,7 @@ const AppContent = () => {
             </ProtectedRoute>
           } />
           <Route path="/question-demo" element={<QuestionDemo />} />
+          <Route path="/profile-demo" element={<ProfileDemo />} />
         </Routes>
       </main>
       <Footer />

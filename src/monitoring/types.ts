@@ -3,6 +3,11 @@
  */
 
 export type PerformanceEventType = 
+  | 'auth_login' 
+  | 'auth_logout'
+  | 'auth_register'
+  | 'profile_update'
+  | 'stats_update'
   // Page and Component Events
   | 'page-load'
   | 'api-call'
@@ -48,9 +53,9 @@ export type PerformanceEventType =
   | 'share_error';
 
 export interface IPerformanceMetrics {
-  totalTime: number;
-  timestamp: number;
   type: PerformanceEventType;
+  success: boolean;
+  totalTime: number;
   metadata?: Record<string, unknown>;
 }
 

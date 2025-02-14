@@ -1,13 +1,16 @@
 import React from 'react';
-import type { IFormRenderProps } from '../FormContainer/FormContainer';
-import type { EndpointPath } from '../../api/types/endpoints';
+import { IFormRenderProps } from '../FormContainer/types';
+import { EndpointPath } from '@/api/types/endpoints';
 
-export const UserSettingsForm: React.FC<IFormRenderProps<'users.settings'>> = ({
+type UserSettingsEndpoint = Extract<EndpointPath, 'users.settings'>;
+
+export const UserSettingsForm: React.FC<IFormRenderProps<UserSettingsEndpoint>> = ({
   data,
   errors,
   isSubmitting,
-  setFieldValue,
-  handleSubmit
+  handleChange,
+  handleSubmit,
+  setFieldValue
 }) => {
   return (
     <form onSubmit={handleSubmit}>

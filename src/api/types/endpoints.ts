@@ -118,4 +118,15 @@ export interface IUseApiResult<T> {
   error: Error | null;
   request: <P extends EndpointPath>(path: P, options?: IUseApiOptions<T>) => Promise<T>;
   reset: () => void;
-} 
+}
+
+export interface EndpointDataTypes {
+  'users.settings': {
+    language: string;
+    timezone: string;
+    // other settings fields
+  };
+  // ... other endpoint data types
+}
+
+export type EndpointDataType<T extends EndpointPath> = EndpointDataTypes[T]; 

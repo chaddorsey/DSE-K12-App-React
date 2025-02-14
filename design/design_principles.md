@@ -116,8 +116,8 @@ Specifics:
 		- The Matching Quiz view is available when the user has already completed an initial selection of both names and pictures. This view presents a series of multiple choice quizzes:
 			- For pictures the user knows whose names they don't know, they are presented with the selfie picture and a three-option multiple-choice question of names
 			- For names the user knows but couldn't pick out of a crowd, they are presented with the name and a three-option multiple-choice selection of user avatars
-- Graph tab:
-	- Upon opening the graph tab, the user is presented with two axes and a random dot scatter view showing one dot for every person in the database
+- Visualization tab:
+	- Upon opening the visualization tab, the user is presented with two axes and a random dot scatter view showing one dot for every person in the database
 	- The view contains three pulldown menus at bottom, one each for the vertical axis, horizontal axis, and legend
 	- Changing the pulldown menus triggers dynamic shifts between various graph views
 	- All shifts between graph views are animated. Dots on the screen move smoothly from one configuration to another, fade in or out of existence, and gain or lose color via smooth tweening and gentle easing

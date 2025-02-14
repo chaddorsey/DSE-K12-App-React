@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { NotificationBanner } from '@/components/NotificationBanner';
 import { authService } from '../services/AuthService';
+import { User as FirebaseUser } from 'firebase/auth';
 
 export const EmailVerification: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: FirebaseUser | null };
   const navigate = useNavigate();
   const [isResending, setIsResending] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
   if (!user) {
     navigate('/login');
@@ -25,6 +27,11 @@ export const EmailVerification: React.FC = () => {
     } finally {
       setIsResending(false);
     }
+  };
+
+  const checkVerification = async (user: FirebaseUser) => {
+    await user.reload();
+    setIsVerified(user.emailVerified);
   };
 
   return (

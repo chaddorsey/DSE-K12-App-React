@@ -2,9 +2,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as FirebaseUser, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth, db } from '../../config/firebase';
 import { doc, getDoc, setDoc, collection, query, limit, getDocs, where } from 'firebase/firestore';
-import { MonitoringService } from '../../monitoring/MonitoringService';
+import { MonitoringService } from '@/monitoring/MonitoringService';
 import { logger } from '../../utils/logger';
 import { devDataService } from '../../services/devDataService';
+import { AuthService } from './services/AuthService';
+import { IAnalyticsEvent } from '@/monitoring/types';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const useDummyAuth = process.env.REACT_APP_USE_DUMMY_AUTH === 'true';
@@ -16,33 +18,39 @@ export interface User extends FirebaseUser {
   onboardingCompleted?: boolean;
 }
 
-interface AuthContextValue {
-  user: User | null;
-  loading: boolean;
-  error: Error | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  authMode: 'real' | 'dummy';
-  switchAuthMode: (mode: 'real' | 'dummy') => Promise<void>;
+// Add custom error type
+interface AuthError extends Error {
+  type?: string;
+  code?: string;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+// Update IAuthContext interface to match implementation
+interface IAuthContext {
+  user: User | null;
+  loading: boolean;
+  error: AuthError | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  signInAnonymously: (mode: "dummy" | "real") => Promise<void>;
+  // ... other methods
+}
+
+const AuthContext = createContext<IAuthContext | null>(null);
 
 interface AuthMode {
   type: 'real' | 'dummy';
   active: boolean;
 }
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<AuthError | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>(() => ({
     type: process.env.REACT_APP_USE_DUMMY_AUTH === 'true' ? 'dummy' : 'real',
     active: true
   }));
-
+  const authService = new AuthService();
   const monitoring = MonitoringService.getInstance();
 
   // Fetch additional user data from Firestore
@@ -107,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       logger.error('Error switching auth mode:', error);
-      setError(error as Error);
+      setError(error as AuthError);
     } finally {
       setLoading(false);
     }
@@ -126,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } catch (error) {
           logger.error('Auth state change error:', error);
-          setError(error as Error);
+          setError(error as AuthError);
         } finally {
           setLoading(false);
         }
@@ -153,7 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         } catch (error) {
           logger.error('Auth state change error:', error);
-          setError(error as Error);
+          setError(error as AuthError);
         } finally {
           setLoading(false);
         }
@@ -162,69 +170,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [authMode.type]);
 
-  const signIn = async (email: string, password: string) => {
-    const startTime = Date.now();
-    setError(null);
+  const handleError = (error: unknown) => {
+    const authError: AuthError = error instanceof Error ? error : new Error('An unknown error occurred');
+    if (error instanceof Error) {
+      authError.type = 'auth_error';
+    }
+    setError(authError);
+    
+    monitoring.trackError(
+      'auth_error',  // eventName: string
+      authError,     // error: Error
+      {             // metadata?: Record<string, unknown>
+        timestamp: new Date(),
+        context: 'auth_flow',
+        errorType: authError.type,
+        errorCode: authError.code
+      }
+    );
+  };
 
+  const signIn = async (email: string, password: string): Promise<void> => {
     try {
-      const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
-      const enrichedUser = await enrichUserData(firebaseUser);
-      
-      monitoring.trackPerformance({
-        type: 'auth_login',
-        success: true,
-        totalTime: Date.now() - startTime
-      });
-
-      return enrichedUser;
+      await authService.signIn(email, password);
     } catch (error) {
-      monitoring.trackError(error as Error, {
-        type: 'auth_error',
-        operation: 'login'
-      });
-      setError(error as Error);
+      handleError(error);
       throw error;
     }
   };
 
-  const signOut = async () => {
-    const startTime = Date.now();
-    setError(null);
+  const signInAnonymously = async (mode: "dummy" | "real"): Promise<void> => {
+    // Implementation
+  };
 
+  const signOut = async (): Promise<void> => {
     try {
-      await firebaseSignOut(auth);
-      
-      monitoring.trackPerformance({
-        type: 'auth_logout',
-        success: true,
-        totalTime: Date.now() - startTime
-      });
+      await auth.signOut();
     } catch (error) {
-      monitoring.trackError(error as Error, {
-        type: 'auth_error',
-        operation: 'logout'
-      });
-      setError(error as Error);
+      handleError(error);
       throw error;
     }
+  };
+
+  const value: IAuthContext = {
+    user,
+    loading,
+    error,
+    signIn,
+    signOut,
+    signInAnonymously: signInAnonymously!, // Assert non-null since we know it's defined
+    // ... other methods
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        loading, 
-        error, 
-        signIn, 
-        signOut,
-        authMode: authMode.type,
-        switchAuthMode: isDevelopment ? switchAuthMode : undefined
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

@@ -112,6 +112,22 @@ export class AuthService {
     }
     return userDoc.data() as IUser;
   }
+
+  private mapFirebaseUser(user: FirebaseUser, role: UserRole = 'student'): IUser {
+    return {
+      uid: user.uid,
+      email: user.email || '',
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      phoneNumber: user.phoneNumber,
+      emailVerified: user.emailVerified,
+      isAnonymous: user.isAnonymous,
+      role,
+      metadata: {},
+      // Include other required FirebaseUser properties
+      ...user
+    };
+  }
 }
 
 export const authService = new AuthService();

@@ -1,7 +1,11 @@
 import React from 'react';
 import { FormContainer } from '../FormContainer/FormContainer';
 import { UserSettingsForm } from './UserSettingsForm';
-import type { IUserSettings } from '../../api/types/models';
+import { IUserSettings } from '@/features/auth/types/user';
+import { EndpointPath } from '@/api/types/endpoints';
+
+// Define the settings endpoint type
+type UserSettingsEndpoint = Extract<EndpointPath, 'users.settings'>;
 
 const validateSettings = (data: Partial<IUserSettings>): Record<string, string> | null => {
   const errors: Record<string, string> = {};
@@ -22,7 +26,7 @@ export const UserSettings: React.FC = () => {
   };
 
   return (
-    <FormContainer
+    <FormContainer<UserSettingsEndpoint>
       endpoint="users.settings"
       validate={validateSettings}
       onSuccess={handleSuccess}
