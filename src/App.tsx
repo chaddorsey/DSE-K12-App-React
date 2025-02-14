@@ -25,6 +25,8 @@ import { RegistrationForm } from './features/auth/components/RegistrationForm';
 import { EmailVerification } from './features/auth/components/EmailVerification';
 import { AdminRoute } from './components/AdminRoute';
 import { ProfileSettings } from './features/auth/components/ProfileSettings';
+import { QuestionDemo } from './features/questions/demo/QuestionDemo';
+import { DemoBanner } from './components/DemoBanner';
 
 const AppContent = () => {
   const {
@@ -81,6 +83,7 @@ const AppContent = () => {
 
   return (
     <div className="App">
+      <DemoBanner />
       <Header 
         links={[
           { to: '/', label: 'Home' },
@@ -133,6 +136,7 @@ const AppContent = () => {
               <ProfileSettings />
             </ProtectedRoute>
           } />
+          <Route path="/question-demo" element={<QuestionDemo />} />
         </Routes>
       </main>
       <Footer />

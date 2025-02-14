@@ -1,4 +1,20 @@
-export type QuestionType = 'MC' | 'NM' | 'OP' | 'SCALE' | 'MATRIX';
+export type QuestionType = 
+  | 'MC'          // Multiple Choice
+  | 'NM'          // Numeric
+  | 'OP'          // Open Response
+  | 'SCALE'       // Scale
+  | 'XY'          // XY Continuum
+  | 'SLIDER';     // Unified Slider
+
+export const QuestionCategory = {
+  DEMOGRAPHIC: 'DEMOGRAPHIC',
+  PROFESSIONAL: 'PROFESSIONAL',
+  PERSONALITY: 'PERSONALITY',
+  INTERESTS: 'INTERESTS',
+  BACKGROUND: 'BACKGROUND'
+} as const;
+
+export type QuestionCategory = typeof QuestionCategory[keyof typeof QuestionCategory];
 
 export interface BaseQuestion {
   id: string;
@@ -42,18 +58,51 @@ export interface ScaleQuestion extends BaseQuestion {
   labels?: Record<number, string>;
 }
 
+export interface XYQuestion extends BaseQuestion {
+  type: 'XY';
+  config: {
+    xAxis: {
+      min: number;
+      max: number;
+      labels?: Record<number, string>;
+    };
+    yAxis: {
+      min: number;
+      max: number;
+      labels?: Record<number, string>;
+    };
+  };
+}
+
+export interface PolarQuestionConfig {
+  type: 'discrete' | 'continuous' | 'segmented-continuous';
+  // For segmented-continuous mode
+  segments: Array<{
+    id: string;
+    label: string;
+    description?: string;
+    color?: string;
+  }>;
+  intensity?: {
+    label: string;
+    min: number;
+    max: number;
+    defaultValue?: number;
+    labels?: Record<number, string>; // e.g., {0: 'Low', 0.5: 'Medium', 1: 'High'}
+  };
+}
+
+export interface PolarSelection {
+  segmentId: string;
+  intensity: number;
+}
+
 export type Question = 
   | MultipleChoiceQuestion 
   | NumericQuestion 
   | OpenEndedQuestion 
-  | ScaleQuestion;
-
-export type QuestionCategory = 
-  | 'DEMOGRAPHIC'
-  | 'PROFESSIONAL'
-  | 'PERSONALITY'
-  | 'INTERESTS'
-  | 'BACKGROUND';
+  | ScaleQuestion
+  | XYQuestion;
 
 export interface QuestionResponse {
   questionId: string;

@@ -1,0 +1,396 @@
+.xy-multiple-choice {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+/* Quadrant Layout */
+.quadrant-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  aspect-ratio: 1;
+  touch-action: none;
+}
+
+.quadrant {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border: none;
+  text-align: center;
+  font-size: 1rem;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.quadrant:hover {
+  opacity: 0.9;
+}
+
+.quadrant.selected {
+  outline: 4px solid #000;
+  outline-offset: -4px;
+}
+
+/* Polar Layout */
+.polar-container {
+  width: 100%;
+  aspect-ratio: 1;
+  touch-action: none;
+}
+
+.polar-container svg {
+  width: 100%;
+  height: 100%;
+}
+
+.segment {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.segment:hover {
+  opacity: 0.9;
+}
+
+.segment.selected {
+  stroke: #000;
+  stroke-width: 2;
+}
+
+.center-text {
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 14px;
+  fill: #000;
+  pointer-events: none;
+}
+
+/* Accessibility */
+.quadrant:focus,
+.segment:focus {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+/* Disabled state */
+.xy-multiple-choice[aria-disabled="true"] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Update Touch States with better animations */
+.quadrant, .segment {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+}
+
+.quadrant.touching {
+  opacity: 0.85;
+  transform: scale(0.97);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.segment.touching {
+  opacity: 0.85;
+  transform: scale(0.97);
+  transform-origin: center;
+  filter: brightness(1.1);
+}
+
+/* Add ripple effect for quadrants */
+.quadrant::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.quadrant.touching::after {
+  opacity: 1;
+}
+
+/* Add glow effect for selected state */
+.quadrant.selected,
+.segment.selected {
+  animation: selectedPulse 2s infinite;
+}
+
+@keyframes selectedPulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.1); }
+  100% { filter: brightness(1); }
+}
+
+/* Improve touch targets */
+@media (pointer: coarse) {
+  .quadrant {
+    font-size: 1.125rem;
+    padding: 1.5rem;
+  }
+
+  .center-text {
+    font-size: 16px;
+  }
+}
+
+/* Add to existing styles */
+
+.polar-container.segmented .intensity-ring {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.1);
+  stroke-width: 0.5;
+  pointer-events: none;
+}
+
+.polar-container.segmented .segment {
+  transform-origin: center;
+  will-change: opacity;
+}
+
+.polar-container.segmented .segment:hover {
+  opacity: 1;
+}
+
+.polar-container.segmented .segment.selected {
+  filter: brightness(1.2);
+  stroke: #000;
+  stroke-width: 2;
+  transform: scale(1.05);
+}
+
+.polar-container.segmented .segment-label {
+  font-size: 12px;
+  text-anchor: middle;
+  fill: #4b5563;
+  pointer-events: none;
+}
+
+.polar-container.segmented .selection-marker .marker {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 2;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+.polar-container.segmented .intensity-ring {
+  transition: opacity 0.3s;
+}
+
+.polar-container.segmented.dragging .intensity-ring {
+  opacity: 0.8;
+}
+
+.polar-container.segmented .selection-marker .marker {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes markerPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.polar-container.segmented .selection-marker.active .marker {
+  animation: markerPulse 1s infinite;
+}
+
+/* Add gradient backgrounds for segments */
+.polar-container.segmented .segment {
+  /* ... existing styles ... */
+}
+
+.polar-container.segmented .segment-background {
+  fill: url(#intensityGradient);
+  opacity: 0.15;
+  transition: opacity 0.3s;
+}
+
+.polar-container.segmented .segment:hover .segment-background {
+  opacity: 0.25;
+}
+
+/* Accessibility enhancements */
+.polar-container.segmented .intensity-label {
+  font-size: 10px;
+  fill: #6b7280;
+  text-anchor: middle;
+}
+
+.polar-container.segmented .segment:focus {
+  outline: none;
+}
+
+.polar-container.segmented .segment:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+.polar-container.segmented .intensity-ring-label {
+  font-size: 8px;
+  fill: rgba(0, 0, 0, 0.4);
+  text-anchor: start;
+}
+
+/* Add to existing styles */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Add keyboard focus indicator */
+.polar-container.segmented .segment-group:focus-visible {
+  outline: none;
+}
+
+.polar-container.segmented .segment-group:focus-visible .segment {
+  filter: brightness(1.2);
+  stroke: #000;
+  stroke-width: 3;
+}
+
+/* Add keyboard instruction tooltip */
+.polar-container.segmented .segment-group:focus-visible::after {
+  content: attr(aria-description);
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  max-width: 200px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Add to existing styles */
+
+.polar-container.segmented .confirm-selection {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.polar-container.segmented .confirm-selection:hover {
+  background: #1d4ed8;
+  transform: translateX(-50%) translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.polar-container.segmented .selection-marker.pending .marker {
+  stroke-dasharray: 4;
+  animation: markerPulse 2s infinite, dash 1s linear infinite;
+}
+
+.polar-container.segmented .selection-marker.confirmed .marker {
+  stroke-width: 3;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+
+/* Update hover states for pending selection */
+.polar-container.segmented.has-pending-selection .segment:hover {
+  filter: brightness(1.05);
+  transform: scale(1.01);
+}
+
+/* Add draggable dot styles */
+.polar-container.segmented .draggable-dot {
+  touch-action: none;
+  will-change: transform;
+}
+
+.polar-container.segmented .draggable-dot.dragging {
+  cursor: grabbing !important;
+}
+
+.polar-container.segmented .dot-handle {
+  fill: #000;
+  r: 6;
+  opacity: 0.8;
+}
+
+.polar-container.segmented .draggable-dot.dragging .dot-handle {
+  opacity: 1;
+}
+
+.polar-container.segmented .draggable-dot:hover .dot-handle {
+  opacity: 1;
+}
+
+/* Remove old marker styles */
+.polar-container.segmented .selection-marker,
+.polar-container.segmented .segment-background,
+.polar-container.segmented .segment-group[data-hovered="true"] .segment {
+  display: none;
+}
+
+/* Update intensity rings to be more subtle */
+.polar-container.segmented .intensity-ring {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.1);
+  stroke-width: 0.5;
+  pointer-events: none;
+}
+
+.polar-container.segmented .intensity-ring-label {
+  font-size: 8px;
+  fill: rgba(0, 0, 0, 0.4);
+  text-anchor: start;
+}
+
+/* Add hover effect for segments */
+.polar-container.segmented .segment-group[data-hovered="true"] .segment {
+  opacity: 1;
+  transform: scale(1.02);
+}
+
+/* Optimize for touch devices */
+@media (pointer: coarse) {
+  .polar-container.segmented .dot-handle {
+    r: 8; /* Larger touch target */
+  }
+
+  .polar-container.segmented .intensity-ring-label {
+    display: none; /* Remove visual noise on mobile */
+  }
+}
+
+/* Add touch feedback */
+.polar-container.segmented .segment[data-active="true"] {
+  opacity: 1;
+} 

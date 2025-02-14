@@ -1,0 +1,21 @@
+.demo-banner {
+  background: linear-gradient(to right, #2563eb, #7c3aed);
+  color: white;
+  text-align: center;
+  padding: 0.5rem;
+  font-weight: 500;
+}
+
+.demo-banner a {
+  color: white;
+  text-decoration: underline;
+  margin: 0 0.5rem;
+}
+
+.demo-banner .badge {
+  background: #ef4444;
+  padding: 0.125rem 0.375rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+} 

@@ -1,5 +1,10 @@
-export type QuestionCategory = 
-  | 'GENERAL';
+export type { 
+  QuestionCategory,
+  Question,
+  QuestionType
+} from './question';
+
+import type { QuestionCategory } from './question';
 
 export interface BaseQuestion {
   id: string;
@@ -78,6 +83,7 @@ export interface QuestionResponse {
   timestamp: number;
 }
 
+// DelightFactor types
 export interface BaseDelightFactor {
   id: string;
   timing: 'PRE_ANSWER' | 'POST_ANSWER';
@@ -95,12 +101,7 @@ export interface AnimationDelightFactor extends BaseDelightFactor {
   questionTypes: string[];
 }
 
-export type DelightFactor = 
-  | AnimationDelightFactor 
-  | AttendeeStatsDelightFactor 
-  | NumberAnimationDelightFactor;
-
-export interface AttendeeStatsDelightFactor extends DelightFactor {
+export interface AttendeeStatsDelightFactor extends BaseDelightFactor {
   type: 'STATS';
   content: {
     statType: 'PERCENTAGE' | 'COUNT';
@@ -109,7 +110,7 @@ export interface AttendeeStatsDelightFactor extends DelightFactor {
   };
 }
 
-export interface NumberAnimationDelightFactor extends DelightFactor {
+export interface NumberAnimationDelightFactor extends BaseDelightFactor {
   type: 'NUMBER_ANIMATION';
   content: {
     number: number;
@@ -117,6 +118,11 @@ export interface NumberAnimationDelightFactor extends DelightFactor {
     duration: number;
   };
 }
+
+export type DelightFactor = 
+  | AnimationDelightFactor 
+  | AttendeeStatsDelightFactor 
+  | NumberAnimationDelightFactor;
 
 export interface QuizQuestion extends BaseQuestion {
   correctAnswer: string;
@@ -130,15 +136,8 @@ export interface QuizResponse {
   timestamp: number;
 }
 
-export type QuestionType = 
-  | MultipleChoiceQuestion 
-  | OpenResponseQuestion 
-  | NumericQuestion 
-  | SliderQuestion 
-  | SegmentedSliderQuestionType;
-
 export interface QuestionFormData {
-  type: 'MC' | 'NM' | 'OP' | 'SCALE';
+  type: string;  // Change from QuestionType to avoid conflict
   text: string;
   label: string;
   category: QuestionCategory;
@@ -153,11 +152,4 @@ export interface QuestionFormData {
   };
   requiredForOnboarding: boolean;
   includeInOnboarding: boolean;
-}
-
-// Question type with all required fields
-export type Question =
-  | (MultipleChoiceQuestion & { requiredForOnboarding: boolean; includeInOnboarding: boolean })
-  | (OpenResponseQuestion & { requiredForOnboarding: boolean; includeInOnboarding: boolean })
-  | (NumericQuestion & { requiredForOnboarding: boolean; includeInOnboarding: boolean })
-  | (SliderQuestion & { requiredForOnboarding: boolean; includeInOnboarding: boolean }); 
+} 
