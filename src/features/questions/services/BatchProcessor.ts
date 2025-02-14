@@ -3,6 +3,7 @@ import { ResponseValidationService } from './ResponseValidationService';
 import type { QuestionResponse } from '../types/response';
 import { ResponseValidationError } from './ResponseValidationError';
 import { BatchProcessingError } from './BatchProcessingError';
+import { ErrorReporter } from './ErrorReporter';
 
 interface QueuedResponse extends QuestionResponse {
   retryCount?: number;
@@ -34,12 +35,22 @@ export class BatchProcessor {
   private queue: QueuedResponse[] = [];
 
   async queueResponse(response: QuestionResponse): Promise<void> {
-    // Validate response
-    this.validationService.validateResponse(response);
+    try {
+      this.validationService.validateResponse(response);
+    } catch (error) {
+      await ErrorReporter.reportError(error, 'validation', {
+        questionId: response.questionId,
+        userId: response.userId
+      });
+      throw error;
+    }
 
-    // Respect max queue size
     if (this.queue.length >= BatchProcessor.MAX_QUEUE_SIZE) {
-      throw new BatchProcessingError('Response queue is full', 'QUEUE_FULL');
+      const error = new BatchProcessingError('Response queue is full', 'QUEUE_FULL');
+      await ErrorReporter.reportError(error, 'processing', {
+        queueSize: this.queue.length
+      });
+      throw error;
     }
 
     // Add to queue
@@ -142,7 +153,9 @@ export class BatchProcessor {
         }
       }
     } catch (error) {
-      console.error('Failed to save queue to storage:', error);
+      await ErrorReporter.reportError(error, 'storage', {
+        queueSize: this.queue.length
+      });
     }
   }
 
