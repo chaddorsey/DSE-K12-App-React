@@ -3,23 +3,21 @@
  */
 
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { hasRole } from '../features/auth/utils/roles';
 
-interface ProtectedRouteProps extends React.PropsWithChildren {
-  requiredRole?: UserRole;
+interface ProtectedRouteProps {
+  children: React.ReactNode;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
-  const { user, loading } = useAuth();
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { user } = useAuth();
+  const location = useLocation();
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!user || (requiredRole && !hasRole(user, requiredRole))) {
-    return <Navigate to="/login" replace />;
+  if (!user) {
+    // Save the location they were trying to go to
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;

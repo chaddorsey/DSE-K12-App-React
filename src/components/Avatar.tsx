@@ -1,74 +1,43 @@
 import React from 'react';
-import classNames from 'classnames';
 import './Avatar.css';
 
 interface AvatarProps {
   src?: string | null;
-  name: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  alt?: string;
+  size?: 'small' | 'medium' | 'large';
   className?: string;
 }
 
-const sizes = {
-  xs: '24px',
-  sm: '32px',
-  md: '48px',
-  lg: '64px',
-  xl: '96px'
-};
-
-const fontSizes = {
-  xs: '0.75rem',
-  sm: '0.875rem',
-  md: '1rem',
-  lg: '1rem',
-  xl: '1rem'
-};
-
 export const Avatar: React.FC<AvatarProps> = ({ 
   src, 
-  name, 
-  size = 'md',
-  className 
+  alt = '', 
+  size = 'medium',
+  className = ''
 }) => {
-  const [imageError, setImageError] = React.useState(false);
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
-  const initials = name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  const renderContent = () => {
+    if (src) {
+      return <img src={src} alt={alt} className="avatar-image" />;
+    }
+
+    // Only try to get initials if we have a non-empty alt text
+    const initials = alt ? getInitials(alt) : 'U';
+    return <div className="avatar-initials">{initials}</div>;
+  };
 
   return (
-    <div 
-      className={classNames(
-        'avatar',
-        className
-      )}
-      style={{
-        width: sizes[size],
-        height: sizes[size],
-      }}>
-      {src && !imageError ? (
-        <div className="w-full h-full">
-          <img
-            src={src}
-            alt={`${name}'s avatar`}
-            onError={() => setImageError(true)}
-          />
-        </div>
-      ) : (
-        <div className="avatar-initials">
-          <span 
-            style={{
-              fontSize: fontSizes[size]
-            }}
-          >
-            {initials}
-          </span>
-        </div>
-      )}
+    <div className={`avatar avatar-${size} ${className}`.trim()}>
+      {renderContent()}
     </div>
   );
-}; 
+};
+
+export default Avatar; 

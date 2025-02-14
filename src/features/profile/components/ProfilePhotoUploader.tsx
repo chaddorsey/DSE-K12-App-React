@@ -1,122 +1,105 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { PhotoUploadService } from '../services/PhotoUploadService';
+import { Avatar } from '@/components/Avatar';
 import './ProfilePhotoUploader.css';
 
 export const ProfilePhotoUploader: React.FC = () => {
-  const { user, updateProfile } = useAuth();
-  const [isHovered, setIsHovered] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const { user, updateUserProfile } = useAuth();
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const uploadService = new PhotoUploadService();
+  const photoService = new PhotoUploadService();
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    console.log('Current user:', user);
-    console.log('Selected file:', file);
-    if (!file || !user) return;
+    if (!file || !user?.uid) return;
+
+    setUploading(true);
+    setError(null);
+    let uploadedPhotoURL: string | null = null;
 
     try {
-      setError(null);
-      setIsUploading(true);
-      uploadService.validateFile(file);
+      // First upload the photo
+      uploadedPhotoURL = await photoService.uploadPhoto(user.uid, file);
+      console.log('Photo uploaded successfully:', uploadedPhotoURL);
       
-      console.log('Attempting upload for user:', user.uid);
-      console.log('Using path:', `users/${user.uid}/profile.${file.name.split('.').pop()}`);
-      const downloadURL = await uploadService.uploadPhoto(file, user.uid);
-      console.log('Photo uploaded successfully, URL:', downloadURL);
-
-      await updateProfile({
-        photoURL: downloadURL
-      });
-      console.log('Profile updated with new photo URL');
+      // Then update the user profile with just the photoURL
+      await updateUserProfile({ photoURL: uploadedPhotoURL });
+      console.log('Profile updated with new photo');
+      
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (err) {
-      console.error('Error in photo upload:', err);
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      console.error('Photo upload/update error:', err);
+      
+      // If we uploaded the photo but failed to update the profile, clean up
+      if (uploadedPhotoURL && err instanceof Error && err.message === 'Failed to update profile') {
+        try {
+          await photoService.removePhoto(user.uid);
+          console.log('Cleaned up uploaded photo after failed profile update');
+        } catch (cleanupErr) {
+          console.error('Failed to clean up uploaded photo:', cleanupErr);
+        }
+      }
+      
+      setError(err instanceof Error ? err.message : 'Failed to upload photo');
     } finally {
-      setIsUploading(false);
+      setUploading(false);
     }
   };
 
   const handleRemovePhoto = async () => {
-    if (!user) return;
+    if (!user?.uid) return;
     
+    setUploading(true);
+    setError(null);
+
     try {
-      await updateProfile({ photoURL: null });
-      setShowRemoveConfirm(false);
+      await photoService.removePhoto(user.uid);
+      // Update user profile to remove photo URL
+      await updateUserProfile({ photoURL: null });
     } catch (err) {
-      console.error('Error removing photo:', err);
-      setError('Failed to remove photo');
+      setError(err instanceof Error ? err.message : 'Failed to remove photo');
+      console.error('Photo removal error:', err);
+    } finally {
+      setUploading(false);
     }
   };
 
-  const getInitials = () => {
-    return user?.displayName
-      ?.split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || 'U';
-  };
-
   return (
-    <div
-      className="photo-uploader"
-      data-testid="photo-uploader"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="photo-container">
-        {user?.photoURL ? (
-          <img src={user.photoURL} alt="Profile photo" className="profile-photo" />
-        ) : (
-          <div className="photo-placeholder">{getInitials()}</div>
-        )}
-
-        {isHovered && !isUploading && !showRemoveConfirm && (
-          <div className="upload-overlay">
-            <button onClick={() => fileInputRef.current?.click()}>
-              Change Photo
-            </button>
-            {user?.photoURL && (
-              <button 
-                className="remove-button"
-                onClick={() => setShowRemoveConfirm(true)}
-              >
-                Remove Photo
-              </button>
-            )}
-          </div>
-        )}
-
-        {isUploading && (
-          <div className="upload-overlay">
-            <div className="spinner" role="progressbar" />
-            <span>Uploading...</span>
-          </div>
-        )}
-
-        {showRemoveConfirm && (
-          <div className="upload-overlay">
-            <p>Are you sure?</p>
-            <div className="confirm-buttons">
-              <button onClick={handleRemovePhoto}>Yes, remove</button>
-              <button onClick={() => setShowRemoveConfirm(false)}>Cancel</button>
-            </div>
-          </div>
+    <div className="photo-uploader">
+      <div className="avatar-container">
+        <Avatar 
+          src={user?.photoURL} 
+          alt={user?.displayName || user?.email || 'User'} 
+          size="large"
+        />
+        {uploading && <div className="upload-overlay">Uploading...</div>}
+      </div>
+      
+      <div className="controls">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          disabled={uploading}
+          className="file-input"
+        />
+        
+        {user?.photoURL && (
+          <button
+            onClick={handleRemovePhoto}
+            disabled={uploading}
+            className="remove-photo"
+          >
+            Remove Photo
+          </button>
         )}
       </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-        data-testid="photo-input"
-      />
 
       {error && <div className="error-message">{error}</div>}
     </div>

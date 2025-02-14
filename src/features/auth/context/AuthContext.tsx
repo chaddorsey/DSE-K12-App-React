@@ -161,6 +161,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUserProfile = async (updates: { photoURL?: string | null, displayName?: string }) => {
+    if (!auth.currentUser) throw new Error('No authenticated user');
+    
+    try {
+      // Create a clean update object with photoURL as empty string when null
+      const cleanUpdates = {
+        photoURL: updates.photoURL === null ? '' : (updates.photoURL ?? '')
+      };
+
+      console.log('Updating user profile with:', cleanUpdates);
+      
+      // Use the Firebase update profile function directly
+      await firebaseUpdateProfile(auth.currentUser, cleanUpdates);
+      
+      // Force a refresh of the user data
+      await auth.currentUser.reload();
+      
+      // Update local state with fresh user data
+      setState(prev => ({
+        ...prev,
+        user: auth.currentUser
+      }));
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw new Error('Failed to update profile');
+    }
+  };
+
   const value: IAuthContext = {
     ...state,
     signIn,
@@ -168,7 +196,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     resetPassword,
     updateProfile,
-    refreshUser
+    refreshUser,
+    updateUserProfile
   };
 
   return (

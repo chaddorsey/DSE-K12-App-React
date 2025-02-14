@@ -3,10 +3,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ProfilePhotoUploader } from '../ProfilePhotoUploader';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
+import { PhotoProcessingService } from '../../services/PhotoProcessingService';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
 jest.mock('@/features/auth/context/AuthContext');
 jest.mock('../../services/PhotoUploadService');
+jest.mock('../../services/PhotoProcessingService');
 
 describe('ProfilePhotoUploader', () => {
   const mockUser = {
@@ -131,5 +133,52 @@ describe('ProfilePhotoUploader', () => {
     await userEvent.click(screen.getByText('Yes, remove'));
 
     expect(mockUpdateProfile).toHaveBeenCalledWith({ photoURL: null });
+  });
+
+  it('shows processing progress', async () => {
+    const mockUser = { uid: 'test-user' };
+    (useAuth as jest.Mock).mockReturnValue({ user: mockUser });
+
+    render(<ProfilePhotoUploader />);
+
+    const input = screen.getByTestId('photo-input');
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+    
+    Object.defineProperty(input, 'files', {
+      value: [file]
+    });
+
+    fireEvent.change(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('thumbnail')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('optimize')).toBeInTheDocument();
+    });
+  });
+
+  it('handles processing errors appropriately', async () => {
+    const mockUser = { uid: 'test-user' };
+    (useAuth as jest.Mock).mockReturnValue({ user: mockUser });
+    
+    (PhotoProcessingService.prototype.processPhoto as jest.Mock)
+      .mockRejectedValueOnce(new Error('Processing failed'));
+
+    render(<ProfilePhotoUploader />);
+
+    const input = screen.getByTestId('photo-input');
+    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+    
+    Object.defineProperty(input, 'files', {
+      value: [file]
+    });
+
+    fireEvent.change(input);
+
+    await waitFor(() => {
+      expect(screen.getByText(/processing error/i)).toBeInTheDocument();
+    });
   });
 }); 

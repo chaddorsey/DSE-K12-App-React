@@ -1,50 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ProfileService } from '../services/ProfileService';
 import { Profile, ProfileError } from '../types';
 
 export const ProfileDemo: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   
-  const profileService = new ProfileService();
-
   useEffect(() => {
-    if (!user) return;
-    
+    if (!user) {
+      // Save the current location and redirect to login
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+
     const loadProfile = async () => {
       try {
-        const profile = await profileService.getProfile(user.uid);
-        setProfile(profile);
+        setLoading(true);
+        const profileService = new ProfileService();
+        const userProfile = await profileService.getProfile(user.uid);
+        setProfile(userProfile);
       } catch (err) {
-        if (err instanceof ProfileError && err.code === 'NOT_FOUND') {
-          // Create default profile for demo
-          try {
-            await profileService.createProfile(user.uid, {
-              bio: 'This is a demo profile',
-              avatar: user.photoURL || '',
-              preferences: {
-                notifications: true,
-                privacy: 'public'
-              }
-            });
-            const newProfile = await profileService.getProfile(user.uid);
-            setProfile(newProfile);
-          } catch (createErr) {
-            setError('Failed to create profile');
-          }
-        } else {
-          setError('Failed to load profile');
-        }
+        setError(err instanceof Error ? err.message : 'Failed to load profile');
       } finally {
         setLoading(false);
       }
     };
 
     loadProfile();
-  }, [user]);
+  }, [user, navigate, location.pathname]);
 
   const handleUpdateBio = async () => {
     if (!user || !profile) return;
@@ -53,6 +42,7 @@ export const ProfileDemo: React.FC = () => {
       const newBio = prompt('Enter new bio:', profile.bio);
       if (newBio === null) return;
 
+      const profileService = new ProfileService();
       await profileService.updateProfile(user.uid, { bio: newBio });
       setProfile(prev => prev ? { ...prev, bio: newBio } : null);
     } catch (err) {
@@ -64,6 +54,7 @@ export const ProfileDemo: React.FC = () => {
     if (!user || !profile) return;
     
     try {
+      const profileService = new ProfileService();
       await profileService.updateStats(user.uid, {
         questionsAnswered: profile.stats.questionsAnswered + 1
       });
@@ -80,7 +71,7 @@ export const ProfileDemo: React.FC = () => {
   };
 
   if (!user) {
-    return <div>Please log in to view profile</div>;
+    return null;
   }
 
   if (loading) {

@@ -1,5 +1,7 @@
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import type { FirebaseStorage } from 'firebase/storage';
+import { storage } from '@/config/firebase';
+import { FirebaseError } from 'firebase/app';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -29,50 +31,67 @@ export class PhotoUploadService {
     }
   }
 
-  async uploadPhoto(file: File, userId: string): Promise<string> {
+  async uploadPhoto(userId: string, file: File): Promise<string> {
+    if (!userId || !file) {
+      throw new Error('Missing required parameters');
+    }
+
     try {
       console.log('Starting photo upload:', {
         userId,
         fileType: file.type,
         fileSize: file.size,
-        storagePath: `users/${userId}/profile_${file.name}`
+        fileName: file.name
       });
 
-      if (!userId?.trim()) {
-        throw new Error('Invalid user ID');
-      }
-
-      this.validateFile(file);
+      // Create storage reference
+      const photoRef = ref(storage, `profile-photos/${userId}`);
       
-      const fileName = `profile_${file.name}`;
-      const storageRef = ref(this.storage, `users/${userId}/${fileName}`);
+      // Upload the file
+      const snapshot = await uploadBytes(photoRef, file);
+      console.log('Photo uploaded successfully');
       
-      console.log('Uploading to:', storageRef.fullPath);
-      const snapshot = await uploadBytes(storageRef, file);
-      console.log('Upload successful:', snapshot);
-      
+      // Get download URL
       const downloadURL = await getDownloadURL(snapshot.ref);
-      console.log('Download URL:', downloadURL);
+      console.log('Photo download URL:', downloadURL);
       
       return downloadURL;
     } catch (error) {
       console.error('Upload error details:', {
         error,
-        code: error instanceof Error ? (error as any).code : undefined,
-        message: error instanceof Error ? error.message : String(error)
+        code: error instanceof FirebaseError ? error.code : undefined,
+        message: error instanceof FirebaseError ? error.message : 'Unknown error'
       });
-      
-      if (error instanceof Error && 'code' in error) {
-        switch ((error as any).code) {
+
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
           case 'storage/unauthorized':
             throw new Error('Not authorized to upload photos');
           case 'storage/quota-exceeded':
             throw new Error('Storage quota exceeded');
           default:
-            throw error;
+            throw new Error(`Upload failed: ${error.message}`);
         }
       }
-      throw error;
+      throw new Error('Failed to upload photo');
+    }
+  }
+
+  async removePhoto(userId: string): Promise<void> {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    try {
+      const photoRef = ref(storage, `profile-photos/${userId}`);
+      await deleteObject(photoRef);
+      console.log('Photo removed successfully');
+    } catch (error) {
+      console.error('Error removing photo:', error);
+      if (error instanceof FirebaseError && error.code === 'storage/unauthorized') {
+        throw new Error('Not authorized to remove this photo');
+      }
+      throw new Error('Failed to remove photo');
     }
   }
 } 

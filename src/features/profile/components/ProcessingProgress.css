@@ -1,0 +1,32 @@
+.processing-progress {
+  width: 100%;
+  margin: 8px 0;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 4px;
+  background: #2563eb;
+  transition: width 0.3s ease;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.stage {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.task {
+  color: #6b7280;
+  font-size: 0.75rem;
+} 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { UserProfileButton } from '../features/auth/components/UserProfileButton';
 import './Header.css';
@@ -10,6 +10,7 @@ interface HeaderProps {
 
 export function Header({ links = [] }: HeaderProps) {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleClearStorage = () => {
     try {
@@ -22,12 +23,21 @@ export function Header({ links = [] }: HeaderProps) {
     }
   };
 
+  const handlePhotoUploadClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!user) {
+      navigate('/login', { state: { from: '/demo/photo-upload' } });
+      return;
+    }
+    navigate('/demo/photo-upload');
+  };
+
   return (
     <header className="header">
       <div className="header-content">
         <div className="logo-section">
           <Link to="/" className="logo">DSET App</Link>
-          <button 
+          <button
             onClick={handleClearStorage}
             className="clear-storage-button"
           >
@@ -38,10 +48,22 @@ export function Header({ links = [] }: HeaderProps) {
           <Link to="/onboarding">Onboarding</Link>
           <Link to="/demo/progressive-avatars">Connections</Link>
           <Link to="/question-playground">Quiz</Link>
+          <Link 
+            to="/demo/photo-upload" 
+            onClick={handlePhotoUploadClick}
+          >
+            Photo Upload Demo
+          </Link>
           {user ? (
             <>
               <Link to="/dashboard">Dashboard</Link>
               <UserProfileButton />
+              <button 
+                onClick={() => signOut()}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Logout
+              </button>
             </>
           ) : (
             <Link to="/login">Sign In</Link>

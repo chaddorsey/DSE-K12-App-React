@@ -28,6 +28,7 @@ import { ProfileSettings } from './features/auth/components/ProfileSettings';
 import { QuestionDemo } from './features/questions/demo/QuestionDemo';
 import { DemoBanner } from './components/DemoBanner';
 import { ProfileDemo } from './features/profile/components/ProfileDemo';
+import { PhotoUploadDemo } from './features/profile/pages/PhotoUploadDemo';
 
 const AppContent = () => {
   const {
@@ -139,6 +140,11 @@ const AppContent = () => {
           } />
           <Route path="/question-demo" element={<QuestionDemo />} />
           <Route path="/profile-demo" element={<ProfileDemo />} />
+          <Route path="/demo/photo-upload" element={
+            <ProtectedRoute>
+              <PhotoUploadDemo />
+            </ProtectedRoute>
+          } />
         </Routes>
       </main>
       <Footer />

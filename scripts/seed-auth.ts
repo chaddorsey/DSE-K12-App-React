@@ -19,10 +19,18 @@ const db = getFirestore(app);
 
 const waitForEmulators = async () => {
   try {
-    await fetchWithRetry('http://localhost:9098/', { maxRetries: 5, delayMs: 1000 });
+    await fetchWithRetry('http://localhost:9099/', { 
+      maxRetries: 5, 
+      delayMs: 1000,
+      validateResponse: (response: Response) => response.ok 
+    });
     console.log('Auth emulator is ready');
     
-    await fetchWithRetry('http://localhost:8081/', { maxRetries: 5, delayMs: 1000 });
+    await fetchWithRetry('http://localhost:8080/', { 
+      maxRetries: 5, 
+      delayMs: 1000,
+      validateResponse: (response: Response) => response.ok 
+    });
     console.log('Firestore emulator is ready');
   } catch (error) {
     console.error('Failed to connect to emulators:', error);
@@ -30,8 +38,8 @@ const waitForEmulators = async () => {
   }
 };
 
-connectAuthEmulator(auth, "http://localhost:9098", { disableWarnings: true });
-connectFirestoreEmulator(db, 'localhost', 8081);
+connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
+connectFirestoreEmulator(db, 'localhost', 8080);
 
 const testUsers = [
   {
