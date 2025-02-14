@@ -1,0 +1,22 @@
+.profile-settings {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.profile-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.photo-section {
+  max-width: 400px;
+}
+
+.verification-warning {
+  border: 1px solid #fecaca;
+  background-color: #fee2e2;
+} 
