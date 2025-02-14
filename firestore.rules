@@ -32,5 +32,49 @@ service cloud.firestore {
     match /_test_/{document=**} {
       allow read, write: if true;
     }
+
+    match /responses/{responseId} {
+      allow create: if request.auth != null 
+        && validateResponse(request.resource.data);
+      allow read: if request.auth != null;
+      
+      function validateResponse(response) {
+        let validValue = response.value.type in ['XY', 'MULTIPLE_CHOICE']
+          && (response.value.type == 'XY' 
+              ? validateXYValue(response.value)
+              : validateMultipleChoiceValue(response.value));
+        
+        let validMetadata = response.metadata.keys().hasAll(['timeToAnswer', 'interactionCount', 'device'])
+          && response.metadata.timeToAnswer is number
+          && response.metadata.timeToAnswer > 0
+          && response.metadata.timeToAnswer < 300000; // 5 minutes max
+        
+        return response.keys().hasAll(['questionId', 'userId', 'value', 'metadata', 'timestamp'])
+          && response.userId == request.auth.uid
+          && response.timestamp == request.time
+          && validValue
+          && validMetadata;
+      }
+
+      function validateXYValue(value) {
+        return value.coordinates.x is number 
+          && value.coordinates.y is number
+          && value.coordinates.x >= 0 
+          && value.coordinates.x <= 1
+          && value.coordinates.y >= 0 
+          && value.coordinates.y <= 1;
+      }
+
+      function validateMultipleChoiceValue(value) {
+        return value.selectedOption is string
+          && value.selectedOption.size() > 0;
+      }
+    }
+
+    match /response_metrics/{questionId} {
+      allow read: if request.auth != null;
+      // Only system can write metrics
+      allow write: if false;
+    }
   }
 } 

@@ -10,174 +10,102 @@ Design for storing and managing questions, responses, and associated metrics for
 - Enable visualization data queries
 - Maintain performance with ~100K responses
 
-## Non-Goals
-- Complex reporting or analytics
-- Long-term data warehousing
-- Offline functionality beyond basic caching
+## Current Status
+- ✅ Basic response submission
+- ✅ Response validation
+- ✅ Firestore security rules
+- ✅ Error handling
 
-## System Components
+## Core Components
 
-### 1. Core Collections
+### 1. Data Layer
+- Response Storage (Firestore)
+  - `/responses/{responseId}` - Individual responses
+  - `/response_metrics/{questionId}` - Aggregated metrics
 
-#### Questions Collection
-```typescript
-interface Question {
-  id: string;
-  prompt: string;
-  type: 'multiple_choice' | 'slider' | 'open';
-  options?: string[];
-  metadata: {
-    category: string;
-    isOnboarding: boolean;
-    tags?: string[];
-    sliderConfig?: {
-      min: number;
-      max: number;
-      label: string;
-    };
-  };
-  stats?: {
-    timesAnswered: number;
-    lastAnswered: Timestamp;
-  };
-}
-```
+### 2. Validation Layer
+- Client-side validation
+- Server-side validation (Firestore Rules)
+- Error reporting and handling
 
-#### Personal Responses Collection
-```typescript
-interface PersonalResponse {
-  userId: string;
-  questionId: string;
-  response: string | number;
-  timestamp: Timestamp;
-  context: 'onboarding' | 'regular';
-}
-```
+### 3. Service Layer
+- Response submission
+- Batch operations
+- Metrics updates
 
-#### Question Guesses Collection
-```typescript
-interface QuestionGuess {
-  guessingUserId: string;
-  targetUserId: string;
-  questionId: string;
-  questionType: 'single' | 'multi_dimensional';
-  guess: string | number;
-  isCorrect: boolean;
-  attemptNumber: number;
-  context: 'private' | 'head-to-head';
-  timestamp: Timestamp;
-  matchId?: string;  // For head-to-head only
-}
-```
+## Implementation Status
 
-### 2. Supporting Collections
+### Completed
+1. Core Question Types
+   - Multiple choice questions
+   - XY coordinate questions with quadrant/polar modes
+   - Coordinate transformation system
+   - Touch and accessibility support
 
-#### Matches Collection
-```typescript
-interface Match {
-  id: string;
-  userIds: [string, string];
-  startTime: Timestamp;
-  questionIds: string[];
-  status: 'active' | 'completed' | 'abandoned';
-}
-```
+2. Question Components
+   - Basic question rendering
+   - Interactive response collection
+   - Coordinate normalization and validation
+   - Response validation
 
-#### Social Ties Collection
-```typescript
-interface SocialTie {
-  userId: string;
-  targetUserId: string;
-  level: number;  // Recognition level
-  lastUpdated: Timestamp;
-  history: {
-    timestamp: Timestamp;
-    level: number;
-    context: 'match' | 'quiz' | 'manual';
-  }[];
-}
-```
+### In Progress
+1. Response System
+   - Response storage
+   - Real-time updates
+   - Metrics calculation
+   - Visualization components
 
-#### Visualizations Collection
-```typescript
-interface Visualization {
-  id: string;
-  creatorId: string;
-  imageUrl: string;
-  config: {
-    type: string;
-    parameters: Record<string, any>;
-    questionIds?: string[];
-  };
-  metadata: {
-    title: string;
-    description?: string;
-    created: Timestamp;
-    shared: boolean;
-    likes: number;
-  };
-}
-```
+2. Multi-dimensional Questions
+   - Grid-based questions
+   - Question pairing system
+   - Response correlation
 
-### 3. Metrics & Aggregates Collection
-```typescript
-interface UserMetrics {
-  userId: string;
-  lastUpdated: Timestamp;
-  metrics: {
-    personalResponses: number;
-    privateQuizCount: number;
-    privateQuizAttendees: number[];
-    headToHeadCount: number;
-    headToHeadAttendees: number[];
-    correctGuesses: number;
-    improvedGuesses: number;
-    visualizationsCreated: number;
-    visualizationsShared: number;
-    galleryViews: number;
-    tieLevelsCompleted: number;
-  };
-}
-```
+## Next Steps
 
-## Implementation Phases
+### Priority 1: Response Batching & Performance
+1. Implement batch response submission
+   - Handle offline submissions
+   - Queue and retry mechanism
+   - Conflict resolution
 
-### Phase 1: Core Question & Response System
-- Questions collection setup
-- Personal responses implementation
-- Basic metrics tracking
+2. Optimize Firestore usage
+   - Index optimization
+   - Query patterns
+   - Caching strategy
 
-### Phase 2: Guessing & Matches
-- Question guesses implementation
-- Head-to-head matches
-- Social ties tracking
+3. Performance monitoring
+   - Response submission timing
+   - Error rates
+   - Batch operation success rates
 
-### Phase 3: Visualization & Gallery
-- Visualization storage
-- Gallery implementation
-- Likes system
+### Priority 2: Data Integrity
+1. Implement data consistency checks
+2. Add data recovery mechanisms
+3. Set up monitoring alerts
 
-### Phase 4: Metrics & Leaderboards
-- Real-time metrics aggregation
-- Leaderboard implementation
-- Performance optimization
+### Priority 3: Analytics & Visualization
+1. Real-time response tracking
+2. Response pattern analysis
+3. User interaction metrics
 
-## Technical Considerations
+## Implementation Plan
 
-### Indexing Strategy
-- Compound indexes on userId + timestamp for quick user history
-- Indexes on questionId + timestamp for visualization queries
-- Indexes on metrics for leaderboard queries
+### Phase 1: Response Batching (Current Focus)
+1. [ ] Create BatchProcessor service
+2. [ ] Implement offline storage
+3. [ ] Add retry mechanism
+4. [ ] Add conflict resolution
+5. [ ] Add performance monitoring
 
-### Real-time Updates
-- Use Firestore real-time listeners for matches
-- Batch updates for metrics every 5 minutes
-- Cache frequently accessed metrics
+### Phase 2: Data Integrity
+1. [ ] Implement consistency checks
+2. [ ] Set up monitoring
+3. [ ] Create recovery tools
 
-### Performance Optimizations
-- Denormalize common queries
-- Pre-calculate metrics where possible
-- Use pagination for visualization gallery
+### Phase 3: Analytics
+1. [ ] Implement real-time tracking
+2. [ ] Add pattern analysis
+3. [ ] Create visualization components
 
 ## Questions for Discussion
 1. Should we implement soft deletion for questions?

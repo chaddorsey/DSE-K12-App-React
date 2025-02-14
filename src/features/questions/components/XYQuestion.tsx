@@ -7,6 +7,7 @@ import {
   normalizeCoordinates, 
   validateCoordinates 
 } from '../utils/coordinates';
+import { useQuestionResponse } from '../hooks/useQuestionResponse';
 
 interface Props {
   question: XYQuestionType;
@@ -35,7 +36,14 @@ export const XYQuestion: React.FC<Props> = ({
   loading = false,
   hapticFeedback = true
 }) => {
-  const [position, setPosition] = useState<Position>({ x: 0.5, y: 0.5 });
+  const [position, setPosition] = useState<Position | null>(null);
+  const [interactions, setInteractions] = useState<Array<{
+    type: 'move' | 'click';
+    position: Position;
+    timestamp: number;
+  }>>([]);
+  const startTimeRef = useRef(Date.now());
+  const { submitResponse, isSubmitting, error } = useQuestionResponse(question.id);
   const [isDragging, setIsDragging] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const [touchId, setTouchId] = useState<number | null>(null);
@@ -65,18 +73,38 @@ export const XYQuestion: React.FC<Props> = ({
     setIsDragging(false);
   };
 
-  const handleSubmit = () => {
-    if (!validateCoordinates(position)) {
-      console.error('Invalid position coordinates');
-      return;
-    }
-
-    onAnswer({
-      questionId: question.id,
-      value: position,
+  const handleInteraction = (type: 'move' | 'click', pos: Position) => {
+    setInteractions(prev => [...prev, {
+      type,
+      position: pos,
       timestamp: Date.now()
-    });
-    vibrate([50, 30, 50], hapticFeedback);
+    }]);
+  };
+
+  const handleSubmit = async () => {
+    if (!position || disabled || isSubmitting) return;
+
+    try {
+      await submitResponse(
+        {
+          type: 'XY',
+          coordinates: position,
+          interactions
+        },
+        {
+          timeToAnswer: Date.now() - startTimeRef.current,
+          interactionCount: interactions.length,
+          confidence: 1.0, // Could be calculated based on movement patterns
+          device: {
+            type: 'desktop', // Should detect device type
+            input: 'mouse'  // Should detect input type
+          }
+        }
+      );
+    } catch (err) {
+      // Error is handled by the hook
+      console.error('Failed to submit response:', err);
+    }
   };
 
   // Utility function to calculate position
@@ -228,12 +256,12 @@ export const XYQuestion: React.FC<Props> = ({
               role="slider"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={Math.round(position.x * 100)}
-              aria-valuetext={`${Math.round(position.x * 100)}% from left, ${Math.round(position.y * 100)}% from top`}
+              aria-valuenow={Math.round(position?.x * 100)}
+              aria-valuetext={`${Math.round(position?.x * 100)}% from left, ${Math.round(position?.y * 100)}% from top`}
               className={classNames('xy-dot', { 'dragging': isDragging })}
               style={{
-                left: `${position.x * 100}%`,
-                top: `${position.y * 100}%`
+                left: `${position?.x * 100}%`,
+                top: `${position?.y * 100}%`
               }}
             />
           </div>
@@ -251,10 +279,20 @@ export const XYQuestion: React.FC<Props> = ({
       <button
         className="submit-button"
         onClick={handleSubmit}
-        disabled={disabled}
+        disabled={disabled || isSubmitting || !position}
       >
-        Submit
+        {isSubmitting ? 'Submitting...' : 'Submit'}
       </button>
+
+      {isSubmitting && (
+        <div role="progressbar" className="loading-spinner" />
+      )}
+
+      {error && (
+        <div className="error-message" role="alert">
+          {error.message}
+        </div>
+      )}
     </div>
   );
 }; 

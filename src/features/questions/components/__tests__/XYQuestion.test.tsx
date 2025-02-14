@@ -1,10 +1,15 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { XYQuestion } from '../XYQuestion';
 import type { XYQuestion as XYQuestionType } from '../../types/xy';
 import { QuestionCategory } from '../../types/question';
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useXYStatistics } from '../../hooks/useXYStatistics';
+import { useQuestionResponse } from '../../hooks/useQuestionResponse';
+import { useAuth } from '@/features/auth/context/AuthContext';
+
+jest.mock('../../hooks/useQuestionResponse');
+jest.mock('@/features/auth/context/AuthContext');
 
 describe('XYQuestion', () => {
   const mockQuestion: XYQuestionType = {
@@ -479,5 +484,81 @@ describe('Statistics Tracking', () => {
       vertical: 1,
       diagonal: 1
     });
+  });
+});
+
+describe('XYQuestion with Response Handling', () => {
+  const mockSubmitResponse = jest.fn();
+  const mockUser = { uid: 'test-user' };
+
+  beforeEach(() => {
+    (useQuestionResponse as jest.Mock).mockReturnValue({
+      submitResponse: mockSubmitResponse,
+      isSubmitting: false,
+      error: null
+    });
+    (useAuth as jest.Mock).mockReturnValue({ user: mockUser });
+  });
+
+  it('should track and submit response with interactions', async () => {
+    render(<XYQuestion question={mockQuestion} />);
+
+    // Simulate interactions
+    const grid = screen.getByRole('application');
+    
+    fireEvent.mouseDown(grid, { clientX: 150, clientY: 150 });
+    fireEvent.mouseMove(grid, { clientX: 200, clientY: 200 });
+    fireEvent.mouseUp(grid);
+
+    // Submit response
+    const submitButton = screen.getByRole('button', { name: /submit/i });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockSubmitResponse).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'XY',
+          coordinates: expect.any(Object),
+          interactions: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'move',
+              position: expect.any(Object),
+              timestamp: expect.any(Number)
+            })
+          ])
+        }),
+        expect.objectContaining({
+          timeToAnswer: expect.any(Number),
+          interactionCount: expect.any(Number),
+          confidence: expect.any(Number),
+          device: expect.any(Object)
+        })
+      );
+    });
+  });
+
+  it('should show loading state while submitting', async () => {
+    (useQuestionResponse as jest.Mock).mockReturnValue({
+      submitResponse: mockSubmitResponse,
+      isSubmitting: true,
+      error: null
+    });
+
+    render(<XYQuestion question={mockQuestion} />);
+    
+    expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should show error message on submission failure', async () => {
+    (useQuestionResponse as jest.Mock).mockReturnValue({
+      submitResponse: mockSubmitResponse,
+      isSubmitting: false,
+      error: new Error('Failed to submit response')
+    });
+
+    render(<XYQuestion question={mockQuestion} />);
+    
+    expect(screen.getByText(/failed to submit response/i)).toBeInTheDocument();
   });
 }); 

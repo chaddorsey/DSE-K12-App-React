@@ -1,0 +1,48 @@
+.xy-visualization {
+  position: relative;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.density-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-rows: repeat(10, 1fr);
+}
+
+.density-row {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+}
+
+.density-cell {
+  background: rgba(37, 99, 235, 0.2); /* blue-600 */
+  transition: opacity 0.3s ease;
+}
+
+.response-point {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 50%;
+  background: rgb(37, 99, 235); /* blue-600 */
+  opacity: 0.6;
+  transition: transform 0.2s ease;
+}
+
+.response-point:hover {
+  transform: scale(1.5);
+  opacity: 1;
+}
+
+.error-message {
+  color: rgb(239, 68, 68); /* red-500 */
+  padding: 1rem;
+  text-align: center;
+} 
