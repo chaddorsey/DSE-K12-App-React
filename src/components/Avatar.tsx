@@ -1,41 +1,38 @@
 import React from 'react';
+import { getAvatarUrl } from '@/utils/avatar';
 import './Avatar.css';
 
 interface AvatarProps {
   src?: string | null;
-  alt?: string;
-  size?: 'small' | 'medium' | 'large';
+  name?: string;
+  size?: number;
   className?: string;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({ 
-  src, 
-  alt = '', 
-  size = 'medium',
+export const Avatar: React.FC<AvatarProps> = ({
+  src,
+  name = 'User',
+  size = 40,
   className = ''
 }) => {
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const renderContent = () => {
-    if (src) {
-      return <img src={src} alt={alt} className="avatar-image" />;
-    }
-
-    // Only try to get initials if we have a non-empty alt text
-    const initials = alt ? getInitials(alt) : 'U';
-    return <div className="avatar-initials">{initials}</div>;
-  };
+  const avatarUrl = getAvatarUrl(src, name, size);
 
   return (
-    <div className={`avatar avatar-${size} ${className}`.trim()}>
-      {renderContent()}
+    <div 
+      className={`avatar-container ${className}`}
+      style={{ 
+        width: size,
+        height: size,
+        minWidth: size,
+        minHeight: size,
+      }}
+    >
+      <img
+        src={avatarUrl}
+        alt={`Avatar for ${name}`}
+        className="avatar-image"
+        loading="lazy"
+      />
     </div>
   );
 };

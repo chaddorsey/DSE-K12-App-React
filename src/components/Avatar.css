@@ -1,27 +1,60 @@
-.avatar {
-  display: inline-block;
-  background-color: rgb(229 231 235); /* gray-200 */
+.avatar-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
+  background-color: #f3f4f6;
   overflow: hidden;
+  aspect-ratio: 1 / 1;
 }
 
-.avatar img {
+.avatar-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
+  border-radius: 50%;
 }
 
-.avatar-initials {
+.avatar-small {
+  width: 32px;
+  height: 32px;
+}
+
+.avatar-medium {
+  width: 48px;
+  height: 48px;
+}
+
+.avatar-large {
+  width: 96px;
+  height: 96px;
+}
+
+.avatar-image-container {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
-.avatar-initials span {
+.avatar-initials {
+  color: #666;
   font-weight: 500;
-  color: rgb(75 85 99); /* gray-600 */
-  user-select: none;
+  font-size: 1rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.avatar-small .avatar-initials {
+  font-size: 0.875rem;
+}
+
+.avatar-large .avatar-initials {
+  font-size: 1.5rem;
 } 

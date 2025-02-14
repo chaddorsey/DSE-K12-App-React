@@ -5,25 +5,34 @@ interface AvatarOptions {
   size?: number;
 }
 
-export const generateInitials = (name: string): string => {
+export const generateInitials = (name: string = 'User'): string => {
   const parts = name.split(' ').filter(part => part.length > 0);
-  if (parts.length === 0) return '?';
+  if (parts.length === 0) return 'U';
   if (parts.length === 1) return parts[0][0].toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-export const getDefaultAvatarUrl = ({
-  name,
-  background = '7C3AED', // Indigo-600
-  color = 'FFFFFF',
-  size = 128
-}: AvatarOptions): string => {
+export const getDefaultAvatarUrl = ({ 
+  name = 'User',
+  size = 40,
+  background = '2563eb',
+  color = 'ffffff'
+}: {
+  name?: string;
+  size?: number;
+  background?: string;
+  color?: string;
+} = {}): string => {
   const initials = generateInitials(name);
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=${background}&color=${color}&size=${size}&bold=true&format=svg`;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&size=${size}&background=${background}&color=${color}`;
 };
 
 // Get avatar URL with fallback to default
-export const getAvatarUrl = (image: string | undefined | null, name: string, size: number = 128): string => {
+export const getAvatarUrl = (
+  image: string | null | undefined,
+  name: string = 'User',
+  size: number = 40
+): string => {
   if (image) {
     // If it's already a full URL, return it
     if (image.startsWith('http')) {
