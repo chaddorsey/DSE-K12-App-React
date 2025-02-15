@@ -12,37 +12,25 @@ export const generateInitials = (name: string = 'User'): string => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-export const getDefaultAvatarUrl = ({ 
-  name = 'User',
-  size = 40,
-  background = '2563eb',
-  color = 'ffffff'
-}: {
-  name?: string;
-  size?: number;
-  background?: string;
-  color?: string;
-} = {}): string => {
+export const getDefaultAvatarUrl = ({ name, size = 40, background = '2563eb', color = 'ffffff' }: AvatarOptions): string => {
   const initials = generateInitials(name);
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&size=${size}&background=${background}&color=${color}`;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=${size}&background=${background}&color=${color}`;
 };
 
 // Get avatar URL with fallback to default
-export const getAvatarUrl = (
-  image: string | null | undefined,
-  name: string = 'User',
-  size: number = 40
-): string => {
-  if (image) {
-    // If it's already a full URL, return it
-    if (image.startsWith('http')) {
-      return image;
-    }
-    // If it's a local path, ensure it has the correct prefix
-    if (!image.startsWith('/public/assets/')) {
-      return `/public/assets/${image.replace(/^\/+/, '')}`;
-    }
-    return image;
+export const getAvatarUrl = (image: string | null | undefined, name: string, size: number = 40): string => {
+  if (!image) {
+    return getDefaultAvatarUrl({ name, size });
   }
-  return getDefaultAvatarUrl({ name, size });
+  // Uploaded image path
+  if (image.startsWith('http')) {
+    const url = new URL(image);
+    url.searchParams.set('size', size.toString());
+    return url.toString();
+  }
+  // If it's a local path, ensure it has the correct prefix and size
+  if (!image.startsWith('/public/assets/')) {
+    return `/public/assets/${image.replace(/^\/+/, '')}?size=${size}`;
+  }
+  return `${image}?size=${size}`;
 }; 

@@ -6,6 +6,7 @@ interface AvatarProps {
   src?: string | null;
   name?: string;
   size?: number;
+  scaleToFit?: boolean;
   className?: string;
 }
 
@@ -13,6 +14,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   src,
   name = 'User',
   size = 40,
+  scaleToFit = false,
   className = ''
 }) => {
   const avatarUrl = getAvatarUrl(src, name, size);
@@ -30,7 +32,9 @@ export const Avatar: React.FC<AvatarProps> = ({
       <img
         src={avatarUrl}
         alt={`Avatar for ${name}`}
-        className="avatar-image"
+        className={`avatar-image ${scaleToFit ? 'scale-to-fit' : ''}`}
+        width={size}
+        height={size}
         loading="lazy"
       />
     </div>
