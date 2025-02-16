@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { mockUsers } from '../../connections/test/mockData';
+import { mockUsers } from '../test/mockData.prod';
 import './DataVisualizationDemo.css';
 
 export const DataVisualizationDemo: React.FC = () => {

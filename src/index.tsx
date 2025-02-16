@@ -5,10 +5,7 @@ import App from './App';
 import './index.css';
 
 async function prepare() {
-  if (process.env.NODE_ENV === 'development') {
-    const { startWorker } = await import('./mocks/browser');
-    await startWorker();
-  }
+  // Remove mock browser import for production
 }
 
 const container = document.getElementById('root');

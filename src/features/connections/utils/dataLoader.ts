@@ -1,4 +1,3 @@
-import { faker } from '@faker-js/faker';
 import { AVATAR_DATA } from '../constants/avatars';
 import Papa from 'papaparse';
 
@@ -78,4 +77,12 @@ export class DataLoader {
   static async loadAvatarPaths(): Promise<string[]> {
     return AVATAR_DATA.map(({ filename }) => `${this.AVATAR_BASE_PATH}/${filename}`);
   }
+
+  private static getMockData = () => {
+    if (process.env.NODE_ENV === 'development') {
+      // Dynamic import for development only
+      return import('./mockDataGenerator').then(module => module.generateMockData());
+    }
+    return Promise.resolve([]);
+  };
 } 

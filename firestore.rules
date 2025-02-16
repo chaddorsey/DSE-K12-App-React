@@ -17,14 +17,11 @@ service cloud.firestore {
 
     // Test mode - allow read/write to authenticated users
     // TODO: Replace with production rules before deployment
-    match /{document=**} {
-      allow read, write: if true;  // WARNING: Only for development!
-    }
 
     // Keep our dummy data rules even in test mode
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     match /profiles/{userId} {
@@ -67,10 +64,8 @@ service cloud.firestore {
     }
 
     match /connections/{connectionId} {
-      allow read: if isAuthenticated() && request.auth.uid in resource.data.users;
-      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.users;
-      allow update: if isAuthenticated() && request.auth.uid in resource.data.users;
-      allow delete: if isAuthenticated() && request.auth.uid in resource.data.users;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
 
     match /userStats/{userId} {

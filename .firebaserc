@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "dse-k12-connections"
-  }
+  },
+  "targets": {
+    "dse-k12-connections": {
+      "storage": {
+        "dse-k12-connections": [
+          "dse-k12-connections"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

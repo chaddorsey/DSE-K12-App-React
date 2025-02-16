@@ -30,6 +30,7 @@ import { DemoBanner } from './components/DemoBanner';
 import { ProfileDemo } from './features/profile/components/ProfileDemo';
 import { PhotoUploadDemo } from './features/profile/pages/PhotoUploadDemo';
 import { testFirebaseConnection } from './config/firebase';
+import { MockDataProvider } from './mocks/MockDataProvider.prod';
 
 const AppContent = () => {
   const {

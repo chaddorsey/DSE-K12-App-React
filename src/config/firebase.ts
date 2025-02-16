@@ -13,7 +13,7 @@ import {
   connectStorageEmulator, 
   FirebaseStorage 
 } from 'firebase/storage';
-import { getAnalytics } from 'firebase/analytics';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 import '@firebase/storage';
 
 // Add debug logging
@@ -47,6 +47,12 @@ debug('Environment:', {
   isEmulator, 
   isDevelopment, 
   nodeEnv: process.env.NODE_ENV,
+  storageBucket: firebaseConfig.storageBucket
+});
+
+// Check production config
+console.log('Firebase Config:', {
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
   storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET
 });
 
@@ -57,7 +63,17 @@ debug('Firebase app initialized');
 // Initialize base services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const analytics = process.env.NODE_ENV === 'production' ? getAnalytics(app) : null;
+export const analytics = async () => {
+  if (process.env.NODE_ENV === 'production' && await isSupported()) {
+    try {
+      return getAnalytics(app);
+    } catch (error) {
+      console.warn('Analytics initialization failed:', error);
+      return null;
+    }
+  }
+  return null;
+};
 
 // Initialize storage
 let storage: FirebaseStorage | null = null;
@@ -92,11 +108,14 @@ export const testFirebaseConnection = async () => {
   }
   
   try {
-    await signInAnonymously(auth);
-    debug('Anonymous auth successful');
-    return true;
+    // Just verify the app is initialized
+    if (auth && db && storage) {
+      debug('Firebase services initialized successfully');
+      return true;
+    }
+    throw new Error('One or more Firebase services failed to initialize');
   } catch (error) {
-    console.error('Firebase connection test failed:', error);
+    console.error('Firebase initialization check failed:', error);
     debug('Connection test failed', error);
     return false;
   }

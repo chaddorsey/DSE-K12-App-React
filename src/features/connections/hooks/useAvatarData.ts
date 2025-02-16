@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getMockUsers } from '../data/mockData';
+import { getMockData } from '../data/mockData.prod';
 import type { MockUser } from '../types/mock-data';
 
 interface UseAvatarDataResult {
@@ -17,7 +17,7 @@ export const useAvatarData = (): UseAvatarDataResult => {
     const loadAvatars = async () => {
       try {
         setIsLoading(true);
-        const users = await getMockUsers();
+        const users = await getMockData();
         setAvatars(users);
         setError(null);
       } catch (err) {

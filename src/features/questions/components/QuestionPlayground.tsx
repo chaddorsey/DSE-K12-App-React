@@ -9,7 +9,7 @@ import { OnboardingProvider, useOnboardingContext } from '../context/OnboardingC
 import { QuizProvider, useQuizContext } from '../context/QuizContext';
 import type { QuestionType, QuestionResponse, QuestionContextValue } from '../types';
 import './QuestionPlayground.css';
-import { MockDataProvider } from '../../../mocks/MockDataProvider';
+import { MockDataProvider } from '../../../mocks/MockDataProvider.prod';
 import { SegmentedSliderQuestion } from './SegmentedSliderQuestion';
 import { XYContinuumQuestion } from './XYContinuumQuestion';
 
