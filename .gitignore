@@ -25,6 +25,7 @@ yarn-error.log*
 
 firebase-debug.log
 firestore-debug.log
+service-account.json
 
 # IDE
 .vscode/*
