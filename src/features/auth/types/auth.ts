@@ -4,10 +4,13 @@ export interface IUser {
   displayName: string | null;
   photoURL: string | null;
   emailVerified: boolean;
-  createdAt: Date;
-  lastLoginAt: Date;
-  role: UserRole;
-  metadata?: Record<string, any>;
+  createdAt: string;
+  lastLoginAt: string;
+  role: 'user' | 'admin';
+  metadata?: {
+    creationTime?: string;
+    lastSignInTime?: string;
+  };
 }
 
 export type UserRole = 'user' | 'admin';
@@ -19,13 +22,19 @@ export interface IAuthState {
   initialized: boolean;
 }
 
-export interface IAuthContext extends IAuthState {
+export interface IAuthContext {
+  user: IUser | null;
+  loading: boolean;
+  error: Error | null;
+  initialized: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateProfile: (updates: { displayName?: string; photoURL?: string }) => Promise<void>;
+  updateProfile: (updates: { displayName?: string | null; photoURL?: string | null }) => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUserProfile: (updates: { photoURL?: string | null, displayName?: string }) => Promise<void>;
+  loadUserProfile: (user: IUser) => Promise<void>;
 }
 
 export interface KnownUser {

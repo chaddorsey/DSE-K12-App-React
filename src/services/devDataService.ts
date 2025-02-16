@@ -1,5 +1,14 @@
 import { db } from '../config/firebase';
-import { doc, setDoc, collection, getDocs, query, where, deleteDoc } from 'firebase/firestore';
+import { 
+  doc, 
+  setDoc, 
+  collection, 
+  getDocs, 
+  query, 
+  where, 
+  deleteDoc,
+  addDoc 
+} from 'firebase/firestore';
 import { faker } from '@faker-js/faker';
 import { logger } from '../utils/logger';
 
@@ -14,8 +23,25 @@ export interface DummyUser {
   isDummy: true; // Flag to identify dummy data
 }
 
-const DEPARTMENTS = ['Engineering', 'Design', 'Product', 'Marketing', 'Sales'];
-const INTERESTS = ['AI', 'Web Dev', 'Mobile', 'UX', 'Data Science', 'DevOps'];
+const DEPARTMENTS = [
+  'Engineering',
+  'Marketing',
+  'Sales',
+  'Customer Support',
+  'Human Resources'
+] as const;
+
+const INTERESTS = [
+  'Programming',
+  'Design',
+  'Data Science',
+  'Product Management',
+  'Artificial Intelligence',
+  'Machine Learning',
+  'Cloud Computing'
+] as const;
+
+const ROLES = ['user', 'admin', 'moderator'] as const;
 
 export const devDataService = {
   generateDummyUser(): DummyUser {
@@ -27,8 +53,9 @@ export const devDataService = {
       email: faker.internet.email({ firstName, lastName }),
       displayName: `${firstName} ${lastName}`,
       photoURL: faker.image.avatar(),
-      department: faker.helpers.arrayElement(DEPARTMENTS),
-      interests: faker.helpers.arrayElements(INTERESTS, { min: 1, max: 4 }),
+      department: DEPARTMENTS[Math.floor(Math.random() * DEPARTMENTS.length)],
+      interests: Array.from({ length: faker.number.int({ min: 1, max: 4 }) })
+        .map(() => INTERESTS[Math.floor(Math.random() * INTERESTS.length)]),
       onboardingCompleted: faker.datatype.boolean(),
       isDummy: true
     };
@@ -54,20 +81,26 @@ export const devDataService = {
     }
   },
 
-  async seedDummyUsers(count: number = 50) {
-    try {
-      logger.info(`Seeding ${count} dummy users...`);
-      await this.clearDummyData(); // Clear existing dummy data first
-      
-      const batch = [];
-      for (let i = 0; i < count; i++) {
-        const dummyUser = this.generateDummyUser();
-        const userRef = doc(collection(db, 'users'), dummyUser.uid);
-        batch.push(setDoc(userRef, dummyUser));
-      }
+  async seedDummyUsers(count: number) {
+    const users = Array.from({ length: count }, () => ({
+      id: faker.string.uuid(),
+      firstName: faker.person.firstName(),
+      lastName: faker.person.lastName(),
+      email: faker.internet.email(),
+      avatar: faker.image.avatar(),
+      role: ROLES[Math.floor(Math.random() * ROLES.length)],
+      department: DEPARTMENTS[Math.floor(Math.random() * DEPARTMENTS.length)],
+      interests: Array.from({ length: faker.number.int({ min: 1, max: 4 }) })
+        .map(() => INTERESTS[Math.floor(Math.random() * INTERESTS.length)]),
+      createdAt: faker.date.past(),
+      lastLogin: faker.date.recent()
+    }));
 
-      await Promise.all(batch);
-      logger.info('Dummy users seeded successfully');
+    try {
+      const usersCollection = collection(db, 'users');
+      const promises = users.map(user => addDoc(usersCollection, user));
+      await Promise.all(promises);
+      logger.info(`Successfully seeded ${count} dummy users`);
     } catch (error) {
       logger.error('Error seeding dummy users:', error);
       throw error;

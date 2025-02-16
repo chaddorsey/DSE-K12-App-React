@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { QuestionPlayground } from './features/questions/components/QuestionPlayground';
 import { AccessibilityProvider } from './features/accessibility/context/AccessibilityContext';
@@ -29,6 +29,7 @@ import { QuestionDemo } from './features/questions/demo/QuestionDemo';
 import { DemoBanner } from './components/DemoBanner';
 import { ProfileDemo } from './features/profile/components/ProfileDemo';
 import { PhotoUploadDemo } from './features/profile/pages/PhotoUploadDemo';
+import { testFirebaseConnection } from './config/firebase';
 
 const AppContent = () => {
   const {
@@ -41,6 +42,9 @@ const AppContent = () => {
     setKeyboardMode,
     fontSize
   } = useAccessibility();
+
+  const [firebaseReady, setFirebaseReady] = useState(false);
+  const [firebaseError, setFirebaseError] = useState<Error | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -82,6 +86,44 @@ const AppContent = () => {
     reducedMotion,
     keyboardMode
   ]);
+
+  useEffect(() => {
+    const initFirebase = async () => {
+      try {
+        const isConnected = await testFirebaseConnection();
+        if (!isConnected) {
+          throw new Error('Firebase connection test failed');
+        }
+        setFirebaseReady(true);
+      } catch (error) {
+        console.error('Firebase initialization failed:', error);
+        setFirebaseError(error instanceof Error ? error : new Error('Unknown error'));
+      }
+    };
+
+    initFirebase();
+  }, []);
+
+  if (firebaseError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-red-600 mb-2">Firebase Initialization Error</h1>
+          <p className="text-gray-600">{firebaseError.message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!firebaseReady) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Initializing Firebase...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="App">

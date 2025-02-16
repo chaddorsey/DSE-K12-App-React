@@ -8,14 +8,21 @@ export const FirebaseConnectionStatus: React.FC = () => {
 
   useEffect(() => {
     const testConnection = async () => {
-      const isConnected = await testFirestoreConnection();
-      setStatus(isConnected ? 'success' : 'error');
+      try {
+        const isConnected = await testFirestoreConnection();
+        setStatus(isConnected ? 'success' : 'error');
+      } catch (error) {
+        console.error('Connection test failed:', error);
+        setStatus('error');
+      }
     };
 
-    testConnection();
-  }, []);
+    if (user) {
+      testConnection();
+    }
+  }, [user]);
 
-  if (status === 'testing') return null;
+  if (!user) return null;
 
   return (
     <div className="text-xs text-gray-500 hover:text-gray-700 transition-colors">

@@ -3,6 +3,7 @@ import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import { Configuration as WebpackConfiguration } from 'webpack';
 import { Configuration as WebpackDevServerConfiguration } from 'webpack-dev-server';
+import Dotenv from 'dotenv-webpack';
 
 interface Configuration extends WebpackConfiguration {
   devServer?: WebpackDevServerConfiguration;
@@ -66,9 +67,11 @@ const config: Configuration = {
       template: 'public/index.html',
     }),
     new webpack.HotModuleReplacementPlugin(),
-    new webpack.DefinePlugin({
-      'process.env': JSON.stringify(process.env),
-    }),
+    new Dotenv({
+      path: '.env.development',
+      systemvars: true,
+      safe: true,
+    }) as any,
   ],
   devServer: {
     static: {

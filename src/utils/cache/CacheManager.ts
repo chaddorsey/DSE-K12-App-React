@@ -41,6 +41,17 @@ const defaultConfig: Required<ICacheConfig> = {
   invalidateOn: () => false
 };
 
+export const cacheConfig: ICacheConfig = {
+  profiles: {
+    ttl: 3600,
+    invalidateOn: ['PROFILE_UPDATE']
+  },
+  profileImages: {
+    ttl: 86400,
+    storage: 'persistent'
+  }
+};
+
 export class CacheManager {
   private storage: IStorageStrategy;
   private config: Required<ICacheConfig>;

@@ -2,14 +2,14 @@ export interface Profile {
   userId: string;
   bio: string;
   avatar: string;
+  role: 'user' | 'admin';
   preferences: {
     notifications: boolean;
     privacy: 'public' | 'friends' | 'private';
   };
-  stats: {
+  stats?: {
     questionsAnswered: number;
-    quizzesTaken: number;
-    accurateGuesses: number;
+    questionsCreated: number;
   };
   createdAt: Date;
   updatedAt: Date;

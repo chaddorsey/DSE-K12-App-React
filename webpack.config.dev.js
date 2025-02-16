@@ -12,6 +12,17 @@ module.exports = {
     filename: '[name].bundle.js',
     publicPath: '/'
   },
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.jsx'],
+    plugins: [
+      new TsconfigPathsPlugin({
+        configFile: './tsconfig.json'
+      })
+    ],
+    alias: {
+      '@': path.resolve(__dirname, 'src')
+    }
+  },
   module: {
     rules: [
       {
@@ -41,25 +52,11 @@ module.exports = {
       },
     ],
   },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.jsx'],
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-      'react': path.resolve('./node_modules/react'),
-      'react-dom': path.resolve('./node_modules/react-dom')
-    },
-    modules: [
-      path.resolve(__dirname, 'node_modules'),
-    ]
-  },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, 'public/index.html'),
+      template: './public/index.html',
     }),
-    new Dotenv({
-      systemvars: true,
-      defaults: false
-    }),
+    new Dotenv(),
   ],
   devServer: {
     static: {

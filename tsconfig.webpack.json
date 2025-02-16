@@ -1,19 +1,19 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "target": "es2020",
+    "module": "commonjs",
+    "target": "es5",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
     "resolveJsonModule": true,
-    "strict": true,
-    "isolatedModules": false
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
-  "ts-node": {
-    "compilerOptions": {
-      "module": "CommonJS"
-    },
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  }
+  "include": [
+    "webpack.config.dev.ts",
+    "webpack.config.ts",
+    "src/types/**/*"
+  ]
 } 

@@ -43,43 +43,34 @@ export class ProfileService {
   }
 
   async getProfile(userId: string): Promise<Profile> {
-    const profileDoc = await getDoc(doc(this.profilesRef, userId));
+    try {
+      const profileDoc = await getDoc(doc(this.profilesRef, userId));
+      
+      if (!profileDoc.exists()) {
+        throw new ProfileError('Profile not found', 'NOT_FOUND');
+      }
 
-    if (!profileDoc.exists()) {
+      return profileDoc.data() as Profile;
+    } catch (error) {
+      if (error instanceof ProfileError) throw error;
       throw new ProfileError(
-        'Profile not found',
-        'NOT_FOUND'
+        'Failed to fetch profile',
+        'OPERATION_ERROR',
+        error
       );
     }
-
-    return profileDoc.data() as Profile;
   }
 
-  async updateProfile(userId: string, updates: ProfileUpdateData): Promise<void> {
-    const profileDoc = doc(this.profilesRef, userId);
-    const existingProfile = await getDoc(profileDoc);
-
-    if (!existingProfile.exists()) {
+  async updateProfile(userId: string, data: Partial<Profile>): Promise<void> {
+    try {
+      await updateDoc(doc(this.profilesRef, userId), data);
+    } catch (error) {
       throw new ProfileError(
-        'Profile not found',
-        'NOT_FOUND'
+        'Failed to update profile',
+        'OPERATION_ERROR',
+        error
       );
     }
-
-    const updateData: Record<string, any> = {
-      ...updates,
-      updatedAt: new Date()
-    };
-
-    // Handle nested preference updates
-    if (updates.preferences) {
-      Object.entries(updates.preferences).forEach(([key, value]) => {
-        updateData[`preferences.${key}`] = value;
-      });
-      delete updateData.preferences;
-    }
-
-    await updateDoc(profileDoc, updateData);
   }
 
   async deleteProfile(userId: string): Promise<void> {
@@ -118,4 +109,18 @@ export class ProfileService {
 
     await updateDoc(profileDoc, updateData);
   }
-} 
+
+  async retryProfileLoad(userId: string, attempts = 3): Promise<Profile> {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await this.getProfile(userId);
+      } catch (error) {
+        if (i === attempts - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+      }
+    }
+    throw new Error('Failed to load profile after multiple attempts');
+  }
+}
+
+export const profileService = new ProfileService(); 

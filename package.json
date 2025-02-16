@@ -26,8 +26,7 @@
     "dev": "cross-env NODE_ENV=development webpack serve --config webpack.config.dev.js --mode development",
     "dev:init": "ts-node --project tsconfig.webpack.json scripts/init-dev-env.ts",
     "build": "webpack --config webpack.config.ts",
-    "start": "npm run dev",
-    "prestart": "ts-node scripts/setup-dev-env.ts",
+    "start": "cross-env NODE_ENV=development TS_NODE_PROJECT=\"tsconfig.webpack.json\" webpack serve --config webpack.config.dev.ts",
     "emulators": "firebase emulators:start",
     "emulators:export": "firebase emulators:export ./emulator-data",
     "emulators:start": "firebase emulators:start --import=./emulator-data --export-on-exit",
@@ -56,7 +55,9 @@
     "update:photos": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/update-user-photos.ts",
     "update:photos:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/update-user-photos.ts",
     "load:users": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/load-users.ts",
-    "load:users:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/load-users.ts"
+    "load:users:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/load-users.ts",
+    "emulators:setup": "firebase init emulators",
+    "prestart": "cross-env NODE_ENV=development ts-node --project tsconfig.scripts.json -r dotenv/config scripts/setup-dev-env.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -82,7 +83,7 @@
     "@babel/preset-env": "^7.26.8",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.26.0",
-    "@faker-js/faker": "^9.4.0",
+    "@faker-js/faker": "^9.5.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.6.1",

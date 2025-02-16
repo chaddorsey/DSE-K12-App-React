@@ -9,6 +9,10 @@ import { authService } from '../services/AuthService';
 import { IUser, IAuthContext, IAuthState } from '../types/auth';
 import { MonitoringService } from '@/monitoring/MonitoringService';
 import { IAnalyticsEvent } from '@/monitoring/types';
+import { profileService } from '@/features/profile/services/ProfileService';
+import { logger } from '@/utils/logger';
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
 const AuthContext = createContext<IAuthContext | undefined>(undefined);
 
@@ -30,26 +34,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isInitialMount = useRef(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        console.log('Firebase user:', firebaseUser);
-        // Convert Firebase user to our IUser type
-        const user: IUser = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified,
-        };
-        setState(prev => ({ ...prev, user, loading: false, initialized: true }));
-        if (!isInitialMount.current) {
-          monitoring.trackEvent({
-            type: 'auth',
-            category: 'user',
-            action: 'state_changed',
-            label: 'signed_in',
-            metadata: { uid: user.uid }
-          });
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          // Get extended profile from Firestore
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const firestoreData = userDoc.data();
+          
+          // Merge Auth and Firestore data
+          setState(prev => ({
+            ...prev,
+            user: {
+              ...user,
+              photoURL: user.photoURL || firestoreData?.photoURL || null,
+              emailVerified: user.emailVerified,
+            },
+            loading: false,
+            initialized: true
+          }));
+          if (!isInitialMount.current) {
+            monitoring.trackEvent({
+              type: 'auth',
+              category: 'user',
+              action: 'state_changed',
+              label: 'signed_in',
+              metadata: { uid: user.uid }
+            });
+          }
+        } catch (error) {
+          logger.error('Error loading user profile:', error);
+          setState(prev => ({
+            ...prev,
+            user: user,
+            loading: false,
+            initialized: true
+          }));
         }
       } else {
         setState(prev => ({ ...prev, user: null, loading: false, initialized: true }));
@@ -189,6 +208,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loadUserProfile = async (user: IUser) => {
+    try {
+      const profile = await profileService.getProfile(user.uid);
+      
+      // Merge auth and profile data
+      const mergedUser: IUser = {
+        ...user,
+        photoURL: profile?.avatar || user.photoURL,
+        createdAt: user.metadata?.creationTime || new Date().toISOString(),
+        lastLoginAt: user.metadata?.lastSignInTime || new Date().toISOString(),
+        role: profile?.role || 'user'
+      };
+      
+      setState(prev => ({ ...prev, user: mergedUser }));
+    } catch (error) {
+      logger.error('Failed to load user profile', error);
+    }
+  };
+
   const value: IAuthContext = {
     ...state,
     signIn,
@@ -197,7 +235,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resetPassword,
     updateProfile,
     refreshUser,
-    updateUserProfile
+    updateUserProfile,
+    loadUserProfile
   };
 
   return (
