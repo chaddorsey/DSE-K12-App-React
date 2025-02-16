@@ -1,17 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ES2018",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "es5",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
     "strict": true,
-    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./scripts",
+    "rootDir": ".",
     "baseUrl": "."
   },
-  "include": ["scripts/**/*"],
+  "include": [
+    "scripts/**/*"
+  ],
   "exclude": ["node_modules"]
 } 

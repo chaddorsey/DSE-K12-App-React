@@ -4,12 +4,12 @@ import { PhotoUploadService } from '../services/PhotoUploadService';
 import { Avatar } from '@/components/Avatar';
 import './ProfilePhotoUploader.css';
 
-export const ProfilePhotoUploader: React.FC = () => {
+export function ProfilePhotoUploader() {
   const { user, updateUserProfile } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const photoService = new PhotoUploadService();
+  const [photoUploadService] = useState(() => new PhotoUploadService(user?.uid || ''));
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -21,7 +21,7 @@ export const ProfilePhotoUploader: React.FC = () => {
 
     try {
       // First upload the photo
-      uploadedPhotoURL = await photoService.uploadPhoto(user.uid, file);
+      uploadedPhotoURL = await photoUploadService.uploadPhoto(file);
       console.log('Photo uploaded successfully:', uploadedPhotoURL);
       
       // Then update the user profile with just the photoURL
@@ -38,7 +38,7 @@ export const ProfilePhotoUploader: React.FC = () => {
       // If we uploaded the photo but failed to update the profile, clean up
       if (uploadedPhotoURL && err instanceof Error && err.message === 'Failed to update profile') {
         try {
-          await photoService.removePhoto(user.uid);
+          await photoUploadService.removePhoto(user.uid);
           console.log('Cleaned up uploaded photo after failed profile update');
         } catch (cleanupErr) {
           console.error('Failed to clean up uploaded photo:', cleanupErr);
@@ -58,7 +58,9 @@ export const ProfilePhotoUploader: React.FC = () => {
     setError(null);
 
     try {
-      await photoService.removePhoto(user.uid);
+      if (user.photoURL) {
+        await photoUploadService.removePhoto(user.photoURL);
+      }
       // Update user profile to remove photo URL
       await updateUserProfile({ photoURL: null });
     } catch (err) {
@@ -104,4 +106,4 @@ export const ProfilePhotoUploader: React.FC = () => {
       {error && <div className="error-message">{error}</div>}
     </div>
   );
-}; 
+} 

@@ -5,6 +5,7 @@
   "dependencies": {
     "@firebase/auth": "^1.9.0",
     "@firebase/firestore": "^4.7.8",
+    "@firebase/storage": "^0.13.6",
     "@hookform/resolvers": "^3.10.0",
     "@react-spring/web": "^9.7.5",
     "canvas-confetti": "^1.9.3",
@@ -23,10 +24,12 @@
     "yup": "^0.32.11"
   },
   "scripts": {
-    "dev": "cross-env NODE_ENV=development webpack serve --config webpack.config.dev.js --mode development",
+    "dev": "npm-run-all -p emulators start",
     "dev:init": "ts-node --project tsconfig.webpack.json scripts/init-dev-env.ts",
-    "build": "webpack --config webpack.config.ts",
-    "start": "cross-env NODE_ENV=development TS_NODE_PROJECT=\"tsconfig.webpack.json\" webpack serve --config webpack.config.dev.ts",
+    "build": "cross-env NODE_ENV=production webpack --config webpack.config.ts",
+    "build:dev": "cross-env NODE_ENV=development webpack --config webpack.config.ts",
+    "start": "cross-env NODE_ENV=development TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' webpack serve --config webpack.config.dev.ts",
+    "start:prod": "cross-env NODE_ENV=production webpack serve --config webpack.config.dev.ts",
     "emulators": "firebase emulators:start",
     "emulators:export": "firebase emulators:export ./emulator-data",
     "emulators:start": "firebase emulators:start --import=./emulator-data --export-on-exit",
@@ -57,7 +60,7 @@
     "load:users": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/load-users.ts",
     "load:users:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/load-users.ts",
     "emulators:setup": "firebase init emulators",
-    "prestart": "cross-env NODE_ENV=development ts-node --project tsconfig.scripts.json -r dotenv/config scripts/setup-dev-env.ts"
+    "prestart": "cross-env NODE_ENV=development ts-node --project tsconfig.scripts.json scripts/setup-dev-env.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -89,6 +92,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/csv-parse": "^1.1.12",
+    "@types/dotenv-webpack": "^7.0.8",
     "@types/jest": "^29.5.0",
     "@types/jest-axe": "^3.5.9",
     "@types/node": "^20.10.0",
@@ -109,6 +113,7 @@
     "csv-parse": "^5.6.0",
     "dotenv": "^16.4.7",
     "dotenv-webpack": "^8.1.0",
+    "firebase-admin": "^13.1.0",
     "firebase-tools": "^13.30.0",
     "html-webpack-plugin": "^5.6.3",
     "identity-obj-proxy": "^3.0.0",

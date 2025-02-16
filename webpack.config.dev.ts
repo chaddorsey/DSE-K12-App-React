@@ -1,16 +1,23 @@
-import path from 'path';
-import webpack from 'webpack';
-import HtmlWebpackPlugin from 'html-webpack-plugin';
-import { Configuration as WebpackConfiguration } from 'webpack';
-import { Configuration as WebpackDevServerConfiguration } from 'webpack-dev-server';
-import Dotenv from 'dotenv-webpack';
+import type { Configuration as WebpackConfig } from 'webpack';
+import type { Configuration as DevServerConfig } from 'webpack-dev-server';
+const path = require('path');
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
-interface Configuration extends WebpackConfiguration {
-  devServer?: WebpackDevServerConfiguration;
+// Merge both Configuration types
+interface Configuration extends WebpackConfig {
+  devServer?: DevServerConfig;
 }
 
+const dotenvPlugin = new Dotenv({
+  path: '.env.development',
+  systemvars: true,
+  safe: true,
+}) as any;
+
 const config: Configuration = {
-  mode: 'development',
+  mode: 'development' as const,
   entry: './src/index.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -88,4 +95,4 @@ const config: Configuration = {
   devtool: 'inline-source-map',
 };
 
-export default config; 
+module.exports = config; 

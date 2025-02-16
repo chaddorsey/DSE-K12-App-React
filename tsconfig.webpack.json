@@ -6,14 +6,12 @@
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "isolatedModules": false,
+    "strict": true,
+    "skipLibCheck": true
   },
   "include": [
     "webpack.config.dev.ts",
-    "webpack.config.ts",
-    "src/types/**/*"
+    "webpack.config.ts"
   ]
 } 

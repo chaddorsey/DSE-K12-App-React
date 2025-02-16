@@ -7,6 +7,7 @@ import { ProfileService } from '@/features/profile/services/ProfileService';
 import { doc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { serverTimestamp } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -16,14 +17,23 @@ const debug = (message: string, ...args: any[]) => {
 };
 
 export class PhotoUploadService {
-  constructor() {
+  private storage: FirebaseStorage | null = null;
+  private userId: string;
+
+  constructor(userId: string) {
+    this.userId = userId;
+    this.initializeStorage();
+  }
+
+  private initializeStorage() {
     debug('Initializing PhotoUploadService');
-    debug('Storage available:', isStorageAvailable());
-    debug('Storage object:', storage);
-    
-    if (!isStorageAvailable()) {
-      console.warn('Firebase Storage is not available - some features may be limited');
-    }
+    this.storage = getStorage();
+    debug('Storage available:', this.isStorageAvailable());
+    debug('Storage object:', this.storage);
+  }
+
+  private isStorageAvailable(): boolean {
+    return isStorageAvailable();
   }
 
   validateFile(file: File | null | undefined): void {
@@ -40,43 +50,61 @@ export class PhotoUploadService {
     }
   }
 
-  async uploadPhoto(file: File, userId: string): Promise<string> {
+  async uploadPhoto(file: File): Promise<string> {
     debug('Attempting to upload photo');
-    if (!isStorageAvailable()) {
-      debug('Storage not available for upload');
+    
+    if (!this.storage || !this.isStorageAvailable()) {
       throw new Error('Storage not available');
     }
 
+    // Create a unique filename with timestamp
+    const timestamp = Date.now();
+    const filename = `profile_${timestamp}`;
+    
+    // Create reference to user's profile photo
+    const storageRef = ref(this.storage, `users/${this.userId}/${filename}`);
+    debug('Created storage reference:', storageRef);
+
     try {
-      const storageRef = ref(storage!, `users/${userId}/profile_${Date.now()}`);
-      debug('Created storage reference:', storageRef);
-      
-      const snapshot = await uploadBytes(storageRef, file);
-      debug('Upload successful:', snapshot);
-      
-      const downloadUrl = await getDownloadURL(snapshot.ref);
-      debug('Got download URL:', downloadUrl);
-      
-      return downloadUrl;
+      // Upload the file
+      const uploadResult = await uploadBytes(storageRef, file);
+      debug('Upload successful:', uploadResult);
+
+      // Get the download URL
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+      debug('Got download URL:', downloadURL);
+
+      return downloadURL;
     } catch (error) {
-      debug('Upload failed:', error);
+      console.error('Error uploading photo:', error);
       throw error;
     }
   }
 
-  async removePhoto(userId: string): Promise<void> {
-    if (!isStorageAvailable()) {
+  async removePhoto(photoURL: string): Promise<void> {
+    if (!this.storage || !this.isStorageAvailable()) {
       throw new Error('Storage not available');
     }
 
     try {
-      const photoRef = ref(storage, `users/${userId}/profile`);
+      // Extract just the filename from the full URL
+      const decodedUrl = decodeURIComponent(photoURL);
+      const matches = decodedUrl.match(/\/([^/?]+)\?/);
+      const filename = matches ? matches[1] : '';
+      
+      if (!filename) {
+        throw new Error('Invalid photo URL format');
+      }
+
+      // Create reference to the file using the correct path structure
+      const photoRef = ref(this.storage, `users/${this.userId}/${filename}`);
+      
+      // Delete the file
       await deleteObject(photoRef);
+      debug('Photo removed successfully');
     } catch (error) {
-      console.error('Error removing photo:', error);
+      debug('Error removing photo:', error);
       throw error;
     }
   }
-}
-
-export const photoUploadService = new PhotoUploadService(); 
+} 

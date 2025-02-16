@@ -1,36 +1,55 @@
-[debug] [2025-02-16T00:17:13.545Z] ----------------------------------------------------------------------
-[debug] [2025-02-16T00:17:13.547Z] Command:       /Users/chaddorsey/.nvm/versions/node/v20.18.3/bin/node /Users/chaddorsey/.nvm/versions/node/v20.18.3/bin/firebase emulators:start --only auth,firestore,storage
-[debug] [2025-02-16T00:17:13.548Z] CLI Version:   13.30.0
-[debug] [2025-02-16T00:17:13.548Z] Platform:      darwin
-[debug] [2025-02-16T00:17:13.548Z] Node Version:  v20.18.3
-[debug] [2025-02-16T00:17:13.548Z] Time:          Sat Feb 15 2025 19:17:13 GMT-0500 (Eastern Standard Time)
-[debug] [2025-02-16T00:17:13.548Z] ----------------------------------------------------------------------
+[debug] [2025-02-16T15:22:38.311Z] ----------------------------------------------------------------------
+[debug] [2025-02-16T15:22:38.314Z] Command:       /Users/chaddorsey/.nvm/versions/node/v20.18.3/bin/node /Users/chaddorsey/Dropbox/dev/ChatGPT-experiments/dset-app-o3/node_modules/.bin/firebase emulators:start
+[debug] [2025-02-16T15:22:38.314Z] CLI Version:   13.30.0
+[debug] [2025-02-16T15:22:38.314Z] Platform:      darwin
+[debug] [2025-02-16T15:22:38.315Z] Node Version:  v20.18.3
+[debug] [2025-02-16T15:22:38.315Z] Time:          Sun Feb 16 2025 09:22:38 GMT-0600 (Central Standard Time)
+[debug] [2025-02-16T15:22:38.315Z] ----------------------------------------------------------------------
 [debug] 
-[debug] [2025-02-16T00:17:13.723Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2025-02-16T00:17:13.724Z] > authorizing via signed-in user (cdorsey@concord.org)
-[debug] [2025-02-16T00:17:13.783Z] java version "23.0.2" 2025-01-21
+[debug] [2025-02-16T15:22:38.498Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-02-16T15:22:38.499Z] > authorizing via signed-in user (cdorsey@concord.org)
+[debug] [2025-02-16T15:22:38.554Z] java version "23.0.2" 2025-01-21
 
-[debug] [2025-02-16T00:17:13.784Z] Java(TM) SE Runtime Environment (build 23.0.2+7-58)
+[debug] [2025-02-16T15:22:38.555Z] Java(TM) SE Runtime Environment (build 23.0.2+7-58)
 Java HotSpot(TM) 64-Bit Server VM (build 23.0.2+7-58, mixed mode, sharing)
 
-[debug] [2025-02-16T00:17:13.787Z] Parsed Java major version: 23
-[info] i  emulators: Starting emulators: auth, firestore, storage {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: auth, firestore, storage"}}
-[debug] [2025-02-16T00:17:14.956Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
-[debug] [2025-02-16T00:17:14.956Z] [auth] Authentication Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
-[debug] [2025-02-16T00:17:14.957Z] [firestore] Firestore Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
-[debug] [2025-02-16T00:17:14.957Z] [firestore.websocket] websocket server for firestore only supports listening on one address (127.0.0.1). Not listening on ::1
-[debug] [2025-02-16T00:17:14.957Z] [storage] Storage Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
-[debug] [2025-02-16T00:17:14.957Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"auth":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"firestore":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"127.0.0.1","family":"IPv4","port":9150}],"storage":[{"address":"127.0.0.1","family":"IPv4","port":9199}]},"metadata":{"message":"assigned listening specs for emulators"}}
-[debug] [2025-02-16T00:17:14.960Z] [hub] writing locator at /var/folders/pb/qbt5jzp15wgdzqps0f34z2vw0000gn/T/hub-dse-k12-connections.json
-[debug] [2025-02-16T00:17:14.974Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: auto_download"}}
-[debug] [2025-02-16T00:17:14.974Z] Ignoring unsupported arg: single_project_mode_error {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: single_project_mode_error"}}
-[debug] [2025-02-16T00:17:14.974Z] Starting Firestore Emulator with command {"binary":"java","args":["-Dgoogle.cloud_firestore.debug_log_level=FINE","-Duser.language=en","-jar","/Users/chaddorsey/.cache/firebase/emulators/cloud-firestore-emulator-v1.19.8.jar","--host","127.0.0.1","--port",8080,"--websocket_port",9150,"--project_id","dse-k12-connections","--rules","/Users/chaddorsey/Dropbox/dev/ChatGPT-experiments/dset-app-o3/firestore.rules","--single_project_mode",true],"optionalArgs":["port","webchannel_port","host","rules","websocket_port","functions_emulator","seed_from_export","project_id","single_project_mode"],"joinArgs":false,"shell":false,"port":8080} {"metadata":{"emulator":{"name":"firestore"},"message":"Starting Firestore Emulator with command {\"binary\":\"java\",\"args\":[\"-Dgoogle.cloud_firestore.debug_log_level=FINE\",\"-Duser.language=en\",\"-jar\",\"/Users/chaddorsey/.cache/firebase/emulators/cloud-firestore-emulator-v1.19.8.jar\",\"--host\",\"127.0.0.1\",\"--port\",8080,\"--websocket_port\",9150,\"--project_id\",\"dse-k12-connections\",\"--rules\",\"/Users/chaddorsey/Dropbox/dev/ChatGPT-experiments/dset-app-o3/firestore.rules\",\"--single_project_mode\",true],\"optionalArgs\":[\"port\",\"webchannel_port\",\"host\",\"rules\",\"websocket_port\",\"functions_emulator\",\"seed_from_export\",\"project_id\",\"single_project_mode\"],\"joinArgs\":false,\"shell\":false,\"port\":8080}"}}
+[debug] [2025-02-16T15:22:38.558Z] Parsed Java major version: 23
+[info] i  emulators: Starting emulators: auth, functions, firestore, hosting, storage, extensions {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: auth, functions, firestore, hosting, storage, extensions"}}
+[debug] [2025-02-16T15:22:38.559Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:38.559Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:38.560Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/dse-k12-connections [none]
+[debug] [2025-02-16T15:22:38.802Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/dse-k12-connections 200
+[debug] [2025-02-16T15:22:38.802Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/dse-k12-connections {"projectNumber":"629201026326","projectId":"dse-k12-connections","lifecycleState":"ACTIVE","name":"DSE-K12 Connections","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-02-11T21:24:27.844319Z","parent":{"type":"organization","id":"264971417743"}}
+[debug] [2025-02-16T15:22:40.158Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-02-16T15:22:40.158Z] [auth] Authentication Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-02-16T15:22:40.158Z] [firestore] Firestore Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-02-16T15:22:40.158Z] [firestore.websocket] websocket server for firestore only supports listening on one address (127.0.0.1). Not listening on ::1
+[warn] ⚠  hosting: Hosting Emulator unable to start on port 5000, starting on 5002 instead. {"metadata":{"emulator":{"name":"hosting"},"message":"Hosting Emulator unable to start on port 5000, starting on 5002 instead."}}
+[debug] [2025-02-16T15:22:40.159Z] [hosting] Hosting Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-02-16T15:22:40.159Z] assigned listening specs for emulators {"user":{"storage":[{"address":"127.0.0.1","family":"IPv4","port":9199}],"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"auth":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"firestore":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"127.0.0.1","family":"IPv4","port":9150}],"hosting":[{"address":"127.0.0.1","family":"IPv4","port":5002}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2025-02-16T15:22:40.163Z] [hub] writing locator at /var/folders/pb/qbt5jzp15wgdzqps0f34z2vw0000gn/T/hub-dse-k12-connections.json
+[debug] [2025-02-16T15:22:40.174Z] [Extensions] Started Extensions emulator, this is a noop.
+[debug] [2025-02-16T15:22:40.685Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-02-16T15:22:40.685Z] [eventarc] Eventarc Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-02-16T15:22:40.685Z] [tasks] Cloud Tasks Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-02-16T15:22:40.685Z] late-assigned ports for functions and eventarc emulators {"user":{"storage":[{"address":"127.0.0.1","family":"IPv4","port":9199}],"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"auth":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"firestore":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"127.0.0.1","family":"IPv4","port":9150}],"hosting":[{"address":"127.0.0.1","family":"IPv4","port":5002}],"functions":[{"address":"127.0.0.1","family":"IPv4","port":5001}],"eventarc":[{"address":"127.0.0.1","family":"IPv4","port":9299}],"tasks":[{"address":"127.0.0.1","family":"IPv4","port":9499}]},"metadata":{"message":"late-assigned ports for functions and eventarc emulators"}}
+[warn] ⚠  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, database, pubsub, dataconnect {"metadata":{"emulator":{"name":"functions"},"message":"The following emulators are not running, calls to these services from the Functions emulator will affect production: \u001b[1mapphosting, database, pubsub, dataconnect\u001b[22m"}}
+[debug] [2025-02-16T15:22:40.688Z] defaultcredentials: writing to file /Users/chaddorsey/.config/firebase/cdorsey_concord_org_application_default_credentials.json
+[debug] [2025-02-16T15:22:40.693Z] Setting GAC to /Users/chaddorsey/.config/firebase/cdorsey_concord_org_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to /Users/chaddorsey/.config/firebase/cdorsey_concord_org_application_default_credentials.json"}}
+[debug] [2025-02-16T15:22:40.693Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:40.693Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:40.694Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/dse-k12-connections/adminSdkConfig [none]
+[debug] [2025-02-16T15:22:41.054Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/dse-k12-connections/adminSdkConfig 200
+[debug] [2025-02-16T15:22:41.054Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/dse-k12-connections/adminSdkConfig {"projectId":"dse-k12-connections","storageBucket":"dse-k12-connections.firebasestorage.app"}
+[debug] [2025-02-16T15:22:41.114Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2025-02-16T15:22:41.115Z] Ignoring unsupported arg: single_project_mode_error {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: single_project_mode_error"}}
+[debug] [2025-02-16T15:22:41.115Z] Starting Firestore Emulator with command {"binary":"java","args":["-Dgoogle.cloud_firestore.debug_log_level=FINE","-Duser.language=en","-jar","/Users/chaddorsey/.cache/firebase/emulators/cloud-firestore-emulator-v1.19.8.jar","--host","127.0.0.1","--port",8080,"--websocket_port",9150,"--project_id","dse-k12-connections","--rules","/Users/chaddorsey/Dropbox/dev/ChatGPT-experiments/dset-app-o3/firestore.rules","--single_project_mode",true,"--functions_emulator","127.0.0.1:5001"],"optionalArgs":["port","webchannel_port","host","rules","websocket_port","functions_emulator","seed_from_export","project_id","single_project_mode"],"joinArgs":false,"shell":false,"port":8080} {"metadata":{"emulator":{"name":"firestore"},"message":"Starting Firestore Emulator with command {\"binary\":\"java\",\"args\":[\"-Dgoogle.cloud_firestore.debug_log_level=FINE\",\"-Duser.language=en\",\"-jar\",\"/Users/chaddorsey/.cache/firebase/emulators/cloud-firestore-emulator-v1.19.8.jar\",\"--host\",\"127.0.0.1\",\"--port\",8080,\"--websocket_port\",9150,\"--project_id\",\"dse-k12-connections\",\"--rules\",\"/Users/chaddorsey/Dropbox/dev/ChatGPT-experiments/dset-app-o3/firestore.rules\",\"--single_project_mode\",true,\"--functions_emulator\",\"127.0.0.1:5001\"],\"optionalArgs\":[\"port\",\"webchannel_port\",\"host\",\"rules\",\"websocket_port\",\"functions_emulator\",\"seed_from_export\",\"project_id\",\"single_project_mode\"],\"joinArgs\":false,\"shell\":false,\"port\":8080}"}}
 [info] i  firestore: Firestore Emulator logging to firestore-debug.log {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator logging to \u001b[1mfirestore-debug.log\u001b[22m"}}
-[debug] [2025-02-16T00:17:15.752Z] Feb 15, 2025 7:17:15 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
+[debug] [2025-02-16T15:22:41.855Z] Feb 16, 2025 9:22:41 AM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start
 INFO: Started WebSocket server on ws://127.0.0.1:9150
- {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 15, 2025 7:17:15 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start\nINFO: Started WebSocket server on ws://127.0.0.1:9150\n"}}
-[debug] [2025-02-16T00:17:15.768Z] API endpoint: http:// {"metadata":{"emulator":{"name":"firestore"},"message":"API endpoint: http://"}}
-[debug] [2025-02-16T00:17:15.768Z] 127.0.0.1:8080
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:22:41 AM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketServer start\nINFO: Started WebSocket server on ws://127.0.0.1:9150\n"}}
+[debug] [2025-02-16T15:22:41.870Z] API endpoint: http:// {"metadata":{"emulator":{"name":"firestore"},"message":"API endpoint: http://"}}
+[debug] [2025-02-16T15:22:41.871Z] 127.0.0.1:8080
 If you are using a library that supports the FIRESTORE_EMULATOR_HOST environment variable, run:
 
    export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
@@ -44,32 +63,222 @@ Dev App Server is now running.
 
  {"metadata":{"emulator":{"name":"firestore"},"message":"127.0.0.1:8080\nIf you are using a library that supports the FIRESTORE_EMULATOR_HOST environment variable, run:\n\n   export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080\n\nIf you are running a Firestore in Datastore Mode project, run:\n\n   export DATASTORE_EMULATOR_HOST=127.0.0.1:8080\n\nNote: Support for Datastore Mode is in preview. If you encounter any bugs please file at https://github.com/firebase/firebase-tools/issues.\nDev App Server is now running.\n\n"}}
 [info] ✔  firestore: Firestore Emulator UI websocket is running on 9150. {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator UI websocket is running on 9150."}}
-[debug] [2025-02-16T00:17:19.671Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"storage"},"message":"Ignoring unsupported arg: port"}}
-[debug] [2025-02-16T00:17:20.276Z] Temp file directory for storage emulator: /var/folders/pb/qbt5jzp15wgdzqps0f34z2vw0000gn/T/firebase/storage/blobs {"metadata":{"emulator":{"name":"storage"},"message":"Temp file directory for storage emulator: /var/folders/pb/qbt5jzp15wgdzqps0f34z2vw0000gn/T/firebase/storage/blobs"}}
-[debug] [2025-02-16T00:17:20.291Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[debug] [2025-02-16T15:22:45.730Z] Feb 16, 2025 9:22:43 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:22:43 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:22:45.730Z] Multiple projectIds are not recommended in single project mode. Requested project ID demo-local, but the emulator is configured for dse-k12-connections. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Multiple projectIds are not recommended in single project mode. Requested project ID demo-local, but the emulator is configured for dse-k12-connections. To opt-out of single project mode add/set the '\"singleProjectMode\": false' property in the firebase.json emulators config.\n"}}
+[debug] [2025-02-16T15:22:45.734Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"storage"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2025-02-16T15:22:46.348Z] Temp file directory for storage emulator: /var/folders/pb/qbt5jzp15wgdzqps0f34z2vw0000gn/T/firebase/storage/blobs {"metadata":{"emulator":{"name":"storage"},"message":"Temp file directory for storage emulator: /var/folders/pb/qbt5jzp15wgdzqps0f34z2vw0000gn/T/firebase/storage/blobs"}}
+[debug] [2025-02-16T15:22:46.351Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:46.351Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:46.351Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/dse-k12-connections/sites 
+[debug] [2025-02-16T15:22:47.126Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/dse-k12-connections/sites 200
+[debug] [2025-02-16T15:22:47.126Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/dse-k12-connections/sites {"sites":[{"name":"projects/dse-k12-connections/sites/dse-k12-connections","defaultUrl":"https://dse-k12-connections.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2025-02-16T15:22:47.127Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:47.127Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:47.127Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/dse-k12-connections/webApps/-/config [none]
+[debug] [2025-02-16T15:22:47.473Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/dse-k12-connections/webApps/-/config 200
+[debug] [2025-02-16T15:22:47.473Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/dse-k12-connections/webApps/-/config {"projectId":"dse-k12-connections","appId":"1:629201026326:web:574de8d190762b5a17a437","storageBucket":"dse-k12-connections.firebasestorage.app","apiKey":"AIzaSyDeVXYP7h4hIIb7SntARI0jA07YZSWxxFA","authDomain":"dse-k12-connections.firebaseapp.com","messagingSenderId":"629201026326","measurementId":"G-LHFSKLDPG8"}
+[debug] [2025-02-16T15:22:47.485Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:47.485Z] Checked if tokens are valid: true, expires at: 1739720317324
+[debug] [2025-02-16T15:22:47.485Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/dse-k12-connections [none]
+[debug] [2025-02-16T15:22:47.603Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/dse-k12-connections 200
+[debug] [2025-02-16T15:22:47.603Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/dse-k12-connections {"projectId":"dse-k12-connections","projectNumber":"629201026326","displayName":"DSE-K12 Connections","name":"projects/dse-k12-connections","resources":{"hostingSite":"dse-k12-connections"},"state":"ACTIVE","etag":"1_4dee7a31-f491-49d9-a2e3-5a8332f2d579"}
+[debug] [2025-02-16T15:22:47.604Z] Specified "public" directory "build" does not exist; Deploy to Hosting site "dse-k12-connections" may fail or be empty.
+[info] i  hosting[dse-k12-connections]: Serving hosting files from: build {"metadata":{"emulator":{"name":"hosting"},"message":"Serving hosting files from: \u001b[1mbuild\u001b[22m"}}
+[info] ✔  hosting[dse-k12-connections]: Local server: http://127.0.0.1:5002 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://127.0.0.1:5002\u001b[22m\u001b[24m"}}
+[debug] [2025-02-16T15:22:47.742Z] [Extensions] Connecting Extensions emulator, this is a noop.
+[info] i  functions: Watching "/Users/chaddorsey/Dropbox/dev/ChatGPT-experiments/dset-app-o3/functions" for Cloud Functions... {"metadata":{"emulator":{"name":"functions"},"message":"Watching \"/Users/chaddorsey/Dropbox/dev/ChatGPT-experiments/dset-app-o3/functions\" for Cloud Functions..."}}
+[debug] [2025-02-16T15:22:47.744Z] Customer code is not Node
+[debug] [2025-02-16T15:22:47.744Z] Customer code is not Python code.
+[error] ⬢  functions: Failed to load function definition from source: FirebaseError: Could not detect runtime for functions at /Users/chaddorsey/Dropbox/dev/ChatGPT-experiments/dset-app-o3/functions {"metadata":{"emulator":{"name":"functions"},"message":"Failed to load function definition from source: FirebaseError: Could not detect runtime for functions at /Users/chaddorsey/Dropbox/dev/ChatGPT-experiments/dset-app-o3/functions"}}
+[debug] [2025-02-16T15:22:47.750Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
 [info] 
 ┌─────────────────────────────────────────────────────────────┐
 │ ✔  All emulators ready! It is now safe to connect your app. │
 │ i  View Emulator UI at http://127.0.0.1:4000/               │
 └─────────────────────────────────────────────────────────────┘
 
-┌────────────────┬────────────────┬─────────────────────────────────┐
-│ Emulator       │ Host:Port      │ View in Emulator UI             │
-├────────────────┼────────────────┼─────────────────────────────────┤
-│ Authentication │ 127.0.0.1:9099 │ http://127.0.0.1:4000/auth      │
-├────────────────┼────────────────┼─────────────────────────────────┤
-│ Firestore      │ 127.0.0.1:8080 │ http://127.0.0.1:4000/firestore │
-├────────────────┼────────────────┼─────────────────────────────────┤
-│ Storage        │ 127.0.0.1:9199 │ http://127.0.0.1:4000/storage   │
-└────────────────┴────────────────┴─────────────────────────────────┘
+┌────────────────┬────────────────┬──────────────────────────────────┐
+│ Emulator       │ Host:Port      │ View in Emulator UI              │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Authentication │ 127.0.0.1:9099 │ http://127.0.0.1:4000/auth       │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Functions      │ 127.0.0.1:5001 │ http://127.0.0.1:4000/functions  │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Firestore      │ 127.0.0.1:8080 │ http://127.0.0.1:4000/firestore  │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Hosting        │ 127.0.0.1:5002 │ n/a                              │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Storage        │ 127.0.0.1:9199 │ http://127.0.0.1:4000/storage    │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Extensions     │ 127.0.0.1:5001 │ http://127.0.0.1:4000/extensions │
+└────────────────┴────────────────┴──────────────────────────────────┘
   Emulator Hub running at 127.0.0.1:4400
   Other reserved ports: 4500, 9150
-
+┌─────────────────────────┬───────────────┬─────────────────────┐
+│ Extension Instance Name │ Extension Ref │ View in Emulator UI │
+└─────────────────────────┴───────────────┴─────────────────────┘
 Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
  
-[debug] [2025-02-16T00:17:25.058Z] Feb 15, 2025 7:17:25 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+[debug] [2025-02-16T15:23:30.279Z] Feb 16, 2025 9:23:30 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:30 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:30.297Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:23:30.297Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"eventId":"1b2f100a-dd3d-49b9-a3e7-800a007932f1","eventType":"providers/firebase.auth/eventTypes/user.create","resource":{"name":"projects/dse-k12-connections","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2025-02-16T15:23:30.297Z","data":{"uid":"qKJGTjX5jhmK5eBWtrIjH31oHx6z","email":"test@example.com","emailVerified":false,"metadata":{"creationTime":"2025-02-16T15:23:30.296Z","lastSignInTime":"2025-02-16T15:23:30.296Z"},"customClaims":{},"providerData":[{"providerId":"password","email":"test@example.com","federatedId":"test@example.com","rawId":"test@example.com"}]}}
+[debug] [2025-02-16T15:23:30.303Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:23:30.304Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:23:30.440Z] Feb 16, 2025 9:23:30 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
 INFO: Detected HTTP/2 connection.
- {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 15, 2025 7:17:25 PM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected HTTP/2 connection.\n"}}
-[debug] [2025-02-16T00:18:03.351Z] Feb 15, 2025 7:18:03 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel
-INFO: Connected to new websocket client
- {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 15, 2025 7:18:03 PM com.google.cloud.datastore.emulator.firestore.websocket.WebSocketChannelHandler initChannel\nINFO: Connected to new websocket client\n"}}
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:30 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:30.444Z] Multiple projectIds are not recommended in single project mode. Requested project ID demo-project, but the emulator is configured for dse-k12-connections. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Multiple projectIds are not recommended in single project mode. Requested project ID demo-project, but the emulator is configured for dse-k12-connections. To opt-out of single project mode add/set the '\"singleProjectMode\": false' property in the firebase.json emulators config.\n"}}
+[debug] [2025-02-16T15:23:30.645Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:23:30.645Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"eventId":"86efbcbf-5c60-45b5-bf36-99991e3613de","eventType":"providers/firebase.auth/eventTypes/user.create","resource":{"name":"projects/dse-k12-connections","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2025-02-16T15:23:30.645Z","data":{"uid":"fo0E9eKlPJeoMbJGQINsrQCpHUf6","email":"teacher@example.com","emailVerified":false,"metadata":{"creationTime":"2025-02-16T15:23:30.644Z","lastSignInTime":"2025-02-16T15:23:30.644Z"},"customClaims":{},"providerData":[{"providerId":"password","email":"teacher@example.com","federatedId":"teacher@example.com","rawId":"teacher@example.com"}]}}
+[debug] [2025-02-16T15:23:30.647Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:23:30.648Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:23:30.655Z] Multiple projectIds are not recommended in single project mode. Requested project ID demo-project, but the emulator is configured for dse-k12-connections. To opt-out of single project mode add/set the '"singleProjectMode": false' property in the firebase.json emulators config.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Multiple projectIds are not recommended in single project mode. Requested project ID demo-project, but the emulator is configured for dse-k12-connections. To opt-out of single project mode add/set the '\"singleProjectMode\": false' property in the firebase.json emulators config.\n"}}
+[debug] [2025-02-16T15:23:41.133Z] Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:41.288Z] Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:41.378Z] Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:41.396Z] Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:41.415Z] Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:41.424Z] Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:41.448Z] Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:41 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:51.702Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:23:51.702Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"eventId":"1739719431701","timestamp":"2025-02-16T15:23:51.701Z","eventType":"google.storage.object.finalize","resource":{"service":"storage.googleapis.com","name":"projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557","type":"storage#object"},"data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557","bucket":"demo-local.appspot.com","generation":"1739719431588","metageneration":"1","contentType":"image/png","timeCreated":"2025-02-16T15:23:51.589Z","updated":"2025-02-16T15:23:51.589Z","storageClass":"STANDARD","size":"13307","md5Hash":"D7jjnnHAc+CFle+h8BKH7g==","etag":"xzRpzZvmRK0w+QiR+QFUYk8iUq4","metadata":{"firebaseStorageDownloadTokens":"2c8ce943-3f92-4f11-8bbe-f08a14601f7d"},"crc32c":"xCp8JQ==","timeStorageClassUpdated":"2025-02-16T15:23:51.589Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557/1739719431588","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719431557","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719431557?generation=1739719431588&alt=media"}}
+[debug] [2025-02-16T15:23:51.704Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:23:51.704Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:23:51.704Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:23:51.704Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"specversion":"1.0","id":"ac8a3532-34c2-40fd-9f33-0d7a35460b1e","type":"google.cloud.storage.object.v1.finalized","source":"//storage.googleapis.com/projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557","time":"2025-02-16T15:23:51.589Z","data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557","bucket":"demo-local.appspot.com","generation":"1739719431588","metageneration":"1","contentType":"image/png","timeCreated":"2025-02-16T15:23:51.589Z","updated":"2025-02-16T15:23:51.589Z","storageClass":"STANDARD","size":"13307","md5Hash":"D7jjnnHAc+CFle+h8BKH7g==","etag":"xzRpzZvmRK0w+QiR+QFUYk8iUq4","metadata":{"firebaseStorageDownloadTokens":"2c8ce943-3f92-4f11-8bbe-f08a14601f7d"},"crc32c":"xCp8JQ==","timeStorageClassUpdated":"2025-02-16T15:23:51.589Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557/1739719431588","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719431557","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719431557?generation=1739719431588&alt=media"}}
+[debug] [2025-02-16T15:23:51.706Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:23:51.706Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:23:51.731Z] Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:51.732Z] Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:51.736Z] Feb 16, 2025 9:23:51 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose
+INFO: channel closed
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:51 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose\nINFO: channel closed\n"}}
+[debug] [2025-02-16T15:23:51.737Z] Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:51.737Z] Feb 16, 2025 9:23:51 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreListenHandler onClose
+INFO: channel closed
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:51 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreListenHandler onClose\nINFO: channel closed\n"}}
+[debug] [2025-02-16T15:23:51.746Z] Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:51.758Z] Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:23:51.770Z] Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:23:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:24:51.801Z] Feb 16, 2025 9:24:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:24:51 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:24:51.805Z] Feb 16, 2025 9:24:51 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose
+INFO: channel closed
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:24:51 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose\nINFO: channel closed\n"}}
+[debug] [2025-02-16T15:25:20.052Z] Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:20.073Z] Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:20.085Z] Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:20.091Z] Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:20.100Z] Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:20.109Z] Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:20.120Z] Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:20 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:29.081Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:25:29.081Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"eventId":"1739719529080","timestamp":"2025-02-16T15:25:29.080Z","eventType":"google.storage.object.delete","resource":{"service":"storage.googleapis.com","name":"projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557","type":"storage#object"},"data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557","bucket":"demo-local.appspot.com","generation":"1739719431588","metageneration":"1","contentType":"image/png","contentDisposition":"inline","timeCreated":"2025-02-16T15:23:51.589Z","updated":"2025-02-16T15:23:51.589Z","storageClass":"STANDARD","size":"13307","md5Hash":"D7jjnnHAc+CFle+h8BKH7g==","etag":"xzRpzZvmRK0w+QiR+QFUYk8iUq4","metadata":{"firebaseStorageDownloadTokens":"2c8ce943-3f92-4f11-8bbe-f08a14601f7d"},"crc32c":"xCp8JQ==","timeStorageClassUpdated":"2025-02-16T15:23:51.589Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557/1739719431588","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719431557","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719431557?generation=1739719431588&alt=media"}}
+[debug] [2025-02-16T15:25:29.083Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:25:29.083Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:25:29.083Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:25:29.083Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"specversion":"1.0","id":"19db8bb8-deb0-480c-9880-da53d98569c0","type":"google.cloud.storage.object.v1.deleted","source":"//storage.googleapis.com/projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557","time":"2025-02-16T15:23:51.589Z","data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557","bucket":"demo-local.appspot.com","generation":"1739719431588","metageneration":"1","contentType":"image/png","contentDisposition":"inline","timeCreated":"2025-02-16T15:23:51.589Z","updated":"2025-02-16T15:23:51.589Z","storageClass":"STANDARD","size":"13307","md5Hash":"D7jjnnHAc+CFle+h8BKH7g==","etag":"xzRpzZvmRK0w+QiR+QFUYk8iUq4","metadata":{"firebaseStorageDownloadTokens":"2c8ce943-3f92-4f11-8bbe-f08a14601f7d"},"crc32c":"xCp8JQ==","timeStorageClassUpdated":"2025-02-16T15:23:51.589Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719431557/1739719431588","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719431557","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719431557?generation=1739719431588&alt=media"}}
+[debug] [2025-02-16T15:25:29.084Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:25:29.084Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:25:29.097Z] Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:29.097Z] Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:29.100Z] Feb 16, 2025 9:25:29 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreListenHandler onClose
+INFO: channel closed
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:29 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreListenHandler onClose\nINFO: channel closed\n"}}
+[debug] [2025-02-16T15:25:29.103Z] Feb 16, 2025 9:25:29 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose
+INFO: channel closed
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:29 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose\nINFO: channel closed\n"}}
+[debug] [2025-02-16T15:25:29.103Z] Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:29.115Z] Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:29.120Z] Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:29.130Z] Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:29 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:33.054Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:25:33.054Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"eventId":"1739719533053","timestamp":"2025-02-16T15:25:33.053Z","eventType":"google.storage.object.finalize","resource":{"service":"storage.googleapis.com","name":"projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719533021","type":"storage#object"},"data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719533021","bucket":"demo-local.appspot.com","generation":"1739719533046","metageneration":"1","contentType":"image/png","timeCreated":"2025-02-16T15:25:33.046Z","updated":"2025-02-16T15:25:33.046Z","storageClass":"STANDARD","size":"13307","md5Hash":"D7jjnnHAc+CFle+h8BKH7g==","etag":"FruGL6gHHhStyTISdFe922NxpxI","metadata":{"firebaseStorageDownloadTokens":"da8d1b69-c310-48ee-9573-6aad82e3eb83"},"crc32c":"xCp8JQ==","timeStorageClassUpdated":"2025-02-16T15:25:33.046Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719533021/1739719533046","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719533021","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719533021?generation=1739719533046&alt=media"}}
+[debug] [2025-02-16T15:25:33.055Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:25:33.055Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:25:33.055Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:25:33.055Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"specversion":"1.0","id":"6f25dae9-b785-487a-96fd-f77916097ea1","type":"google.cloud.storage.object.v1.finalized","source":"//storage.googleapis.com/projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719533021","time":"2025-02-16T15:25:33.046Z","data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719533021","bucket":"demo-local.appspot.com","generation":"1739719533046","metageneration":"1","contentType":"image/png","timeCreated":"2025-02-16T15:25:33.046Z","updated":"2025-02-16T15:25:33.046Z","storageClass":"STANDARD","size":"13307","md5Hash":"D7jjnnHAc+CFle+h8BKH7g==","etag":"FruGL6gHHhStyTISdFe922NxpxI","metadata":{"firebaseStorageDownloadTokens":"da8d1b69-c310-48ee-9573-6aad82e3eb83"},"crc32c":"xCp8JQ==","timeStorageClassUpdated":"2025-02-16T15:25:33.046Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719533021/1739719533046","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719533021","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719533021?generation=1739719533046&alt=media"}}
+[debug] [2025-02-16T15:25:33.056Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:25:33.056Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:25:33.078Z] Feb 16, 2025 9:25:33 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead
+INFO: Detected non-HTTP/2 connection.
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:33 AM io.gapi.emulators.netty.HttpVersionRoutingHandler channelRead\nINFO: Detected non-HTTP/2 connection.\n"}}
+[debug] [2025-02-16T15:25:33.082Z] Feb 16, 2025 9:25:33 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose
+INFO: channel closed
+ {"metadata":{"emulator":{"name":"firestore"},"message":"Feb 16, 2025 9:25:33 AM com.google.cloud.datastore.emulator.firestore.webchannel.FirestoreV1WebChannelAdapter$FirestoreWriteHandler onClose\nINFO: channel closed\n"}}
+[debug] [2025-02-16T15:25:41.279Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:25:41.279Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"eventId":"1739719541279","timestamp":"2025-02-16T15:25:41.279Z","eventType":"google.storage.object.finalize","resource":{"service":"storage.googleapis.com","name":"projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188","type":"storage#object"},"data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188","bucket":"demo-local.appspot.com","generation":"1739719541246","metageneration":"1","contentType":"image/jpeg","timeCreated":"2025-02-16T15:25:41.246Z","updated":"2025-02-16T15:25:41.246Z","storageClass":"STANDARD","size":"3957739","md5Hash":"O7YzqAh5vGSDO1vbNAyaVg==","etag":"ohQ3s6ZH++MqhKEE5RwvzJZMmEs","metadata":{"firebaseStorageDownloadTokens":"b7c8b6a8-3c92-44cc-8f1c-1fda0f9d0a94"},"crc32c":"AE2rwA==","timeStorageClassUpdated":"2025-02-16T15:25:41.246Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188/1739719541246","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719541188","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719541188?generation=1739719541246&alt=media"}}
+[debug] [2025-02-16T15:25:41.283Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:25:41.283Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:25:41.283Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:25:41.283Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"specversion":"1.0","id":"666afe33-128d-42d6-aef7-8267d49f3495","type":"google.cloud.storage.object.v1.finalized","source":"//storage.googleapis.com/projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188","time":"2025-02-16T15:25:41.246Z","data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188","bucket":"demo-local.appspot.com","generation":"1739719541246","metageneration":"1","contentType":"image/jpeg","timeCreated":"2025-02-16T15:25:41.246Z","updated":"2025-02-16T15:25:41.246Z","storageClass":"STANDARD","size":"3957739","md5Hash":"O7YzqAh5vGSDO1vbNAyaVg==","etag":"ohQ3s6ZH++MqhKEE5RwvzJZMmEs","metadata":{"firebaseStorageDownloadTokens":"b7c8b6a8-3c92-44cc-8f1c-1fda0f9d0a94"},"crc32c":"AE2rwA==","timeStorageClassUpdated":"2025-02-16T15:25:41.246Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188/1739719541246","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719541188","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719541188?generation=1739719541246&alt=media"}}
+[debug] [2025-02-16T15:25:41.285Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:25:41.285Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:25:44.636Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:25:44.636Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"eventId":"1739719544636","timestamp":"2025-02-16T15:25:44.636Z","eventType":"google.storage.object.delete","resource":{"service":"storage.googleapis.com","name":"projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188","type":"storage#object"},"data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188","bucket":"demo-local.appspot.com","generation":"1739719541246","metageneration":"1","contentType":"image/jpeg","contentDisposition":"inline","timeCreated":"2025-02-16T15:25:41.246Z","updated":"2025-02-16T15:25:41.246Z","storageClass":"STANDARD","size":"3957739","md5Hash":"O7YzqAh5vGSDO1vbNAyaVg==","etag":"ohQ3s6ZH++MqhKEE5RwvzJZMmEs","metadata":{"firebaseStorageDownloadTokens":"b7c8b6a8-3c92-44cc-8f1c-1fda0f9d0a94"},"crc32c":"AE2rwA==","timeStorageClassUpdated":"2025-02-16T15:25:41.246Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188/1739719541246","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719541188","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719541188?generation=1739719541246&alt=media"}}
+[debug] [2025-02-16T15:25:44.638Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:25:44.638Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
+[debug] [2025-02-16T15:25:44.638Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast [none]
+[debug] [2025-02-16T15:25:44.638Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"specversion":"1.0","id":"647b23c1-0d77-4f40-8a1d-9457859a098c","type":"google.cloud.storage.object.v1.deleted","source":"//storage.googleapis.com/projects/_/buckets/demo-local.appspot.com/objects/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188","time":"2025-02-16T15:25:41.246Z","data":{"kind":"storage#object","name":"users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188","bucket":"demo-local.appspot.com","generation":"1739719541246","metageneration":"1","contentType":"image/jpeg","contentDisposition":"inline","timeCreated":"2025-02-16T15:25:41.246Z","updated":"2025-02-16T15:25:41.246Z","storageClass":"STANDARD","size":"3957739","md5Hash":"O7YzqAh5vGSDO1vbNAyaVg==","etag":"ohQ3s6ZH++MqhKEE5RwvzJZMmEs","metadata":{"firebaseStorageDownloadTokens":"b7c8b6a8-3c92-44cc-8f1c-1fda0f9d0a94"},"crc32c":"AE2rwA==","timeStorageClassUpdated":"2025-02-16T15:25:41.246Z","id":"demo-local.appspot.com/users/qKJGTjX5jhmK5eBWtrIjH31oHx6z/profile_1739719541188/1739719541246","selfLink":"http://127.0.0.1:9199/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719541188","mediaLink":"http://127.0.0.1:9199/download/storage/v1/b/demo-local.appspot.com/o/users%2FqKJGTjX5jhmK5eBWtrIjH31oHx6z%2Fprofile_1739719541188?generation=1739719541246&alt=media"}}
+[debug] [2025-02-16T15:25:44.639Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast 200
+[debug] [2025-02-16T15:25:44.639Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/dse-k12-connections/trigger_multicast {"status":"multicast_acknowledged"}
