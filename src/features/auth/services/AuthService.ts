@@ -15,17 +15,9 @@ import {
 import { auth, db } from '@/config/firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { IUser, UserRole, KnownUser } from '../types/auth';
-import { getAvatarUrl } from '@/utils/avatar';
-import { findKnownUser } from '@/utils/known-users';
-
-console.log('Firestore instance:', db ? 'initialized' : 'null', {
-  type: db?.type,
-  _databaseId: (db as any)?._databaseId,
-});
 
 export class AuthService {
   constructor() {
-    console.log('AuthService initializing...');
     // Set persistence to local (survives browser restart)
     setPersistence(auth, browserLocalPersistence)
       .catch(error => console.error('Error setting auth persistence:', error));
@@ -45,40 +37,33 @@ export class AuthService {
 
   async signUp(email: string, password: string): Promise<IUser> {
     try {
-      console.log('Starting signup process...', { dbInitialized: !!db });
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('Auth user created:', userCredential.user.uid);
 
       const knownUser = await this.getKnownUserData(email);
-      console.log('Known user check:', knownUser ? 'found' : 'not found');
       
-      const userData = {
+      const userData: IUser = {
         uid: userCredential.user.uid,
-        email: email,
+        email: userCredential.user.email!,
+        displayName: knownUser?.displayName || null,
+        emailVerified: userCredential.user.emailVerified,
         createdAt: new Date().toISOString(),
-        role: 'user'
+        lastLoginAt: new Date().toISOString(),
+        role: 'user',
+        photoURL: knownUser?.image || null,
+        isAnonymous: false,
+        phoneNumber: null,
+        metadata: {},
+        onboardingCompleted: false
       };
 
-      console.log('Attempting to create Firestore document...');
       const userRef = doc(db, 'users', userCredential.user.uid);
       await setDoc(userRef, userData);
 
       await sendEmailVerification(userCredential.user);
-      console.log('Verification email sent');
 
-      return userData as IUser;
+      return userData;
     } catch (error) {
-      if (error instanceof Error) {
-        console.error('SignUp error:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-          ...(error as any).code ? { code: (error as any).code } : {},
-          ...(error as any).details ? { details: (error as any).details } : {}
-        });
-      } else {
-        console.error('Unknown signup error:', error);
-      }
+      console.error('SignUp error:', error);
       throw error;
     }
   }
@@ -104,9 +89,6 @@ export class AuthService {
   }
 
   async sendVerificationEmail(user: FirebaseUser): Promise<void> {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Check email verification link at: http://localhost:9099/auth');
-    }
     return sendEmailVerification(user);
   }
 
