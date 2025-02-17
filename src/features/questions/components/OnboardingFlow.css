@@ -1,0 +1,27 @@
+.onboarding-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+
+.onboarding-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.progress {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.completion-message {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #28a745;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+} 

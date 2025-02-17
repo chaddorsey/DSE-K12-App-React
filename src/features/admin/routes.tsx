@@ -1,19 +1,11 @@
+import React from 'react';
+import { Route, Routes } from 'react-router-dom';
 import { QuestionPlayground } from '../questions/components/QuestionPlayground';
-import { AdminDashboard } from './components/AdminDashboard';
-import { UserManagement } from './components/UserManagement';
 
-export const adminRoutes = [
-  {
-    path: '',  // Dashboard
-    element: <AdminDashboard />
-  },
-  {
-    path: 'users',
-    element: <UserManagement />
-  },
-  {
-    path: 'questions/playground',
-    element: <QuestionPlayground />
-  },
-  // ... other admin routes
-]; 
+export const AdminRoutes = () => {
+  return (
+    <Routes>
+      <Route path="questions/playground" element={<QuestionPlayground />} />
+    </Routes>
+  );
+}; 

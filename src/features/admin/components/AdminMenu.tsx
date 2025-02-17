@@ -1,23 +1,21 @@
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import './AdminMenu.css';
 
 export const AdminMenu = () => {
+  const location = useLocation();
+  
+  const isActive = (path: string) => {
+    return location.pathname.includes(path) ? 'active' : '';
+  };
+
   return (
     <nav className="admin-menu">
-      <Link to="/admin" className="menu-item">
-        Home
-      </Link>
-      <Link to="/admin/analytics" className="menu-item">
-        Anal.
-      </Link>
-      <Link to="/admin/questions/playground" className="menu-item">
+      <Link 
+        to="/admin/questions/playground" 
+        className={`menu-item ${isActive('/questions/playground')}`}
+      >
         Question Playground
-      </Link>
-      <Link to="/admin/users" className="menu-item">
-        Users
-      </Link>
-      <Link to="/admin/settings" className="menu-item">
-        Settings
       </Link>
     </nav>
   );

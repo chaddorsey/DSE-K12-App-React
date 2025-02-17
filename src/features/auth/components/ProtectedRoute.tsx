@@ -1,33 +1,53 @@
 import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import type { UserRole } from '../types/auth';
+import { logger } from '../../../utils/logger';
 
 interface ProtectedRouteProps {
-  allowedRoles?: string[];
+  children: React.ReactNode;
+  allowedRoles?: UserRole[];
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { user, userClaims, loading } = useAuth();
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  allowedRoles = ['user', 'admin'] 
+}) => {
+  const { user, loading } = useAuth();
   const location = useLocation();
 
+  logger.debug('ProtectedRoute check:', { 
+    userRole: user?.role,
+    allowedRoles,
+    isLoading: loading,
+    isAuthenticated: !!user,
+    user: user
+  });
+
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-      </div>
-    );
+    logger.debug('ProtectedRoute: Still loading');
+    return <div>Loading...</div>;
   }
 
-  // Not logged in
   if (!user) {
+    logger.info('User not authenticated, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check role-based access
-  if (allowedRoles && (!userClaims?.role || !allowedRoles.includes(userClaims.role))) {
+  const hasRequiredRole = allowedRoles.includes(user.role);
+  logger.debug('Role check:', {
+    userRole: user.role,
+    allowedRoles,
+    hasRequiredRole
+  });
+
+  if (!hasRequiredRole) {
+    logger.info('User not authorized:', { 
+      userRole: user.role, 
+      requiredRoles: allowedRoles 
+    });
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // Authorized - render children
-  return <Outlet />;
+  return <>{children}</>;
 }; 

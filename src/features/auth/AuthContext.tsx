@@ -7,6 +7,7 @@ import { logger } from '../../utils/logger';
 import { AuthService } from './services/AuthService';
 import { IAnalyticsEvent } from '@/monitoring/types';
 import { onAuthStateChanged } from 'firebase/auth';
+import type { User, UserRole } from './types/auth';
 
 // Only import dev service in development
 const devDataService = process.env.NODE_ENV === 'development' 
@@ -137,31 +138,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     logger.info('AuthProvider: Initializing auth state listener');
     
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      logger.info('AuthProvider: Auth state changed', { 
-        isAuthenticated: !!user,
-        loading 
-      });
-
-      try {
-        if (user) {
-          const token = await user.getIdTokenResult();
-          logger.info('AuthProvider: Got user token', { 
-            claims: token.claims 
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const token = await firebaseUser.getIdTokenResult();
+          logger.info('User token claims:', token.claims);
+          
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            emailVerified: firebaseUser.emailVerified,
+            role: token.claims.role || 'user' // Get role from token claims
+          });
+          logger.info('User state updated:', { 
+            uid: firebaseUser.uid, 
+            role: token.claims.role || 'user' 
           });
           setUserClaims(token.claims as { role?: string });
-          setUser(user);
-        } else {
+        } catch (error) {
+          logger.error('Error getting user token:', error);
           setUser(null);
           setUserClaims(null);
         }
-      } catch (err) {
-        logger.error('Auth state change error:', err);
-        setError(err as AuthError);
-      } finally {
-        logger.info('AuthProvider: Setting loading to false');
-        setLoading(false);
+      } else {
+        setUser(null);
+        setUserClaims(null);
       }
+      setLoading(false);
     });
 
     return () => {

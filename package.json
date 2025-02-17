@@ -33,6 +33,7 @@
     "build:dev": "cross-env NODE_ENV=development webpack --config webpack.config.ts",
     "start": "cross-env NODE_ENV=development TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' webpack serve --config webpack.config.dev.ts",
     "start:prod": "cross-env NODE_ENV=production webpack serve --config webpack.config.dev.ts",
+    "start:dev": "concurrently \"npm run emulators\" \"npm start\"",
     "emulators": "firebase emulators:start",
     "emulators:export": "firebase emulators:export ./emulator-data",
     "emulators:start": "firebase emulators:start --import=./emulator-data --export-on-exit",

@@ -2,11 +2,11 @@
  * Error boundary component with monitoring and recovery
  */
 
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { useErrorBoundary } from '../hooks/useErrorBoundary';
 
 interface IErrorBoundaryProps {
-  children: React.ReactNode;
+  children: ReactNode;
   fallback?: React.ReactNode;
   onReset?: () => void | Promise<void>;
   onError?: (error: Error) => void;
@@ -14,31 +14,40 @@ interface IErrorBoundaryProps {
 
 interface IErrorBoundaryState {
   hasError: boolean;
+  error: Error | null;
 }
 
-class ErrorBoundaryClass extends React.Component<IErrorBoundaryProps, IErrorBoundaryState> {
-  constructor(props: IErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
+// Rename the class to ErrorBoundaryClass
+class ErrorBoundaryClass extends Component<IErrorBoundaryProps, IErrorBoundaryState> {
+  public state: IErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
+  public static getDerivedStateFromError(error: Error): IErrorBoundaryState {
+    return { hasError: true, error };
   }
 
-  static getDerivedStateFromError(): IErrorBoundaryState {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error) {
-    // Forward to hook implementation
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Uncaught error:', error, errorInfo);
     this.props.onError?.(error);
   }
 
-  render() {
+  public render() {
     if (this.state.hasError) {
-      return null; // Parent ErrorBoundary will handle UI
+      return (
+        <div role="alert" className="error-boundary">
+          <h2>Something went wrong</h2>
+          <pre>{this.state.error?.message}</pre>
+        </div>
+      );
     }
+
     return this.props.children;
   }
 }
 
+// Export the function component as default
 export function ErrorBoundary(props: IErrorBoundaryProps) {
   const {
     error,

@@ -96,26 +96,36 @@ try {
   debug('Firebase Storage initialization failed', error);
 }
 
-// Connect emulators
-if (isEmulator) {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099');
-  connectFirestoreEmulator(db, '127.0.0.1', 8080);
-  if (storage) {
-    connectStorageEmulator(storage, '127.0.0.1', 9199);
-    debug('Storage emulator connected');
-  }
-}
+const initializeEmulators = () => {
+  if (process.env.REACT_APP_USE_EMULATORS === 'true') {
+    try {
+      const host = process.env.REACT_APP_EMULATOR_HOST || 'localhost';
+      
+      // Connect to Auth emulator
+      connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
+      
+      // Set admin role for testing
+      if (process.env.NODE_ENV === 'development') {
+        auth.currentUser?.getIdTokenResult(true).then(token => {
+          logger.info('Current user token:', token);
+        });
+      }
 
-if (process.env.NODE_ENV === 'development') {
-  logger.info('Connecting to Firebase Auth emulator...');
-  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-  logger.info('Connected to Firebase Auth emulator');
-  connectFirestoreEmulator(db, 'localhost', 8080);
-  if (storage) {
-    connectStorageEmulator(storage, 'localhost', 9199);
-    logger.info('Connected to Firebase Storage emulator');
+      // Connect to Firestore emulator
+      connectFirestoreEmulator(db, host, 8080);
+      
+      // Connect to Storage emulator
+      connectStorageEmulator(storage, host, 9199);
+      
+      console.log('Connected to Firebase emulators');
+    } catch (error) {
+      console.error('Error connecting to emulators:', error);
+    }
   }
-}
+};
+
+// Call initializeEmulators after Firebase initialization
+initializeEmulators();
 
 export { storage };
 

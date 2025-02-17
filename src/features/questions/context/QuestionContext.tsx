@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useState, useEffect } from 'react';
 import type { QuestionResponse } from '../types';
+import { logger } from '../../../utils/logger';
 
 interface QuestionContextValue {
   experience: 'ONBOARDING' | 'QUIZ' | 'HEAD_TO_HEAD';
@@ -40,7 +41,7 @@ type QuestionContextAction =
   | { type: 'SET_ALLOW_RETRY'; payload: boolean };
 
 const initialState: QuestionContextValue = {
-  experience: 'QUIZ',
+  experience: 'ONBOARDING',
   mode: 'PRACTICE',
   showFeedback: true,
   allowRetry: true,
@@ -121,6 +122,26 @@ export const QuestionProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       dispatch({ type: 'SET_ALLOW_RETRY', payload: allow });
     }, [])
   };
+
+  useEffect(() => {
+    logger.debug('QuestionProvider mounted', { 
+      experience: state.experience,
+      mode: state.mode,
+      showFeedback: state.showFeedback,
+      allowRetry: state.allowRetry
+    });
+
+    const loadQuestions = async () => {
+      try {
+        logger.debug('Loading questions...');
+        // Your loading logic
+      } catch (error) {
+        logger.error('Error loading questions:', error);
+      }
+    };
+
+    loadQuestions();
+  }, [state]);
 
   return (
     <QuestionContext.Provider value={{ state, actions }}>

@@ -1,4 +1,16 @@
-export type UserRole = 'user' | 'manager' | 'admin';
+export type UserRole = 'user' | 'admin';
+
+export interface User {
+  uid: string;
+  email: string;
+  emailVerified: boolean;
+  role: UserRole;
+}
+
+export interface AuthState {
+  user: User | null;
+  loading: boolean;
+}
 
 export interface IUser {
   uid: string;

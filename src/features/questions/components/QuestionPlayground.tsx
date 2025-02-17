@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MultipleChoiceQuestionComponent } from './MultipleChoiceQuestion';
 import { OpenResponseQuestionComponent } from './OpenResponseQuestion';
 import { NumericQuestionComponent } from './NumericQuestion';
 import { SliderQuestionComponent } from './SliderQuestion';
 import { DelightFactor } from './DelightFactor/DelightFactor';
 import { QuestionProvider, useQuestionContext } from '../context/QuestionContext';
-import { OnboardingProvider, useOnboardingContext } from '../context/OnboardingContext';
+import { OnboardingProvider, useOnboardingContext } from '../../onboarding/OnboardingProvider';
 import { QuizProvider, useQuizContext } from '../context/QuizContext';
 import type { 
   Question,
@@ -28,6 +28,10 @@ import { XYContinuumQuestionComponent } from './XYContinuumQuestion';
 import type { DelightFactor as DelightFactorType } from '../types/delightFactors';
 import { SegmentedSliderQuestionComponent } from './SegmentedSliderQuestion';
 import { AccessibilityProvider } from '../../accessibility/context/AccessibilityContext';
+import { SessionService } from '../services/SessionService';
+import { ResponseService } from '../services/ResponseService';
+import { db } from '../../../config/firebase';
+import { logger } from '../../../utils/logger';
 
 const standardQuestions: Question[] = [
   {
@@ -319,222 +323,131 @@ const mockQuizQuestions: QuizQuestion[] = [
   }
 ];
 
+// Add type guard function at the top of the file
+function isQuestionType(type: unknown): type is QuestionTypeString {
+  return typeof type === 'string' && [
+    'MC', 'OP', 'NM', 'SCALE', 'SEGMENTED_SLIDER', 'XY_CONTINUUM'
+  ].includes(type as string);
+}
+
 const OnboardingFlow = () => {
-  const { state, actions } = useOnboardingContext();
-  const { state: questionState } = useQuestionContext();
-  const [currentDelight, setCurrentDelight] = useState<DelightFactorType | null>(null);
+  // All hooks at the top
+  const { state: onboardingState, actions: onboardingActions } = useOnboardingContext();
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [guessCount, setGuessCount] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const handleDelightComplete = () => {
-    setCurrentDelight(null);
-  };
-
-  const getDelightFactor = (question: Question, response: QuestionResponse): DelightFactorType | null => {
-    switch (question.type) {
-      case 'MC':
-        return {
-          id: 'confetti',
-          type: 'ANIMATION',
-          timing: 'POST_ANSWER',
-          trigger: 'IMMEDIATE',
-          content: {
-            animation: 'confetti',
-            duration: 2000
-          },
-          questionTypes: ['MC']
-        };
-      case 'NM':
-        if (response.value.type === 'NM' && response.value.number !== undefined) {
-          return {
-            id: 'number',
-            type: 'NUMBER_ANIMATION',
-            timing: 'POST_ANSWER',
-            trigger: 'IMMEDIATE',
-            content: {
-              number: response.value.number,
-              color: `hsl(${Math.random() * 360}, 80%, 60%)`,
-              duration: 1000
-            },
-            questionTypes: ['NM']
-          };
-        }
-        return null;
-      default:
-        return null;
-    }
-  };
-
-  const handleAnswer = (response: QuestionResponse) => {
-    const currentQuestion = state.selectedQuestions[state.currentQuestionIndex];
-    const delightFactor = getDelightFactor(currentQuestion, response);
+  // All callbacks defined together
+  const handleAnswer = useCallback((response: QuestionResponse) => {
+    if (!currentQuestion) return;
     
-    if (delightFactor) {
-      setCurrentDelight(delightFactor);
-      setTimeout(() => {
-        actions.handleResponse(response);
-      }, delightFactor.content.duration + 100);
-    } else {
-      actions.handleResponse(response);
+    if (currentQuestion.type === 'MC' && 'selectedOption' in response.value) {
+      const mcQuestion = currentQuestion as MultipleChoiceQuestion;
+      setIsCorrect(response.value.selectedOption === mcQuestion.correctAnswer);
     }
-  };
+    
+    onboardingActions.handleResponse(response);
+    setHasAnswered(true);
+    setGuessCount(prev => prev + 1);
+  }, [currentQuestion, onboardingActions]);
 
-  const renderCurrentQuestion = () => {
-    if (!state.selectedQuestions.length) return null;
-    
-    const currentQuestion = state.selectedQuestions[state.currentQuestionIndex];
-    if (typeof currentQuestion === 'string') return null;
-    
-    switch (currentQuestion.type) {
-      case 'MC':
-        return (
-          <MultipleChoiceQuestionComponent
-            question={{
-              ...currentQuestion,
-              type: 'MC' as const,
-              text: currentQuestion.prompt,
-              label: '',
-              category: 'PREFERENCES' as QuestionCategory,
-              number: 1,
-              requiredForOnboarding: false,
-              includeInOnboarding: false,
-              options: currentQuestion.options || []
-            }}
-            onAnswer={handleAnswer}
-            correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
-            disabled={hasAnswered}
-          />
-        );
-      case 'OP':
-        return (
-          <OpenResponseQuestionComponent
-            question={{
-              ...currentQuestion,
-              type: 'OP' as const,
-              text: currentQuestion.prompt,
-              label: '',
-              category: 'PREFERENCES' as QuestionCategory,
-              number: 1,
-              requiredForOnboarding: false,
-              includeInOnboarding: false,
-              maxLength: currentQuestion.maxLength || 500
-            }}
-            onAnswer={handleAnswer}
-          />
-        );
-      case 'NM':
-        return (
-          <NumericQuestionComponent
-            question={{
-              ...currentQuestion,
-              type: 'NM' as const,
-              min: currentQuestion.min ?? 0,
-              max: currentQuestion.max ?? 100,
-              step: currentQuestion.step ?? 1,
-              text: currentQuestion.prompt,
-              label: '',
-              category: 'PREFERENCES' as QuestionCategory,
-              number: 1,
-              requiredForOnboarding: false,
-              includeInOnboarding: false
-            }}
-            onAnswer={handleAnswer}
-          />
-        );
-      case 'SCALE':
-        return (
-          <SliderQuestionComponent
-            question={{
-              ...currentQuestion,
-              type: 'SCALE' as const,
-              text: currentQuestion.prompt,
-              label: '',
-              category: 'PREFERENCES' as QuestionCategory,
-              number: 1,
-              requiredForOnboarding: false,
-              includeInOnboarding: false
-            }}
-            onAnswer={handleAnswer}
-          />
-        );
-      case 'SEGMENTED_SLIDER':
-        if (!currentQuestion.segments) return null;
-        return (
-          <SegmentedSliderQuestionComponent
-            question={{
-              ...currentQuestion,
-              type: 'SEGMENTED_SLIDER' as const,
-              text: currentQuestion.prompt,
-              label: '',
-              category: 'PREFERENCES' as QuestionCategory,
-              number: 1,
-              requiredForOnboarding: false,
-              includeInOnboarding: false,
-              segments: currentQuestion.segments
-            }}
-            onAnswer={handleAnswer}
-            correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
-            disabled={hasAnswered}
-          />
-        );
-      case 'XY_CONTINUUM':
-        if (!currentQuestion.xAxis || !currentQuestion.yAxis) return null;
-        return (
-          <XYContinuumQuestionComponent
-            question={{
-              ...currentQuestion,
-              type: 'XY_CONTINUUM' as const,
-              text: currentQuestion.prompt,
-              label: '',
-              category: 'PREFERENCES' as QuestionCategory,
-              number: 1,
-              requiredForOnboarding: false,
-              includeInOnboarding: false,
-              xAxis: currentQuestion.xAxis,
-              yAxis: currentQuestion.yAxis
-            }}
-            onAnswer={handleAnswer}
-            correctAnswer={currentQuestion.correctAnswer}
-            disabled={hasAnswered}
-            mode="QUIZ"
-          />
-        );
-      default:
-        return null;
+  const handleNext = useCallback(() => {
+    if (isTransitioning) return;
+
+    setIsTransitioning(true);
+    onboardingActions.advanceToNext();
+
+    // Use RAF to ensure smooth transition
+    requestAnimationFrame(() => {
+      setHasAnswered(false);
+      setIsCorrect(false);
+      setGuessCount(0);
+      setIsTransitioning(false);
+    });
+  }, [onboardingActions, isTransitioning]);
+
+  // Effects
+  useEffect(() => {
+    if (onboardingState.selectedQuestions.length > 0) {
+      const question = onboardingState.selectedQuestions[onboardingState.currentQuestionIndex];
+      setCurrentQuestion(question);
     }
-  };
+  }, [onboardingState.selectedQuestions, onboardingState.currentQuestionIndex]);
+
+  const isLastQuestion = onboardingState.currentQuestionIndex === onboardingState.selectedQuestions.length - 1;
+
+  if (!onboardingState.selectedQuestions.length) {
+    return <div>Initializing question sequence...</div>;
+  }
+
+  if (!currentQuestion) {
+    return <div>Loading current question...</div>;
+  }
 
   return (
-    <div className="onboarding-container">
-      <div className="onboarding-header">
-        <h2>Onboarding Questions</h2>
-        <div className="progress">
-          Question {state.currentQuestionIndex + 1} of 7
-        </div>
-      </div>
-
-      {!state.selectedQuestions.length ? (
+    <div className="onboarding-flow">
+      {(() => {
+        switch (currentQuestion.type) {
+          case 'MC':
+            return (
+              <MultipleChoiceQuestionComponent
+                question={currentQuestion as MultipleChoiceQuestion}
+                onAnswer={handleAnswer}
+                disabled={hasAnswered || isTransitioning}
+              />
+            );
+          case 'SCALE':
+            return (
+              <SliderQuestionComponent
+                question={currentQuestion as SliderQuestion}
+                onAnswer={handleAnswer}
+              />
+            );
+          case 'OP':
+            return (
+              <OpenResponseQuestionComponent
+                question={currentQuestion as OpenResponseQuestion}
+                onAnswer={handleAnswer}
+              />
+            );
+          case 'NM':
+            return (
+              <NumericQuestionComponent
+                question={currentQuestion as NumericQuestion}
+                onAnswer={handleAnswer}
+              />
+            );
+          case 'XY_CONTINUUM':
+            return (
+              <XYContinuumQuestionComponent
+                question={currentQuestion as XYContinuumQuestion}
+                onAnswer={handleAnswer}
+              />
+            );
+          case 'SEGMENTED_SLIDER':
+            return (
+              <SegmentedSliderQuestionComponent
+                question={currentQuestion as SegmentedSliderQuestion}
+                onAnswer={handleAnswer}
+              />
+            );
+          default:
+            return null;
+        }
+      })()}
+      {hasAnswered && !onboardingState.completed && !isTransitioning && (
         <button 
-          onClick={actions.initializeSequence}
-          className="start-button"
+          onClick={handleNext}
+          className="next-button"
+          disabled={
+            isTransitioning || 
+            (currentQuestion.type === 'XY_CONTINUUM' && !isCorrect && guessCount < 2)
+          }
         >
-          Start Onboarding
+          {isLastQuestion ? 'Complete' : 'Next Question'}
         </button>
-      ) : (
-        <div className="question-container">
-          {renderCurrentQuestion()}
-          {currentDelight && (
-            <DelightFactor
-              factor={currentDelight}
-              onComplete={handleDelightComplete}
-            />
-          )}
-        </div>
-      )}
-
-      {state.completed && (
-        <div className="completion-message">
-          Onboarding Complete!
-        </div>
       )}
     </div>
   );
@@ -542,13 +455,17 @@ const OnboardingFlow = () => {
 
 const ContextControls = () => {
   const { state, actions } = useQuestionContext();
-  const quiz = useQuizContext();
-  const onboarding = useOnboardingContext();
+  const { state: onboardingState, actions: onboardingActions } = useOnboardingContext();
+  const { state: quizState, actions: quizActions } = useQuizContext();
   const [isSessionActive, setIsSessionActive] = useState(false);
   
   const handleExperienceChange = (experience: QuestionContextValue['experience']) => {
-    if (isSessionActive) return;
     actions.setExperience(experience);
+    
+    if (experience === 'ONBOARDING') {
+      logger.debug('Initializing onboarding experience');
+      onboardingActions.initializeSequence();
+    }
   };
 
   const handleModeChange = (mode: NonNullable<QuestionContextValue['mode']>) => {
@@ -559,10 +476,10 @@ const ContextControls = () => {
   useEffect(() => {
     // Session is active if onboarding has questions or quiz is initialized
     setIsSessionActive(
-      (state.experience === 'ONBOARDING' && onboarding.state.selectedQuestions.length > 0) ||
-      (state.experience === 'QUIZ' && quiz.state.questions.length > 0)
+      (state.experience === 'ONBOARDING' && onboardingState.selectedQuestions.length > 0) ||
+      (state.experience === 'QUIZ' && quizState.questions.length > 0)
     );
-  }, [state.experience, onboarding.state.selectedQuestions, quiz.state.questions]);
+  }, [state.experience, onboardingState.selectedQuestions, quizState.questions]);
 
   return (
     <div className="context-controls-wrapper">
@@ -598,7 +515,7 @@ const ContextControls = () => {
 
         {state.experience === 'QUIZ' && !isSessionActive && (
           <button 
-            onClick={() => quiz.actions.initializeQuiz('user1', mockQuizQuestions)}
+            onClick={() => quizActions.initializeQuiz('user1', mockQuizQuestions)}
             className="start-button"
           >
             Start Quiz
@@ -616,7 +533,7 @@ const QuizFlow = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [guessCount, setGuessCount] = useState(0);
 
-  const handleAnswer = (response: QuestionResponse) => {
+  const handleAnswer = useCallback((response: QuestionResponse) => {
     const currentQuestion = state.questions[state.currentQuestionIndex];
     
     if (!response.value) {
@@ -729,117 +646,154 @@ const QuizFlow = () => {
         questionTypes: ['MC', 'SCALE', 'XY_CONTINUUM', 'NM', 'SEGMENTED_SLIDER']
       });
     }
-  };
+  }, [state.currentQuestionIndex, state.questions, state.responses, actions]);
 
-  // Add effect to monitor delight state
-  useEffect(() => {
-    console.log('Current delight:', currentDelight); // Debug log
-  }, [currentDelight]);
-
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     actions.advanceToNext();
     setHasAnswered(false);
     setCurrentDelight(null);
     setIsCorrect(false);
     setGuessCount(0);
-  };
+  }, [actions]);
 
   const renderCurrentQuestion = () => {
-    if (!state.questions.length) return null;
-    
-    const currentQuestion = state.questions[state.currentQuestionIndex];
+    const currentQuestion = state.questions[state.currentQuestionIndex] as Question;
+    if (!currentQuestion) return null;
+
+    const renderQuestionContent = () => {
+      // Type guard to check if it's a valid question type
+      if (!isQuestionType(currentQuestion.type)) {
+        return null;  // Just return null, no logging needed here
+      }
+
+      switch (currentQuestion.type) {
+        case 'MC':
+          const lastResponse = state.responses[state.responses.length - 1];
+          return (
+            <MultipleChoiceQuestionComponent
+              question={{
+                ...currentQuestion,
+                type: 'MC' as const,
+                text: currentQuestion.prompt,
+                label: '',
+                category: 'PREFERENCES' as QuestionCategory,
+                number: 1,
+                requiredForOnboarding: false,
+                includeInOnboarding: false,
+                options: currentQuestion.options || []
+              }}
+              onAnswer={handleAnswer}
+              correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+              selected={lastResponse?.value.selectedOption}
+              disabled={hasAnswered}
+            />
+          );
+        case 'SCALE':
+          return (
+            <SliderQuestionComponent
+              question={{
+                ...currentQuestion,
+                type: 'SCALE' as const,
+                text: currentQuestion.prompt,
+                label: '',
+                category: 'PREFERENCES' as QuestionCategory,
+                number: 1,
+                requiredForOnboarding: false,
+                includeInOnboarding: false
+              }}
+              onAnswer={handleAnswer}
+              correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+              disabled={hasAnswered}
+            />
+          );
+        case 'SEGMENTED_SLIDER':
+          if (!currentQuestion.segments) return null;
+          return (
+            <SegmentedSliderQuestionComponent
+              question={{
+                ...currentQuestion,
+                type: 'SEGMENTED_SLIDER' as const,
+                text: currentQuestion.prompt,
+                label: '',
+                category: 'PREFERENCES' as QuestionCategory,
+                number: 1,
+                requiredForOnboarding: false,
+                includeInOnboarding: false,
+                segments: currentQuestion.segments
+              }}
+              onAnswer={handleAnswer}
+              correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+              disabled={hasAnswered}
+            />
+          );
+        case 'XY_CONTINUUM':
+          if (!currentQuestion.xAxis || !currentQuestion.yAxis) return null;
+          return (
+            <XYContinuumQuestionComponent
+              question={{
+                ...currentQuestion,
+                type: 'XY_CONTINUUM' as const,
+                text: currentQuestion.prompt,
+                label: '',
+                category: 'PREFERENCES' as QuestionCategory,
+                number: 1,
+                requiredForOnboarding: false,
+                includeInOnboarding: false,
+                xAxis: currentQuestion.xAxis,
+                yAxis: currentQuestion.yAxis
+              }}
+              onAnswer={handleAnswer}
+              correctAnswer={currentQuestion.correctAnswer}
+              disabled={hasAnswered}
+              mode="QUIZ"
+            />
+          );
+        case 'OP':
+          return (
+            <OpenResponseQuestionComponent
+              question={{
+                ...currentQuestion,
+                type: 'OP' as const,
+                text: currentQuestion.prompt,
+                label: '',
+                category: 'PREFERENCES' as QuestionCategory,
+                number: 1,
+                requiredForOnboarding: false,
+                includeInOnboarding: false,
+                maxLength: currentQuestion.maxLength || 500
+              }}
+              onAnswer={handleAnswer}
+            />
+          );
+        case 'NM':
+          return (
+            <NumericQuestionComponent
+              question={{
+                ...currentQuestion,
+                type: 'NM' as const,
+                text: currentQuestion.prompt,
+                label: '',
+                category: 'PREFERENCES' as QuestionCategory,
+                number: 1,
+                requiredForOnboarding: false,
+                includeInOnboarding: false,
+                min: currentQuestion.min || 0,
+                max: currentQuestion.max || 100,
+                step: currentQuestion.step || 1
+              }}
+              onAnswer={handleAnswer}
+            />
+          );
+        default:
+          return null;  // Just return null, no logging needed here
+      }
+    };
+
     return (
       <div className="quiz-question">
-        {(() => {
-          switch (currentQuestion.type) {
-            case 'MC':
-              const lastResponse = state.responses[state.responses.length - 1];
-              const isCorrect = lastResponse?.correct;
-              return (
-                <MultipleChoiceQuestionComponent
-                  question={{
-                    ...currentQuestion,
-                    type: 'MC' as const,
-                    text: currentQuestion.prompt,
-                    label: '',
-                    category: 'PREFERENCES' as QuestionCategory,
-                    number: 1,
-                    requiredForOnboarding: false,
-                    includeInOnboarding: false,
-                    options: currentQuestion.options || []
-                  }}
-                  onAnswer={handleAnswer}
-                  correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
-                  selected={lastResponse?.value.selectedOption}
-                  disabled={hasAnswered}
-                />
-              );
-            case 'SCALE':
-              return (
-                <SliderQuestionComponent
-                  question={{
-                    ...currentQuestion,
-                    type: 'SCALE' as const,
-                    text: currentQuestion.prompt,
-                    label: '',
-                    category: 'PREFERENCES' as QuestionCategory,
-                    number: 1,
-                    requiredForOnboarding: false,
-                    includeInOnboarding: false
-                  }}
-                  onAnswer={handleAnswer}
-                  correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
-                  disabled={hasAnswered}
-                />
-              );
-            case 'SEGMENTED_SLIDER':
-              if (!currentQuestion.segments) return null;
-              return (
-                <SegmentedSliderQuestionComponent
-                  question={{
-                    ...currentQuestion,
-                    type: 'SEGMENTED_SLIDER' as const,
-                    text: currentQuestion.prompt,
-                    label: '',
-                    category: 'PREFERENCES' as QuestionCategory,
-                    number: 1,
-                    requiredForOnboarding: false,
-                    includeInOnboarding: false,
-                    segments: currentQuestion.segments
-                  }}
-                  onAnswer={handleAnswer}
-                  correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
-                  disabled={hasAnswered}
-                />
-              );
-            case 'XY_CONTINUUM':
-              if (!currentQuestion.xAxis || !currentQuestion.yAxis) return null;
-              return (
-                <XYContinuumQuestionComponent
-                  question={{
-                    ...currentQuestion,
-                    type: 'XY_CONTINUUM' as const,
-                    text: currentQuestion.prompt,
-                    label: '',
-                    category: 'PREFERENCES' as QuestionCategory,
-                    number: 1,
-                    requiredForOnboarding: false,
-                    includeInOnboarding: false,
-                    xAxis: currentQuestion.xAxis,
-                    yAxis: currentQuestion.yAxis
-                  }}
-                  onAnswer={handleAnswer}
-                  correctAnswer={currentQuestion.correctAnswer}
-                  disabled={hasAnswered}
-                  mode="QUIZ"
-                />
-              );
-            default:
-              return null;
-          }
-        })()}
+        {renderQuestionContent()}
         {hasAnswered && !state.completed && (
-          currentQuestion.type === 'XY_CONTINUUM' ? (
+          (isQuestionType(currentQuestion.type) && currentQuestion.type === 'XY_CONTINUUM') ? (
             (isCorrect || guessCount >= 2) && (
               <button 
                 onClick={handleNext}
@@ -894,30 +848,22 @@ const QuizFlow = () => {
 };
 
 export const QuestionPlayground = () => {
+  // Log the questions at the top level
+  logger.debug('QuestionPlayground: Questions available', {
+    standardCount: standardQuestions.length,
+    poolCount: questionPool.length,
+    standardQuestions,
+    questionPool
+  });
+
   return (
     <AccessibilityProvider>
       <MockDataProvider>
-        <div className="playground-container">
+        <div className="question-playground">
           <QuestionProvider>
             <OnboardingProvider
-              standardQuestions={standardQuestions.map(q => ({
-                ...q,
-                text: q.prompt,
-                label: '',
-                category: 'PREFERENCES' as QuestionCategory,
-                number: 1,
-                requiredForOnboarding: false,
-                includeInOnboarding: false
-              })) as Question[]}
-              questionPool={questionPool.map(q => ({
-                ...q,
-                text: q.prompt,
-                label: '',
-                category: 'PREFERENCES' as QuestionCategory,
-                number: 1,
-                requiredForOnboarding: false,
-                includeInOnboarding: false
-              })) as Question[]}
+              standardQuestions={standardQuestions}
+              questionPool={questionPool}
             >
               <QuizProvider>
                 <ContextControls />
@@ -933,10 +879,14 @@ export const QuestionPlayground = () => {
 
 const QuestionContent = () => {
   const { state } = useQuestionContext();
+  const sessionService = new SessionService(db);
+  const responseService = new ResponseService(db);
   
   return (
     <>
-      {state.experience === 'ONBOARDING' && <OnboardingFlow />}
+      {state.experience === 'ONBOARDING' && (
+        <OnboardingFlow />
+      )}
       {state.experience === 'QUIZ' && <QuizFlow />}
     </>
   );

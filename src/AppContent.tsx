@@ -1,7 +1,6 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { Navbar } from './features/auth/components/Navbar';
-import { SecondaryNavbar } from './features/auth/components/SecondaryNavbar';
+import { Routes, Route, Navigate, Link, Outlet } from 'react-router-dom';
+import { Header } from './components/Header';
 import { useAuth } from './features/auth/AuthContext';
 import { OnboardingPage } from './features/onboarding/OnboardingPage';
 import { ConnectionsPage } from './features/connections/ConnectionsPage';
@@ -12,54 +11,59 @@ import { ProtectedRoute } from './features/auth/components/ProtectedRoute';
 import { Unauthorized } from './features/auth/components/Unauthorized';
 import { SignIn } from './features/auth/components/SignIn';
 import { HomePage } from './features/home/HomePage';
+import { OnboardingProvider } from './features/onboarding';
+import { QuestionProvider } from './features/questions/context/QuestionContext';
+import { standardQuestions, questionPool } from './features/questions/data/questionSets';
+import { logger } from './utils/logger';
 
 export const AppContent = () => {
-  const { loading, user } = useAuth();
+  const { loading } = useAuth();
+  
+  logger.debug('AppContent render', { loading });
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
-      {!user && (
-        <div className="mt-28 px-4 max-w-md mx-auto">
-          <SignIn />
-        </div>
-      )}
-      <SecondaryNavbar />
-      <main className="container mx-auto px-4 py-4 max-w-lg">
+    <>
+      <Header />
+      <main className="app-main">
         <Routes>
-          {/* Public Routes */}
-          <Route 
-            path="/login" 
-            element={user ? <Navigate to="/" replace /> : <SignIn />} 
-          />
           <Route path="/" element={<HomePage />} />
-          <Route path="/visualize" element={<VisualizePage />} />
-          
-          {/* Protected Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/connections" element={<ConnectionsPage />} />
-          </Route>
-          
-          {/* Manager/Admin Routes */}
-          <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
-            <Route path="/questions" element={<QuizPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-          </Route>
-
+          <Route path="/login" element={<SignIn />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/connections" element={<ConnectionsPage />} />
+            <Route path="/visualize" element={<VisualizePage />} />
+            <Route path="/quiz" element={<QuizPage />} />
+            
+            <Route 
+              path="/onboarding" 
+              element={
+                <QuestionProvider>
+                  <OnboardingProvider
+                    standardQuestions={standardQuestions}
+                    questionPool={questionPool}
+                  >
+                    <OnboardingPage />
+                  </OnboardingProvider>
+                </QuestionProvider>
+              } 
+            />
+          </Route>
+          
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <Outlet />
       </main>
-    </div>
+    </>
   );
 };
-
-export default AppContent; 

@@ -14,15 +14,18 @@ import {
   increment,
   arrayUnion,
   writeBatch,
-  runTransaction
+  runTransaction,
+  addDoc
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import type { 
   QuestionResponse, 
   ResponseValue,
   ResponseMetrics,
-  XYResponseValue
-} from '../types/response';
+  XYResponseValue,
+  QuizResponse
+} from '../types/responses';
+import type { Firestore } from '@firebase/firestore';
 
 interface GridCell {
   x: number;
@@ -33,6 +36,76 @@ export class ResponseService {
   private readonly BATCH_SIZE = 500;
   private readonly responsesRef = collection(db, 'responses');
   private readonly metricsRef = collection(db, 'response_metrics');
+  private readonly COLLECTION_NAME = 'responses';
+
+  constructor(private readonly firestore: Firestore) {}
+
+  async saveResponse(response: QuestionResponse | QuizResponse): Promise<QuestionResponse | QuizResponse> {
+    // Validate required fields
+    if (!this.isValidResponse(response)) {
+      throw new Error('Invalid response data');
+    }
+
+    try {
+      const responsesRef = collection(this.firestore, this.COLLECTION_NAME);
+      const docRef = await addDoc(responsesRef, {
+        ...response,
+        timestamp: response.timestamp || Date.now()
+      });
+
+      // Return the saved response with its ID
+      return {
+        ...response,
+        id: docRef.id
+      };
+    } catch (error) {
+      console.error('Error saving response:', error);
+      throw new Error('Failed to save response');
+    }
+  }
+
+  async getResponsesBySession(sessionId: string): Promise<(QuestionResponse | QuizResponse)[]> {
+    try {
+      const responsesRef = collection(this.firestore, this.COLLECTION_NAME);
+      const q = query(responsesRef, where('sessionId', '==', sessionId));
+      const querySnapshot = await getDocs(q);
+
+      return querySnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      })) as (QuestionResponse | QuizResponse)[];
+    } catch (error) {
+      console.error('Error getting responses by session:', error);
+      throw new Error('Failed to get responses');
+    }
+  }
+
+  async getResponsesByUser(userId: string): Promise<(QuestionResponse | QuizResponse)[]> {
+    try {
+      const responsesRef = collection(this.firestore, this.COLLECTION_NAME);
+      const q = query(responsesRef, where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+
+      return querySnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      })) as (QuestionResponse | QuizResponse)[];
+    } catch (error) {
+      console.error('Error getting responses by user:', error);
+      throw new Error('Failed to get responses');
+    }
+  }
+
+  private isValidResponse(response: any): response is QuestionResponse | QuizResponse {
+    return (
+      response &&
+      typeof response.userId === 'string' &&
+      typeof response.questionId === 'string' &&
+      typeof response.sessionId === 'string' &&
+      response.value &&
+      typeof response.value.type === 'string'
+    );
+  }
 
   async submitResponse(response: QuestionResponse): Promise<string> {
     return runTransaction(db, async (transaction) => {
