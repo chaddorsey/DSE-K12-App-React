@@ -50,3 +50,8 @@ dse-k12-connections-firebase-adminsdk-PRIVATE.json
 # Functions
 functions/lib
 functions/node_modules
+
+# Assets
+src/assets/images/*
+!src/assets/images/logo.png
+!src/assets/images/logo-white.png
