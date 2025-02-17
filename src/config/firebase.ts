@@ -43,6 +43,13 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
+// Verify config
+console.log('Firebase Config:', {
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  emulator: process.env.REACT_APP_USE_EMULATORS
+});
+
 debug('Config values:', firebaseConfig);
 debug('Environment:', { 
   isEmulator, 

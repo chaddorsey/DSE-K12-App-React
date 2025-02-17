@@ -14,8 +14,7 @@ export const SignIn = () => {
     e.preventDefault();
     try {
       await signIn(email, password);
-      const from = (location.state as any)?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       setError('Failed to sign in. Please check your credentials.');
     }

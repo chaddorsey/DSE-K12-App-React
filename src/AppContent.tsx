@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './features/auth/components/Navbar';
 import { SecondaryNavbar } from './features/auth/components/SecondaryNavbar';
 import { useAuth } from './features/auth/AuthContext';
@@ -14,7 +14,7 @@ import { SignIn } from './features/auth/components/SignIn';
 import { HomePage } from './features/home/HomePage';
 
 export const AppContent = () => {
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -27,14 +27,19 @@ export const AppContent = () => {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      <div className="mt-28 px-4 max-w-md mx-auto">
-        <SignIn />
-      </div>
+      {!user && (
+        <div className="mt-28 px-4 max-w-md mx-auto">
+          <SignIn />
+        </div>
+      )}
       <SecondaryNavbar />
       <main className="container mx-auto px-4 py-4 max-w-lg">
         <Routes>
           {/* Public Routes */}
-          <Route path="/login" element={<SignIn />} />
+          <Route 
+            path="/login" 
+            element={user ? <Navigate to="/" replace /> : <SignIn />} 
+          />
           <Route path="/" element={<HomePage />} />
           <Route path="/visualize" element={<VisualizePage />} />
           
