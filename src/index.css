@@ -2,15 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom styles below */
+
 @layer base {
   body {
-    @apply font-body text-base font-normal text-gray-900;
+    @apply font-body text-primary;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-bold uppercase tracking-wider;
+    @apply font-display font-bold text-primary;
   }
 
   h1 {
@@ -36,5 +38,27 @@
   code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
       monospace;
+  }
+}
+
+@layer components {
+  .nav-container {
+    @apply flex items-center justify-between w-full px-4 py-2;
+  }
+
+  .nav-logo {
+    @apply w-11 h-auto; /* 44px width */
+  }
+
+  .nav-menu {
+    @apply flex items-center gap-4;
+  }
+
+  .nav-link {
+    @apply text-base font-medium; /* Smaller font size */
+  }
+
+  .profile-button {
+    @apply w-11 h-11; /* 44px square */
   }
 }

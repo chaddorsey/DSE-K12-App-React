@@ -25,8 +25,11 @@ export const AppContent = () => {
   }
 
   return (
-    <div className="min-h-screen pt-40">
+    <div className="min-h-screen bg-white">
       <Navbar />
+      <div className="mt-28 px-4 max-w-md mx-auto">
+        <SignIn />
+      </div>
       <SecondaryNavbar />
       <main className="container mx-auto px-4 py-4 max-w-lg">
         <Routes>
@@ -52,4 +55,6 @@ export const AppContent = () => {
       </main>
     </div>
   );
-}; 
+};
+
+export default AppContent; 

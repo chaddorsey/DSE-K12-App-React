@@ -15,7 +15,8 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "init:test-data": "ts-node scripts/init-test-data.ts",
-    "test:integration": "jest --config jest.integration.config.ts"
+    "test:integration": "jest --config jest.integration.config.ts",
+    "pre-deploy-check": "npx tsup --config tsup.config.ts"
   },
   "engines": {
     "node": "18"

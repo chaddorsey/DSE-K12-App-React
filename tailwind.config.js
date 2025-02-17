@@ -1,34 +1,34 @@
 const { theme: appTheme } = require('./src/config/theme');
-console.log('Loading Tailwind config with theme:', JSON.stringify(appTheme, null, 2));
+console.log('Loading Tailwind config...');
+console.log('Content paths:', ['./src/**/*.{js,jsx,ts,tsx,html}']);
+console.log('Theme:', JSON.stringify(appTheme, null, 2));
 
+/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
+    './src/**/*.{js,jsx,ts,tsx,html}',
   ],
   theme: {
     extend: {
       colors: {
-        // Brand colors
-        brand: appTheme.colors.brand,
-        // Semantic colors
-        primary: {
-          DEFAULT: appTheme.colors.primary.main,
-          light: appTheme.colors.primary.light,
-          dark: appTheme.colors.primary.dark,
-        },
+        primary: '#23235F',
+        'primary-light': '#415BA9',
+        'primary-dark': '#1A1A46',
         secondary: {
-          DEFAULT: appTheme.colors.secondary.main,
-          light: appTheme.colors.secondary.light,
-          dark: appTheme.colors.secondary.dark,
+          DEFAULT: '#4FCACA',
+          main: '#4FCACA',
+          light: '#6DD5D5',
+          dark: '#3EA3A3',
+          contrast: '#23235F'
         },
         accent: {
-          teal: appTheme.colors.accent.teal,
-          pink: appTheme.colors.accent.pink,
+          teal: '#51BF9D',
+          pink: '#D74880'
         }
       },
       fontFamily: {
-        display: [appTheme.typography.fonts.display.family, 'sans-serif'],
-        body: [appTheme.typography.fonts.body.family, 'sans-serif'],
+        display: ['futura-pt', 'sans-serif'],
+        body: ['DM Sans', 'sans-serif']
       },
       fontSize: appTheme.typography.sizes,
       fontWeight: {
@@ -39,4 +39,5 @@ module.exports = {
     },
   },
   plugins: [],
+  mode: 'jit',
 }; 

@@ -103,6 +103,11 @@ if (process.env.NODE_ENV === 'development') {
   logger.info('Connecting to Firebase Auth emulator...');
   connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
   logger.info('Connected to Firebase Auth emulator');
+  connectFirestoreEmulator(db, 'localhost', 8080);
+  if (storage) {
+    connectStorageEmulator(storage, 'localhost', 9199);
+    logger.info('Connected to Firebase Storage emulator');
+  }
 }
 
 export { storage };

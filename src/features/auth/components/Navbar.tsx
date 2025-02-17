@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { Menu } from '@headlessui/react';
 import logoWhite from '../../../assets/images/logo-white.png';
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, userClaims, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -20,39 +22,38 @@ export const Navbar = () => {
     return user ? baseLinks : [];
   };
 
+  const profileMenuItems = [
+    {
+      label: 'Sign Out',
+      onClick: async () => {
+        await signOut();
+        navigate('/');
+      },
+      className: 'text-red-600'
+    }
+  ];
+
   return (
     <nav className="fixed top-0 left-0 w-full h-28 bg-primary z-50">
-      <div className="h-full px-3 mx-auto max-w-7xl flex items-center">
+      <div className="h-full px-2 mx-auto max-w-7xl flex items-center">
         {/* Logo */}
-        <Link to="/" className="flex-shrink-0 mr-4">
+        <Link to="/" className="flex-shrink-0 mr-2">
           <img 
             src={logoWhite} 
             alt="DSE K-12 Connections" 
-            className="h-14 w-auto"
+            className="h-11 w-auto"
           />
         </Link>
 
-        {/* Mobile Menu Button */}
-        <button
-          className="sm:hidden p-2 text-white hover:bg-primary-light rounded-md ml-auto"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-        >
-          <span className="sr-only">Open menu</span>
-          {/* Hamburger icon */}
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
-          </svg>
-        </button>
-
         {/* Desktop Navigation */}
-        <div className="flex flex-1 items-center justify-center space-x-8">
+        <div className="flex flex-1 items-center justify-center space-x-2 overflow-x-auto">
           {getNavLinks().map(({ path, label }) => (
             <Link
               key={path}
               to={path}
               className={`
-                font-display font-bold uppercase tracking-wide text-xl text-white
-                px-6 py-3 transition-colors duration-200 whitespace-nowrap
+                font-display font-bold uppercase tracking-wide text-base text-white
+                px-3 py-2 transition-colors duration-200 whitespace-nowrap
                 ${isActive(path) ? 'bg-primary-dark' : 'hover:bg-primary-light'}
                 rounded-md
               `}
@@ -62,87 +63,48 @@ export const Navbar = () => {
           ))}
         </div>
 
-        {/* Desktop Auth Section */}
-        <div className="flex items-center ml-auto space-x-4">
-          {user ? (
-            <button
-              onClick={() => signOut()}
-              className="
-                font-display font-bold uppercase tracking-wide text-lg text-white
-                px-4 py-2 transition-colors duration-200
-                hover:bg-primary-light whitespace-nowrap
-                rounded-md
-              "
-            >
-              Sign Out
-            </button>
-          ) : (
+        {/* Auth Section */}
+        <div className="flex items-center ml-auto">
+          {!user && (
             <Link
               to="/login"
               className="
-                font-display font-bold uppercase tracking-wide text-xl text-white
-                px-6 py-3 transition-colors duration-200
-                hover:bg-primary-light whitespace-nowrap
-                rounded-md
+                font-display font-bold uppercase tracking-wide text-base text-white
+                px-3 py-2 mr-2 transition-colors duration-200
+                hover:bg-primary-light whitespace-nowrap rounded-md
               "
             >
               Sign In
             </Link>
           )}
-          {/* Avatar placeholder */}
-          <div className="w-14 h-14 rounded-full bg-primary-light flex items-center justify-center">
-            <span className="sr-only">User profile</span>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        <div className={`
-          absolute top-14 left-0 w-full bg-primary shadow-lg sm:hidden
-          transition-transform duration-200 ease-in-out
-          ${isMenuOpen ? 'transform translate-y-0' : 'transform -translate-y-full'}
-        `}>
-          <div className="px-4 py-2 space-y-1">
-            {getNavLinks().map(({ path, label }) => (
-              <Link
-                key={path}
-                to={path}
-                className={`
-                  block font-display font-bold uppercase tracking-wider text-sm text-white
-                  px-4 py-2 transition-colors duration-200
-                  ${isActive(path) ? 'bg-primary-dark' : 'hover:bg-primary-light'}
-                `}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {label}
-              </Link>
-            ))}
-            {/* Mobile Auth */}
-            {user ? (
-              <button
-                onClick={() => {
-                  signOut();
-                  setIsMenuOpen(false);
-                }}
-                className="
-                  w-full text-left font-display font-bold uppercase tracking-wider text-sm text-white
-                  px-4 py-2 transition-colors duration-200 hover:bg-primary-light
-                "
-              >
-                Sign Out
-              </button>
-            ) : (
-              <Link
-                to="/login"
-                className="
-                  block font-display font-bold uppercase tracking-wider text-sm text-white
-                  px-4 py-2 transition-colors duration-200 hover:bg-primary-light
-                "
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Sign In
-              </Link>
-            )}
-          </div>
+          
+          {/* Profile Menu */}
+          {user && (
+            <Menu as="div" className="relative">
+              <Menu.Button className="w-11 h-11 rounded-full bg-primary-light flex items-center justify-center hover:bg-primary-dark transition-colors duration-200">
+                <span className="sr-only">Open user menu</span>
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </Menu.Button>
+              <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <div className="py-1">
+                  {profileMenuItems.map((item) => (
+                    <Menu.Item key={item.label}>
+                      {({ active }) => (
+                        <button
+                          onClick={item.onClick}
+                          className={`${active ? 'bg-gray-100' : ''} ${item.className || ''} block w-full text-left px-4 py-2 text-sm`}
+                        >
+                          {item.label}
+                        </button>
+                      )}
+                    </Menu.Item>
+                  ))}
+                </div>
+              </Menu.Items>
+            </Menu>
+          )}
         </div>
       </div>
     </nav>
