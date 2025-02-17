@@ -9,7 +9,7 @@ export const SecondaryNavbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const adminLinks = [
-    { path: '/questions', label: 'Question Editor' },
+    { path: '/admin/questions/playground', label: 'Question Playground' },
     { path: '/dashboard', label: 'Analytics Dashboard' },
   ];
 

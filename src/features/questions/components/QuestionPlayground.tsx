@@ -1,52 +1,98 @@
 import React, { useState, useEffect } from 'react';
-import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
-import { OpenResponseQuestion } from './OpenResponseQuestion';
-import { NumericQuestion } from './NumericQuestion';
-import { SliderQuestion } from './SliderQuestion';
+import { MultipleChoiceQuestionComponent } from './MultipleChoiceQuestion';
+import { OpenResponseQuestionComponent } from './OpenResponseQuestion';
+import { NumericQuestionComponent } from './NumericQuestion';
+import { SliderQuestionComponent } from './SliderQuestion';
 import { DelightFactor } from './DelightFactor/DelightFactor';
 import { QuestionProvider, useQuestionContext } from '../context/QuestionContext';
 import { OnboardingProvider, useOnboardingContext } from '../context/OnboardingContext';
 import { QuizProvider, useQuizContext } from '../context/QuizContext';
-import type { QuestionType, QuestionResponse, QuestionContextValue } from '../types';
+import type { 
+  Question,
+  QuestionResponse,
+  QuizResponse,
+  QuizQuestion,
+  MultipleChoiceQuestion,
+  OpenResponseQuestion,
+  NumericQuestion,
+  SliderQuestion,
+  SegmentedSliderQuestion,
+  XYContinuumQuestion,
+  QuestionCategory,
+  QuestionTypeString,
+  QuestionContextValue
+} from '../types/questions';
 import './QuestionPlayground.css';
 import { MockDataProvider } from '../../../mocks/MockDataProvider.prod';
-import { SegmentedSliderQuestion } from './SegmentedSliderQuestion';
-import { XYContinuumQuestion } from './XYContinuumQuestion';
+import { XYContinuumQuestionComponent } from './XYContinuumQuestion';
+import type { DelightFactor as DelightFactorType } from '../types/delightFactors';
+import { SegmentedSliderQuestionComponent } from './SegmentedSliderQuestion';
+import { AccessibilityProvider } from '../../accessibility/context/AccessibilityContext';
 
-const standardQuestions: QuestionType[] = [
+const standardQuestions: Question[] = [
   {
     id: 'std1',
-    type: 'MULTIPLE_CHOICE',
+    type: 'MC',
     prompt: 'What brings you here today?',
-    options: ['Learning', 'Career Growth', 'Curiosity', 'Other']
+    options: ['Learning', 'Career Growth', 'Curiosity', 'Other'],
+    text: 'What brings you here today?',
+    label: '',
+    category: 'GENERAL',
+    number: 1,
+    requiredForOnboarding: true,
+    includeInOnboarding: true
   },
   {
     id: 'std2',
-    type: 'OPEN_RESPONSE',
+    type: 'OP',
     prompt: 'What are your main goals?',
-    maxLength: 500
+    maxLength: 500,
+    text: 'What are your main goals?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'std3',
-    type: 'NUMERIC',
+    type: 'NM',
     prompt: 'Years of experience?',
     min: 0,
     max: 50,
-    step: 1
+    step: 1,
+    text: 'Years of experience?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'std4',
-    type: 'MULTIPLE_CHOICE',
+    type: 'MC',
     prompt: 'Preferred learning style?',
-    options: ['Visual', 'Audio', 'Reading', 'Hands-on']
+    options: ['Visual', 'Audio', 'Reading', 'Hands-on'],
+    text: 'Preferred learning style?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'std5',
-    type: 'SLIDER',
+    type: 'SCALE',
     prompt: 'How do you prefer to balance theory and practice?',
     leftOption: 'Pure Theory',
     rightOption: 'Pure Practice',
-    defaultValue: 0.5
+    defaultValue: 0.5,
+    text: 'How do you prefer to balance theory and practice?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'std6',
@@ -59,7 +105,13 @@ const standardQuestions: QuestionType[] = [
       { value: 4, label: 'Comfortable' },
       { value: 5, label: 'Very Comfortable' }
     ],
-    defaultSegment: 3
+    defaultSegment: 3,
+    text: 'How comfortable are you with public speaking?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'std7',
@@ -73,38 +125,68 @@ const standardQuestions: QuestionType[] = [
       top: 'Individual',
       bottom: 'Group'
     },
-    defaultPosition: { x: 0.5, y: 0.5 }
+    defaultPosition: { x: 0.5, y: 0.5 },
+    text: 'Plot your learning style preferences:',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   }
 ];
 
-const questionPool: QuestionType[] = [
+const questionPool: Question[] = [
   {
     id: 'pool1',
-    type: 'MULTIPLE_CHOICE',
-    prompt: 'How did you hear about us?',
-    options: ['Social Media', 'Friend', 'Search', 'Other']
+    type: 'MC',
+    prompt: 'What brings you here today?',
+    options: ['Learning', 'Career Growth', 'Curiosity', 'Other'],
+    text: 'What brings you here today?',
+    label: '',
+    category: 'GENERAL',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'pool2',
-    type: 'OPEN_RESPONSE',
+    type: 'OP',
     prompt: 'What specific topics interest you?',
-    maxLength: 300
+    maxLength: 300,
+    text: 'What specific topics interest you?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'pool3',
-    type: 'NUMERIC',
+    type: 'NM',
     prompt: 'Hours per week available for learning?',
     min: 1,
     max: 40,
-    step: 1
+    step: 1,
+    text: 'Hours per week available for learning?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'pool4',
-    type: 'SLIDER',
+    type: 'SCALE',
     prompt: 'What mix of individual vs group work do you prefer?',
     leftOption: 'Individual',
     rightOption: 'Group',
-    defaultValue: 0.5
+    defaultValue: 0.5,
+    text: 'What mix of individual vs group work do you prefer?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'pool5',
@@ -117,36 +199,60 @@ const questionPool: QuestionType[] = [
       { value: 4, label: 'Expert' },
       { value: 5, label: 'Master' }
     ],
-    defaultSegment: 3
+    defaultSegment: 3,
+    text: 'Rate your programming experience level:',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   }
 ];
 
 const mockQuizQuestions: QuizQuestion[] = [
   {
     id: 'quiz1',
-    type: 'MULTIPLE_CHOICE',
+    type: 'MC',
     prompt: 'What is John\'s favorite color?',
     options: ['Red', 'Blue', 'Green', 'Yellow'],
     correctAnswer: 'Blue',
-    distractors: ['Red', 'Green', 'Yellow']
+    distractors: ['Red', 'Green', 'Yellow'],
+    text: 'What is John\'s favorite color?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'quiz3',
-    type: 'SLIDER',
+    type: 'SCALE',
     prompt: 'What is John\'s preferred balance of coding vs architecture?',
     leftOption: 'Pure Coding',
     rightOption: 'Pure Architecture',
     defaultValue: 0.5,
     correctAnswer: '0.7', // 70% architecture, 30% coding
-    distractors: ['0.3', '0.5', '0.9']
+    distractors: ['0.3', '0.5', '0.9'],
+    text: 'What is John\'s preferred balance of coding vs architecture?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'quiz2',
-    type: 'MULTIPLE_CHOICE',
+    type: 'MC',
     prompt: 'How does John prefer to learn?',
     options: ['Visual', 'Audio', 'Reading', 'Hands-on'],
     correctAnswer: 'Visual',
-    distractors: ['Audio', 'Reading', 'Hands-on']
+    distractors: ['Audio', 'Reading', 'Hands-on'],
+    text: 'How does John prefer to learn?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'quiz4',
@@ -161,7 +267,13 @@ const mockQuizQuestions: QuizQuestion[] = [
     ],
     defaultSegment: 3,
     correctAnswer: '4', // Expert level
-    distractors: ['2', '3', '5']
+    distractors: ['2', '3', '5'],
+    text: 'What is John\'s self-rated expertise in React?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'quiz5',
@@ -176,7 +288,13 @@ const mockQuizQuestions: QuizQuestion[] = [
       bottom: 'Collaborative'
     },
     correctAnswer: '0.25,0.25', // Center of Process-oriented & Independent quadrant
-    distractors: ['0.75,0.25', '0.75,0.75', '0.25,0.75']
+    distractors: ['0.75,0.25', '0.75,0.75', '0.25,0.75'],
+    text: 'Where did John plot his work preferences?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'quiz6',
@@ -191,61 +309,56 @@ const mockQuizQuestions: QuizQuestion[] = [
       bottom: 'Collaborative'
     },
     correctAnswer: '0.375,0.375', // On the boundary of a centered square
-    distractors: ['0.625,0.375', '0.375,0.625', '0.625,0.625']
+    distractors: ['0.625,0.375', '0.375,0.625', '0.625,0.625'],
+    text: 'Where did John plot his work preferences?',
+    label: '',
+    category: 'PREFERENCES',
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   }
 ];
 
 const OnboardingFlow = () => {
   const { state, actions } = useOnboardingContext();
   const { state: questionState } = useQuestionContext();
-  const [currentDelight, setCurrentDelight] = useState<DelightFactor | null>(null);
+  const [currentDelight, setCurrentDelight] = useState<DelightFactorType | null>(null);
+  const [hasAnswered, setHasAnswered] = useState(false);
 
   const handleDelightComplete = () => {
     setCurrentDelight(null);
   };
 
-  const getDelightFactor = (question: QuestionType, response: QuestionResponse): DelightFactor | null => {
+  const getDelightFactor = (question: Question, response: QuestionResponse): DelightFactorType | null => {
     switch (question.type) {
-      case 'MULTIPLE_CHOICE':
-        if (question.id === 'std1') { // What brings you here
-          return {
-            id: 'confetti',
-            type: 'ANIMATION',
-            timing: 'POST_ANSWER',
-            trigger: 'IMMEDIATE',
-            animationType: 'CELEBRATION',
-            content: {
-              animation: 'confetti',
-              duration: 2000
-            },
-            questionTypes: ['MULTIPLE_CHOICE']
-          };
-        } else if (question.id === 'std4') { // Preferred learning style
-          return {
-            id: 'stats',
-            type: 'STATS',
-            timing: 'POST_ANSWER',
-            trigger: 'IMMEDIATE',
-            content: {
-              statType: 'PERCENTAGE',
-              value: Math.floor(Math.random() * 30) + 20,
-              message: `You're in good company! ${Math.floor(Math.random() * 30) + 20}% of respondents share that style.`
-            }
-          };
-        }
-        return null;
-      case 'NUMERIC':
+      case 'MC':
         return {
-          id: 'number',
-          type: 'NUMBER_ANIMATION',
+          id: 'confetti',
+          type: 'ANIMATION',
           timing: 'POST_ANSWER',
           trigger: 'IMMEDIATE',
           content: {
-            number: parseInt(response.answer, 10),
-            color: `hsl(${Math.random() * 360}, 80%, 60%)`,
-            duration: 1000
-          }
+            animation: 'confetti',
+            duration: 2000
+          },
+          questionTypes: ['MC']
         };
+      case 'NM':
+        if (response.value.type === 'NM' && response.value.number !== undefined) {
+          return {
+            id: 'number',
+            type: 'NUMBER_ANIMATION',
+            timing: 'POST_ANSWER',
+            trigger: 'IMMEDIATE',
+            content: {
+              number: response.value.number,
+              color: `hsl(${Math.random() * 360}, 80%, 60%)`,
+              duration: 1000
+            },
+            questionTypes: ['NM']
+          };
+        }
+        return null;
       default:
         return null;
     }
@@ -269,47 +382,120 @@ const OnboardingFlow = () => {
     if (!state.selectedQuestions.length) return null;
     
     const currentQuestion = state.selectedQuestions[state.currentQuestionIndex];
+    if (typeof currentQuestion === 'string') return null;
+    
     switch (currentQuestion.type) {
-      case 'MULTIPLE_CHOICE':
+      case 'MC':
         return (
-          <MultipleChoiceQuestion
-            question={currentQuestion}
+          <MultipleChoiceQuestionComponent
+            question={{
+              ...currentQuestion,
+              type: 'MC' as const,
+              text: currentQuestion.prompt,
+              label: '',
+              category: 'PREFERENCES' as QuestionCategory,
+              number: 1,
+              requiredForOnboarding: false,
+              includeInOnboarding: false,
+              options: currentQuestion.options || []
+            }}
+            onAnswer={handleAnswer}
+            correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+            disabled={hasAnswered}
+          />
+        );
+      case 'OP':
+        return (
+          <OpenResponseQuestionComponent
+            question={{
+              ...currentQuestion,
+              type: 'OP' as const,
+              text: currentQuestion.prompt,
+              label: '',
+              category: 'PREFERENCES' as QuestionCategory,
+              number: 1,
+              requiredForOnboarding: false,
+              includeInOnboarding: false,
+              maxLength: currentQuestion.maxLength || 500
+            }}
             onAnswer={handleAnswer}
           />
         );
-      case 'OPEN_RESPONSE':
+      case 'NM':
         return (
-          <OpenResponseQuestion
-            question={currentQuestion}
+          <NumericQuestionComponent
+            question={{
+              ...currentQuestion,
+              type: 'NM' as const,
+              min: currentQuestion.min ?? 0,
+              max: currentQuestion.max ?? 100,
+              step: currentQuestion.step ?? 1,
+              text: currentQuestion.prompt,
+              label: '',
+              category: 'PREFERENCES' as QuestionCategory,
+              number: 1,
+              requiredForOnboarding: false,
+              includeInOnboarding: false
+            }}
             onAnswer={handleAnswer}
           />
         );
-      case 'NUMERIC':
+      case 'SCALE':
         return (
-          <NumericQuestion
-            question={currentQuestion}
-            onAnswer={handleAnswer}
-          />
-        );
-      case 'SLIDER':
-        return (
-          <SliderQuestion
-            question={currentQuestion}
+          <SliderQuestionComponent
+            question={{
+              ...currentQuestion,
+              type: 'SCALE' as const,
+              text: currentQuestion.prompt,
+              label: '',
+              category: 'PREFERENCES' as QuestionCategory,
+              number: 1,
+              requiredForOnboarding: false,
+              includeInOnboarding: false
+            }}
             onAnswer={handleAnswer}
           />
         );
       case 'SEGMENTED_SLIDER':
+        if (!currentQuestion.segments) return null;
         return (
-          <SegmentedSliderQuestion
-            question={currentQuestion}
+          <SegmentedSliderQuestionComponent
+            question={{
+              ...currentQuestion,
+              type: 'SEGMENTED_SLIDER' as const,
+              text: currentQuestion.prompt,
+              label: '',
+              category: 'PREFERENCES' as QuestionCategory,
+              number: 1,
+              requiredForOnboarding: false,
+              includeInOnboarding: false,
+              segments: currentQuestion.segments
+            }}
             onAnswer={handleAnswer}
+            correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+            disabled={hasAnswered}
           />
         );
       case 'XY_CONTINUUM':
+        if (!currentQuestion.xAxis || !currentQuestion.yAxis) return null;
         return (
-          <XYContinuumQuestion
-            question={currentQuestion}
+          <XYContinuumQuestionComponent
+            question={{
+              ...currentQuestion,
+              type: 'XY_CONTINUUM' as const,
+              text: currentQuestion.prompt,
+              label: '',
+              category: 'PREFERENCES' as QuestionCategory,
+              number: 1,
+              requiredForOnboarding: false,
+              includeInOnboarding: false,
+              xAxis: currentQuestion.xAxis,
+              yAxis: currentQuestion.yAxis
+            }}
             onAnswer={handleAnswer}
+            correctAnswer={currentQuestion.correctAnswer}
+            disabled={hasAnswered}
+            mode="QUIZ"
           />
         );
       default:
@@ -365,7 +551,7 @@ const ContextControls = () => {
     actions.setExperience(experience);
   };
 
-  const handleModeChange = (mode: QuestionContextValue['mode']) => {
+  const handleModeChange = (mode: NonNullable<QuestionContextValue['mode']>) => {
     if (isSessionActive) return;
     actions.setMode(mode);
   };
@@ -425,7 +611,7 @@ const ContextControls = () => {
 
 const QuizFlow = () => {
   const { state, actions } = useQuizContext();
-  const [currentDelight, setCurrentDelight] = useState<DelightFactor | null>(null);
+  const [currentDelight, setCurrentDelight] = useState<DelightFactorType | null>(null);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [guessCount, setGuessCount] = useState(0);
@@ -433,81 +619,122 @@ const QuizFlow = () => {
   const handleAnswer = (response: QuestionResponse) => {
     const currentQuestion = state.questions[state.currentQuestionIndex];
     
-    // Normalize the response format
-    const normalizedResponse = {
+    if (!response.value) {
+      console.error('Response value is undefined');
+      return;
+    }
+
+    // Type guard for response value based on question type
+    const normalizedValue = (() => {
+      switch (currentQuestion.type) {
+        case 'MC':
+          if ('selectedOption' in response.value) {
+            return {
+              type: 'MC' as const,
+              selectedOption: response.value.selectedOption
+            };
+          }
+          break;
+        case 'SCALE':
+          if ('position' in response.value) {
+            return {
+              type: 'SCALE' as const,
+              position: response.value.position
+            };
+          }
+          break;
+        case 'XY_CONTINUUM':
+          if ('coordinates' in response.value) {
+            return {
+              type: 'XY_CONTINUUM' as const,
+              coordinates: response.value.coordinates
+            };
+          }
+          break;
+        case 'SEGMENTED_SLIDER':
+          if ('segment' in response.value) {
+            return {
+              type: 'SEGMENTED_SLIDER' as const,
+              segment: response.value.segment
+            };
+          }
+          break;
+      }
+      throw new Error(`Invalid response value for question type ${currentQuestion.type}`);
+    })();
+
+    const normalizedResponse: QuizResponse = {
+      id: response.id,
+      userId: response.userId,
       questionId: response.questionId,
-      answer: response.value?.toString() ?? response.answer,
+      timestamp: response.timestamp,
+      value: normalizedValue,
       correct: false,
-      timestamp: response.timestamp
+      metadata: {
+        ...response.metadata,
+        confidence: 0
+      }
     };
 
-    // Update guess count for XY_CONTINUUM questions
-    if (currentQuestion.type === 'XY_CONTINUUM' && response.guessCount) {
-      setGuessCount(response.guessCount);
-    }
-
-    // Validate the answer based on question type
+    // Validate answer based on question type
     let correct = false;
     switch (currentQuestion.type) {
-      case 'SLIDER':
-        correct = Math.abs(parseFloat(normalizedResponse.answer) - parseFloat(currentQuestion.correctAnswer)) <= 0.1;
-        break;
-      case 'XY_CONTINUUM':
-        if (response.position) {
-          const [correctX, correctY] = currentQuestion.correctAnswer.split(',').map(Number);
-          correct = 
-            Math.abs(response.position.x - correctX) <= 0.1 &&
-            Math.abs(response.position.y - correctY) <= 0.1;
-          
-          // Always record response after second guess
-          if (response.guessCount && response.guessCount >= 2) {
-            normalizedResponse.correct = correct;
-            actions.submitAnswer(normalizedResponse);
-            setHasAnswered(true);
-            setIsCorrect(correct);
-            
-            if (correct) {
-              setCurrentDelight({
-                id: 'confetti',
-                type: 'ANIMATION',
-                timing: 'POST_ANSWER',
-                trigger: 'IMMEDIATE',
-                animationType: 'CELEBRATION',
-                content: {
-                  animation: 'confetti',
-                  duration: 2000
-                },
-                questionTypes: ['MULTIPLE_CHOICE', 'SLIDER', 'XY_CONTINUUM']
-              });
-            }
-            return;
-          }
+      case 'SCALE':
+        if (normalizedValue.type === 'SCALE' && normalizedValue.position !== undefined) {
+          const submittedPosition = normalizedValue.position;
+          const targetPosition = parseFloat(currentQuestion.correctAnswer);
+          correct = Math.abs(submittedPosition - targetPosition) <= 0.1;
         }
         break;
-      default:
-        correct = normalizedResponse.answer === currentQuestion.correctAnswer;
+      case 'XY_CONTINUUM':
+        if (normalizedValue.type === 'XY_CONTINUUM' && normalizedValue.coordinates) {
+          const coords = normalizedValue.coordinates;
+          const [correctX, correctY] = currentQuestion.correctAnswer.split(',').map(Number);
+          correct = 
+            Math.abs(coords.x - correctX) <= 0.1 &&
+            Math.abs(coords.y - correctY) <= 0.1;
+        }
+        break;
+      case 'SEGMENTED_SLIDER':
+        if (normalizedValue.type === 'SEGMENTED_SLIDER' && normalizedValue.segment !== undefined) {
+          correct = normalizedValue.segment.toString() === currentQuestion.correctAnswer;
+        }
+        break;
+      case 'MC':
+        if (normalizedValue.type === 'MC') {
+          correct = normalizedValue.selectedOption === currentQuestion.correctAnswer;
+        }
+        break;
     }
 
-    setIsCorrect(correct);
     normalizedResponse.correct = correct;
     actions.submitAnswer(normalizedResponse);
     setHasAnswered(true);
+    setIsCorrect(correct);
 
+    // Show confetti for all correct answers
     if (correct) {
       setCurrentDelight({
         id: 'confetti',
         type: 'ANIMATION',
         timing: 'POST_ANSWER',
         trigger: 'IMMEDIATE',
-        animationType: 'CELEBRATION',
         content: {
           animation: 'confetti',
-          duration: 2000
+          duration: 2000,
+          customParams: {
+            type: 'CELEBRATION'
+          }
         },
-        questionTypes: ['MULTIPLE_CHOICE', 'SLIDER', 'XY_CONTINUUM']
+        questionTypes: ['MC', 'SCALE', 'XY_CONTINUUM', 'NM', 'SEGMENTED_SLIDER']
       });
     }
   };
+
+  // Add effect to monitor delight state
+  useEffect(() => {
+    console.log('Current delight:', currentDelight); // Debug log
+  }, [currentDelight]);
 
   const handleNext = () => {
     actions.advanceToNext();
@@ -525,37 +752,82 @@ const QuizFlow = () => {
       <div className="quiz-question">
         {(() => {
           switch (currentQuestion.type) {
-            case 'MULTIPLE_CHOICE':
+            case 'MC':
+              const lastResponse = state.responses[state.responses.length - 1];
+              const isCorrect = lastResponse?.correct;
               return (
-                <MultipleChoiceQuestion
-                  question={currentQuestion}
+                <MultipleChoiceQuestionComponent
+                  question={{
+                    ...currentQuestion,
+                    type: 'MC' as const,
+                    text: currentQuestion.prompt,
+                    label: '',
+                    category: 'PREFERENCES' as QuestionCategory,
+                    number: 1,
+                    requiredForOnboarding: false,
+                    includeInOnboarding: false,
+                    options: currentQuestion.options || []
+                  }}
                   onAnswer={handleAnswer}
                   correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
+                  selected={lastResponse?.value.selectedOption}
                   disabled={hasAnswered}
                 />
               );
-            case 'SLIDER':
+            case 'SCALE':
               return (
-                <SliderQuestion
-                  question={currentQuestion}
+                <SliderQuestionComponent
+                  question={{
+                    ...currentQuestion,
+                    type: 'SCALE' as const,
+                    text: currentQuestion.prompt,
+                    label: '',
+                    category: 'PREFERENCES' as QuestionCategory,
+                    number: 1,
+                    requiredForOnboarding: false,
+                    includeInOnboarding: false
+                  }}
                   onAnswer={handleAnswer}
                   correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
                   disabled={hasAnswered}
                 />
               );
             case 'SEGMENTED_SLIDER':
+              if (!currentQuestion.segments) return null;
               return (
-                <SegmentedSliderQuestion
-                  question={currentQuestion}
+                <SegmentedSliderQuestionComponent
+                  question={{
+                    ...currentQuestion,
+                    type: 'SEGMENTED_SLIDER' as const,
+                    text: currentQuestion.prompt,
+                    label: '',
+                    category: 'PREFERENCES' as QuestionCategory,
+                    number: 1,
+                    requiredForOnboarding: false,
+                    includeInOnboarding: false,
+                    segments: currentQuestion.segments
+                  }}
                   onAnswer={handleAnswer}
                   correctAnswer={hasAnswered ? currentQuestion.correctAnswer : undefined}
                   disabled={hasAnswered}
                 />
               );
             case 'XY_CONTINUUM':
+              if (!currentQuestion.xAxis || !currentQuestion.yAxis) return null;
               return (
-                <XYContinuumQuestion
-                  question={currentQuestion}
+                <XYContinuumQuestionComponent
+                  question={{
+                    ...currentQuestion,
+                    type: 'XY_CONTINUUM' as const,
+                    text: currentQuestion.prompt,
+                    label: '',
+                    category: 'PREFERENCES' as QuestionCategory,
+                    number: 1,
+                    requiredForOnboarding: false,
+                    includeInOnboarding: false,
+                    xAxis: currentQuestion.xAxis,
+                    yAxis: currentQuestion.yAxis
+                  }}
                   onAnswer={handleAnswer}
                   correctAnswer={currentQuestion.correctAnswer}
                   disabled={hasAnswered}
@@ -591,6 +863,15 @@ const QuizFlow = () => {
 
   return (
     <div className="quiz-container">
+      {currentDelight && (
+        <DelightFactor
+          factor={currentDelight}
+          onComplete={() => {
+            console.log('Delight complete');
+            setCurrentDelight(null);
+          }}
+        />
+      )}
       <div className="quiz-header">
         <h2>Quiz Questions</h2>
         <div className="quiz-progress">
@@ -601,12 +882,6 @@ const QuizFlow = () => {
 
       <div className="question-container">
         {renderCurrentQuestion()}
-        {currentDelight && (
-          <DelightFactor
-            factor={currentDelight}
-            onComplete={() => setCurrentDelight(null)}
-          />
-        )}
       </div>
 
       {state.completed && (
@@ -620,21 +895,39 @@ const QuizFlow = () => {
 
 export const QuestionPlayground = () => {
   return (
-    <MockDataProvider>
-      <div className="playground-container">
-        <QuestionProvider>
-          <OnboardingProvider
-            standardQuestions={standardQuestions}
-            questionPool={questionPool}
-          >
-            <QuizProvider>
-              <ContextControls />
-              <QuestionContent />
-            </QuizProvider>
-          </OnboardingProvider>
-        </QuestionProvider>
-      </div>
-    </MockDataProvider>
+    <AccessibilityProvider>
+      <MockDataProvider>
+        <div className="playground-container">
+          <QuestionProvider>
+            <OnboardingProvider
+              standardQuestions={standardQuestions.map(q => ({
+                ...q,
+                text: q.prompt,
+                label: '',
+                category: 'PREFERENCES' as QuestionCategory,
+                number: 1,
+                requiredForOnboarding: false,
+                includeInOnboarding: false
+              })) as Question[]}
+              questionPool={questionPool.map(q => ({
+                ...q,
+                text: q.prompt,
+                label: '',
+                category: 'PREFERENCES' as QuestionCategory,
+                number: 1,
+                requiredForOnboarding: false,
+                includeInOnboarding: false
+              })) as Question[]}
+            >
+              <QuizProvider>
+                <ContextControls />
+                <QuestionContent />
+              </QuizProvider>
+            </OnboardingProvider>
+          </QuestionProvider>
+        </div>
+      </MockDataProvider>
+    </AccessibilityProvider>
   );
 };
 

@@ -1,3 +1,14 @@
+export * from './questions';
+export * from './responses';
+export * from './delightFactors';
+
+// Re-export with consistent types
+export type {
+  QuestionResponse,
+  QuizResponse,
+  ResponseMetadata
+} from './responses';
+
 export type { 
   QuestionCategory,
   Question,
@@ -79,75 +90,6 @@ export type InputType = 'mouse' | 'touch' | 'keyboard';
 export interface Device {
   type: DeviceType;
   input: InputType;
-}
-
-export interface ResponseMetadata {
-  timeToAnswer: number;
-  interactionCount: number;
-  confidence: number;
-  device: Device;
-}
-
-export interface QuestionResponse {
-  id: string;
-  questionId: string;
-  userId: string;
-  value: GuessValue;
-  metadata: ResponseMetadata;
-  timestamp: Timestamp;
-}
-
-// DelightFactor types
-export interface BaseDelightFactor {
-  id: string;
-  timing: 'PRE_ANSWER' | 'POST_ANSWER';
-  trigger: 'IMMEDIATE' | 'DELAYED' | 'ON_CORRECT' | 'ON_INCORRECT';
-}
-
-export interface AnimationDelightFactor extends BaseDelightFactor {
-  type: 'ANIMATION';
-  animationType: 'CELEBRATION' | 'PROGRESS' | 'INSIGHT' | 'CUSTOM';
-  content: {
-    animation: string;
-    duration: number;
-    customParams?: Record<string, unknown>;
-  };
-  questionTypes: string[];
-}
-
-export interface AttendeeStatsDelightFactor extends BaseDelightFactor {
-  type: 'STATS';
-  content: {
-    statType: 'PERCENTAGE' | 'COUNT';
-    value: number;
-    message: string;
-  };
-}
-
-export interface NumberAnimationDelightFactor extends BaseDelightFactor {
-  type: 'NUMBER_ANIMATION';
-  content: {
-    number: number;
-    color: string;
-    duration: number;
-  };
-}
-
-export type DelightFactor = 
-  | AnimationDelightFactor 
-  | AttendeeStatsDelightFactor 
-  | NumberAnimationDelightFactor;
-
-export interface QuizQuestion extends BaseQuestion {
-  correctAnswer: string;
-  distractors: string[];
-}
-
-export interface QuizResponse {
-  questionId: string;
-  answer: string;   // All answers normalized to string for storage
-  correct: boolean;
-  timestamp: number;
 }
 
 export interface QuestionFormData {

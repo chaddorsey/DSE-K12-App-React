@@ -58,4 +58,6 @@ export const NumericQuestion: React.FC<NumericQuestionProps> = ({
       </div>
     </div>
   );
-}; 
+};
+
+export { NumericQuestion as NumericQuestionComponent }; 

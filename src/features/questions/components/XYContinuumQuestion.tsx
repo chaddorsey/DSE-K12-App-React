@@ -223,4 +223,6 @@ export const XYContinuumQuestion: React.FC<Props> = ({
       )}
     </div>
   );
-}; 
+};
+
+export { XYContinuumQuestion as XYContinuumQuestionComponent }; 

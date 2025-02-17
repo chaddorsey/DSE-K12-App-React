@@ -79,4 +79,6 @@ export const OpenResponseQuestion: React.FC<OpenResponseQuestionProps> = ({
       </div>
     </div>
   );
-}; 
+};
+
+export { OpenResponseQuestion as OpenResponseQuestionComponent }; 

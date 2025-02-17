@@ -7,9 +7,10 @@ console.log('Processing CSS with plugins:', {
 });
 
 module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-    ...(process.env.NODE_ENV === 'production' ? { cssnano: {} } : {})
-  }
-} 
+  plugins: [
+    require('postcss-nested'),
+    require('tailwindcss'),
+    require('autoprefixer'),
+    ...(process.env.NODE_ENV === 'production' ? [require('cssnano')] : [])
+  ]
+}; 

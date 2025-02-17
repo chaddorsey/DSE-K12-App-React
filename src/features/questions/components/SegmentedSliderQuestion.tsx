@@ -137,4 +137,6 @@ export const SegmentedSliderQuestion: React.FC<Props> = ({
       </button>
     </div>
   );
-}; 
+};
+
+export { SegmentedSliderQuestion as SegmentedSliderQuestionComponent }; 

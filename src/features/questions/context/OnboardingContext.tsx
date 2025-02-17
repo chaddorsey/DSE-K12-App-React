@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import type { QuestionType, QuestionResponse } from '../types';
+import type { 
+  Question,
+  QuestionResponse 
+} from '../types/questions';
 
 interface OnboardingState {
   currentQuestionIndex: number;
-  selectedQuestions: QuestionType[];
+  selectedQuestions: Question[];
   responses: QuestionResponse[];
   completed: boolean;
 }
@@ -16,9 +19,9 @@ interface OnboardingActions {
 }
 
 interface OnboardingProviderProps {
+  standardQuestions: Question[];
+  questionPool: Question[];
   children: React.ReactNode;
-  standardQuestions: QuestionType[];
-  questionPool: QuestionType[];
 }
 
 type OnboardingAction =
@@ -39,11 +42,10 @@ const OnboardingContext = createContext<{
   actions: OnboardingActions;
 } | undefined>(undefined);
 
-function selectQuestions(standardQuestions: QuestionType[], questionPool: QuestionType[]): QuestionType[] {
+function selectQuestions(standardQuestions: Question[], questionPool: Question[]): Question[] {
   const selected = [...standardQuestions];
   const remainingCount = 7 - selected.length;
   
-  // Randomly select from pool
   const poolCopy = [...questionPool];
   for (let i = 0; i < remainingCount; i++) {
     const randomIndex = Math.floor(Math.random() * poolCopy.length);
@@ -57,8 +59,8 @@ function selectQuestions(standardQuestions: QuestionType[], questionPool: Questi
 function onboardingReducer(
   state: OnboardingState,
   action: OnboardingAction,
-  standardQuestions: QuestionType[],
-  questionPool: QuestionType[]
+  standardQuestions: Question[],
+  questionPool: Question[]
 ): OnboardingState {
   switch (action.type) {
     case 'INITIALIZE_SEQUENCE':

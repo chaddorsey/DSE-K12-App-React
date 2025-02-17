@@ -107,4 +107,6 @@ export const SliderQuestion: React.FC<Props> = ({
       </button>
     </div>
   );
-}; 
+};
+
+export { SliderQuestion as SliderQuestionComponent }; 

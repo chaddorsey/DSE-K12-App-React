@@ -32,10 +32,17 @@ const initialState: QuizState = {
   score: 0
 };
 
-const QuizContext = createContext<{
+interface QuizContextValue {
   state: QuizState;
-  actions: QuizActions;
-} | undefined>(undefined);
+  actions: {
+    initializeQuiz: (userId: string, questions: QuizQuestion[]) => void;
+    submitAnswer: (response: QuizResponse) => void;
+    advanceToNext: () => void;
+    resetQuiz: () => void;
+  };
+}
+
+const QuizContext = createContext<QuizContextValue | undefined>(undefined);
 
 function quizReducer(state: QuizState, action: QuizAction): QuizState {
   switch (action.type) {

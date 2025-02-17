@@ -11,6 +11,8 @@ interface MultipleChoiceQuestionProps {
   onAnswer: (response: QuestionResponse) => void;
   correctAnswer?: string;
   disabled?: boolean;
+  selected?: string;
+  correct?: boolean;
 }
 
 export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
@@ -18,9 +20,10 @@ export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
   onAnswer,
   correctAnswer,
   disabled = false,
+  selected,
+  correct
 }) => {
   const { highContrast, fontSize, keyboardMode } = useAccessibility();
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [touchActive, setTouchActive] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -30,7 +33,7 @@ export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
     onSelect: (element) => {
       const choiceId = element.getAttribute('data-choice-id');
       if (choiceId) {
-        setSelectedOption(choiceId);
+        setTouchActive(choiceId);
         onAnswer({
           questionId: question.id,
           answer: choiceId,
@@ -59,70 +62,54 @@ export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
   }, []);
 
   const getOptionStatus = (option: string) => {
-    if (!correctAnswer || !selectedOption) return 'default';
+    if (!correctAnswer || !selected) return 'default';
     if (option === correctAnswer) return 'correct';
-    if (option === selectedOption && option !== correctAnswer) return 'incorrect';
+    if (option === selected && option !== correctAnswer) return 'incorrect';
     return 'default';
   };
 
+  const handleClick = (option: string) => {
+    onAnswer({
+      questionId: question.id,
+      value: {
+        type: 'MC',
+        selectedOption: option
+      },
+      timestamp: Date.now()
+    });
+  };
+
+  const getOptionClass = (option: string) => {
+    if (!selected) return 'mc-option';
+    
+    const classes = ['mc-option'];
+    if (selected === option) {
+      classes.push(option === correctAnswer ? 'mc-option-correct' : 'mc-option-incorrect');
+    } else if (option === correctAnswer && selected) {
+      classes.push('mc-option-correct');
+    }
+    if (disabled) classes.push('mc-option-disabled');
+    
+    return classes.join(' ');
+  };
+
   return (
-    <div 
-      className={classNames('multiple-choice-question', {
-        'high-contrast': highContrast,
-        [`font-size-${fontSize}`]: true,
-        'keyboard-mode': keyboardMode
-      })}
-      ref={containerRef}
-      role="listbox"
-      aria-orientation="vertical"
-      onKeyDown={handleKeyDown}
-      aria-disabled={disabled}
-    >
-      <div 
-        className="prompt"
-        id={`question-${question.id}-prompt`}
-      >
-        {question.text}
-      </div>
-      <div
-        role="radiogroup"
-        aria-labelledby={`question-${question.id}-prompt`}
-        aria-describedby={`question-${question.id}-description question-${question.id}-keyboard-help`}
-        className={classNames('options-container', { 'high-contrast': highContrast })}
-      >
-        <div 
-          id={`question-${question.id}-description`} 
-          className="sr-only"
-        >
-          Select one of the following {question.options.length} options
-        </div>
-        <div className="sr-only" id={`question-${question.id}-keyboard-help`}>
-          Use arrow keys to navigate between options, Space or Enter to select an option, 
-          and Escape to clear your selection.
-        </div>
-        {question.options.map((option) => (
-          <div
-            key={option}
-            role="option"
-            tabIndex={disabled ? -1 : 0}
-            className={classNames('option', {
-              'selected': selectedOption === option,
-              'correct': getOptionStatus(option) === 'correct',
-              'incorrect': getOptionStatus(option) === 'incorrect',
-              'disabled': disabled,
-              'touch-active': touchActive === option
-            })}
-            aria-selected={selectedOption === option}
-            data-choice-id={option}
-            onClick={() => !disabled && handleTouchEnd(option)}
-            onTouchStart={(e) => handleTouchStart(e, option)}
-            onTouchEnd={() => handleTouchEnd(option)}
-            onTouchCancel={handleTouchCancel}
+    <div className="mc-question">
+      <div className="mc-prompt">{question.text}</div>
+      <div className="mc-options">
+        {question.options.map((option, index) => (
+          <button
+            key={index}
+            className={getOptionClass(option)}
+            onClick={() => handleClick(option)}
+            disabled={disabled}
           >
             {option}
-          </div>
+          </button>
         ))}
       </div>
     </div>
   );
-}; 
+};
+
+export { MultipleChoiceQuestion as MultipleChoiceQuestionComponent }; 
