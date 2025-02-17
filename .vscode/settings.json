@@ -10,5 +10,13 @@
   "search.exclude": {
     "**/node_modules": true,
     "**/dist": true
+  },
+  "css.validate": false,
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+  "editor.quickSuggestions": {
+    "strings": true
   }
 } 

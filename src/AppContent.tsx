@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Navbar } from './features/auth/components/Navbar';
+import { SecondaryNavbar } from './features/auth/components/SecondaryNavbar';
 import { useAuth } from './features/auth/AuthContext';
 import { OnboardingPage } from './features/onboarding/OnboardingPage';
 import { ConnectionsPage } from './features/connections/ConnectionsPage';
@@ -24,9 +25,10 @@ export const AppContent = () => {
   }
 
   return (
-    <div className="min-h-screen pt-16">
+    <div className="min-h-screen pt-40">
       <Navbar />
-      <main className="container mx-auto px-4 py-8">
+      <SecondaryNavbar />
+      <main className="container mx-auto px-4 py-4 max-w-lg">
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<SignIn />} />
@@ -41,7 +43,7 @@ export const AppContent = () => {
           
           {/* Manager/Admin Routes */}
           <Route element={<ProtectedRoute allowedRoles={['manager', 'admin']} />}>
-            <Route path="/quiz" element={<QuizPage />} />
+            <Route path="/questions" element={<QuizPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
           </Route>
 
