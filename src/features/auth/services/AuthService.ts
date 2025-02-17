@@ -70,9 +70,29 @@ export class AuthService {
 
   async signIn(email: string, password: string): Promise<IUser> {
     const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
+    
+    // Get the latest user data from Firestore
     const userData = await this.getUserData(firebaseUser.uid);
     
-    // Update last login
+    // Update Firestore with any new Firebase Auth data
+    const updates: Partial<IUser> = {};
+    
+    if (userData.emailVerified !== firebaseUser.emailVerified) {
+      updates.emailVerified = firebaseUser.emailVerified;
+    }
+    
+    if (firebaseUser.photoURL && userData.photoURL !== firebaseUser.photoURL) {
+      updates.photoURL = firebaseUser.photoURL;
+    }
+    
+    // If we have updates, write them to Firestore
+    if (Object.keys(updates).length > 0) {
+      await updateDoc(doc(db, 'users', firebaseUser.uid), updates);
+      // Update our local userData with the changes
+      Object.assign(userData, updates);
+    }
+    
+    // Always update last login
     await updateDoc(doc(db, 'users', firebaseUser.uid), {
       lastLoginAt: new Date()
     });
@@ -97,7 +117,18 @@ export class AuthService {
     if (!userDoc.exists()) {
       throw new Error('User data not found');
     }
-    return userDoc.data() as IUser;
+    
+    // Merge Firestore data with current Firebase Auth data
+    const currentUser = auth.currentUser;
+    const firestoreData = userDoc.data() as IUser;
+    
+    if (currentUser) {
+      // Always use the most up-to-date Firebase Auth values for these fields
+      firestoreData.emailVerified = currentUser.emailVerified;
+      firestoreData.photoURL = currentUser.photoURL || firestoreData.photoURL;
+    }
+    
+    return firestoreData;
   }
 
   private mapFirebaseUser(user: FirebaseUser): IUser {

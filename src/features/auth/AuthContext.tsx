@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as FirebaseUser, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth, db } from '../../config/firebase';
-import { doc, getDoc, setDoc, collection, query, limit, getDocs, where } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, limit, getDocs, where, updateDoc } from 'firebase/firestore';
 import { MonitoringService } from '@/monitoring/MonitoringService';
 import { logger } from '../../utils/logger';
 import { devDataService } from '../../services/devDataService';
@@ -42,7 +42,7 @@ interface AuthMode {
   active: boolean;
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
@@ -127,8 +127,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
         try {
           if (firebaseUser) {
-            const enrichedUser = await enrichUserData(firebaseUser);
-            setUser(enrichedUser);
+            // Check if verification status changed
+            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+            if (userDoc.exists() && userDoc.data().emailVerified !== firebaseUser.emailVerified) {
+              await updateDoc(doc(db, 'users', firebaseUser.uid), {
+                emailVerified: firebaseUser.emailVerified
+              });
+            }
+
+            const userData = await enrichUserData(firebaseUser);
+            setUser(userData);
           } else {
             setUser(null);
           }
@@ -154,8 +162,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
         try {
           if (firebaseUser) {
-            const enrichedUser = await enrichUserData(firebaseUser);
-            setUser(enrichedUser);
+            // Check if verification status changed
+            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+            if (userDoc.exists() && userDoc.data().emailVerified !== firebaseUser.emailVerified) {
+              await updateDoc(doc(db, 'users', firebaseUser.uid), {
+                emailVerified: firebaseUser.emailVerified
+              });
+            }
+
+            const userData = await enrichUserData(firebaseUser);
+            setUser(userData);
           } else {
             setUser(null);
           }
@@ -226,7 +242,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
