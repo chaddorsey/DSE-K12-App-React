@@ -6,19 +6,13 @@ import './NumericQuestion.css';
 interface NumericQuestionProps {
   question: NMQuestion;
   onAnswer: (response: QuestionResponse) => void;
-  disabled?: boolean;
 }
 
 export const NumericQuestion: React.FC<NumericQuestionProps> = ({
   question,
-  onAnswer,
-  disabled = false
+  onAnswer
 }) => {
   const [value, setValue] = useState<string>('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
-  };
 
   const handleSubmit = () => {
     const numValue = parseInt(value, 10);
@@ -26,10 +20,23 @@ export const NumericQuestion: React.FC<NumericQuestionProps> = ({
 
     if (numValue >= question.min && numValue <= question.max) {
       onAnswer({
+        id: `response_${question.id}`,
+        userId: 'current_user_id',
         questionId: question.id,
-        answer: numValue, // Send as number, not string
-        value: numValue,  // Include both for type safety
-        timestamp: Date.now()
+        value: {
+          type: 'NM',
+          number: numValue
+        },
+        correct: false,
+        metadata: {
+          timeToAnswer: 0,
+          interactionCount: 1,
+          device: {
+            type: 'browser',
+            input: 'keyboard'
+          }
+        },
+        timestamp: new Date()
       });
     }
   };
@@ -44,17 +51,12 @@ export const NumericQuestion: React.FC<NumericQuestionProps> = ({
           max={question.max}
           step={question.step || 1}
           value={value}
-          onChange={handleChange}
-          onBlur={handleSubmit}
-          disabled={disabled}
+          onChange={(e) => setValue(e.target.value)}
           aria-label={question.text}
         />
-        {question.labels?.min && (
-          <div className="min-label">{question.labels.min}</div>
-        )}
-        {question.labels?.max && (
-          <div className="max-label">{question.labels.max}</div>
-        )}
+        <button onClick={handleSubmit} disabled={!value}>
+          Next
+        </button>
       </div>
     </div>
   );
