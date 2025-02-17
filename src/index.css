@@ -43,22 +43,22 @@
 
 @layer components {
   .nav-container {
-    @apply flex items-center justify-between w-full px-4 py-2;
+    @apply flex items-center justify-between w-full px-2 py-1 min-h-[7rem];
   }
 
   .nav-logo {
-    @apply w-11 h-auto; /* 44px width */
+    @apply w-11 h-auto flex-shrink-0; /* Prevent logo from shrinking */
   }
 
   .nav-menu {
-    @apply flex items-center gap-4;
+    @apply flex items-center gap-1 flex-grow justify-center mx-2;
   }
 
   .nav-link {
-    @apply text-base font-medium; /* Smaller font size */
+    @apply text-base font-medium px-1 py-1 whitespace-nowrap;
   }
 
   .profile-button {
-    @apply w-11 h-11; /* 44px square */
+    @apply w-11 h-11 flex-shrink-0; /* Prevent button from shrinking */
   }
 }
