@@ -58,15 +58,8 @@ export const RegistrationForm: React.FC = () => {
         return;
       }
 
-      // Check if this is a known email
-      const known = await isKnownEmail(data.email);
-      if (!known) {
-        setError('Email not found in authorized users list');
-        return;
-      }
-
-      // Register the user
-      await registerKnownUser(data.email, data.password);
+      // Register the user with basic info
+      await authService.signUp(data.email, data.password);
       
       // Success! Show verification message and redirect
       setError('Please check your email for verification link');

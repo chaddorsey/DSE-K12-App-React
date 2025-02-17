@@ -1,19 +1,19 @@
+export type UserRole = 'user' | 'manager' | 'admin';
+
 export interface IUser {
   uid: string;
-  email: string | null;
+  email: string;
   displayName: string | null;
   photoURL: string | null;
   emailVerified: boolean;
   createdAt: string;
   lastLoginAt: string;
-  role: 'user' | 'admin';
-  metadata?: {
-    creationTime?: string;
-    lastSignInTime?: string;
-  };
+  role: UserRole;
+  metadata: Record<string, unknown>;
+  onboardingCompleted: boolean;
+  isAnonymous: boolean;
+  phoneNumber: string | null;
 }
-
-export type UserRole = 'user' | 'admin';
 
 export interface IAuthState {
   user: IUser | null;
@@ -40,8 +40,7 @@ export interface IAuthContext {
 export interface KnownUser {
   email: string;
   displayName: string;
-  role: UserRole;
+  image?: string | null;
+  role?: UserRole;
   organization?: string;
-  image?: string;
-  // Add any other pre-known fields
 } 

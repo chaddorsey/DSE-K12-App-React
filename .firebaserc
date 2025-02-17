@@ -1,6 +1,8 @@
 {
   "projects": {
-    "default": "dse-k12-connections"
+    "default": "dse-k12-connections",
+    "staging": "dse-k12-connections",
+    "prod": "dseconnections"
   },
   "targets": {
     "dse-k12-connections": {

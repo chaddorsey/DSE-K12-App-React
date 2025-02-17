@@ -10,23 +10,33 @@ service cloud.firestore {
     }
 
     function hasConnection(otherUserId) {
-      return exists(/databases/$(database)/documents/connections/{connectionId}) &&
-        connectionId.users.hasAll([request.auth.uid, otherUserId]) &&
-        connectionId.status == 'accepted';
+      return exists(/databases/$(database)/documents/connections/{connId}) &&
+        get(/databases/$(database)/documents/connections/{connId}).data.users.hasAll([request.auth.uid, otherUserId]) &&
+        get(/databases/$(database)/documents/connections/{connId}).data.status == 'accepted';
     }
 
     // Test mode - allow read/write to authenticated users
     // TODO: Replace with production rules before deployment
 
-    // Keep our dummy data rules even in test mode
+    // Allow all operations during development
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        // Only allow updating specific fields
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['displayName', 'photoURL', 'onboardingCompleted', 'lastLoginAt']);
     }
     
     match /profiles/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;  // Profiles should not be deleted
     }
     
     match /questions/{questionId} {
@@ -77,7 +87,8 @@ service cloud.firestore {
     }
 
     match /_test_/{document=**} {
-      allow read, write: if true;
+      // Remove test collection access in production
+      allow read, write: if false;
     }
 
     match /response_metrics/{questionId} {

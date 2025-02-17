@@ -13,13 +13,19 @@ import {
   getAuth
 } from 'firebase/auth';
 import { auth, db } from '@/config/firebase';
-import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { IUser, UserRole, KnownUser } from '../types/auth';
 import { getAvatarUrl } from '@/utils/avatar';
 import { findKnownUser } from '@/utils/known-users';
 
+console.log('Firestore instance:', db ? 'initialized' : 'null', {
+  type: db?.type,
+  _databaseId: (db as any)?._databaseId,
+});
+
 export class AuthService {
   constructor() {
+    console.log('AuthService initializing...');
     // Set persistence to local (survives browser restart)
     setPersistence(auth, browserLocalPersistence)
       .catch(error => console.error('Error setting auth persistence:', error));
@@ -39,40 +45,39 @@ export class AuthService {
 
   async signUp(email: string, password: string): Promise<IUser> {
     try {
-      // Check if this is a known user
-      const knownUser = await this.getKnownUserData(email);
-
+      console.log('Starting signup process...', { dbInitialized: !!db });
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const { user: firebaseUser } = userCredential;
+      console.log('Auth user created:', userCredential.user.uid);
 
-      const displayName = knownUser?.displayName || email.split('@')[0];
-      // Create base user data without optional fields
-      const baseUserData: Omit<IUser, 'organization'> = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email!,
-        displayName,
-        emailVerified: firebaseUser.emailVerified,
-        createdAt: new Date(),
-        lastLoginAt: new Date(),
-        role: knownUser?.role || 'user',
-        photoURL: getAvatarUrl(knownUser?.image, displayName)
+      const knownUser = await this.getKnownUserData(email);
+      console.log('Known user check:', knownUser ? 'found' : 'not found');
+      
+      const userData = {
+        uid: userCredential.user.uid,
+        email: email,
+        createdAt: new Date().toISOString(),
+        role: 'user'
       };
 
-      // Add organization only if it exists in knownUser
-      const userData: IUser = knownUser?.organization 
-        ? { ...baseUserData, organization: knownUser.organization }
-        : baseUserData;
+      console.log('Attempting to create Firestore document...');
+      const userRef = doc(db, 'users', userCredential.user.uid);
+      await setDoc(userRef, userData);
 
-      await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+      await sendEmailVerification(userCredential.user);
+      console.log('Verification email sent');
 
-      // Send verification email but don't wait for it
-      sendEmailVerification(firebaseUser).catch(console.error);
-
-      return userData;
+      return userData as IUser;
     } catch (error) {
-      console.error('SignUp error:', error);
       if (error instanceof Error) {
-        throw new Error(`Registration failed: ${error.message}`);
+        console.error('SignUp error:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          ...(error as any).code ? { code: (error as any).code } : {},
+          ...(error as any).details ? { details: (error as any).details } : {}
+        });
+      } else {
+        console.error('Unknown signup error:', error);
       }
       throw error;
     }
@@ -113,7 +118,7 @@ export class AuthService {
     return userDoc.data() as IUser;
   }
 
-  private mapFirebaseUser(user: FirebaseUser, role: UserRole = 'student'): IUser {
+  private mapFirebaseUser(user: FirebaseUser): IUser {
     return {
       uid: user.uid,
       email: user.email || '',
@@ -122,67 +127,16 @@ export class AuthService {
       phoneNumber: user.phoneNumber,
       emailVerified: user.emailVerified,
       isAnonymous: user.isAnonymous,
-      role,
+      role: 'user' as UserRole,
       metadata: {},
-      // Include other required FirebaseUser properties
-      ...user
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      onboardingCompleted: false
     };
   }
 }
 
 export const authService = new AuthService();
-
-export async function isKnownEmail(email: string): Promise<boolean> {
-  const usersRef = collection(db, 'users');
-  const q = query(usersRef, where('email', '==', email));
-  const snapshot = await getDocs(q);
-  return !snapshot.empty;
-}
-
-export async function registerKnownUser(email: string, password: string): Promise<void> {
-  try {
-    // Check if email is in known users CSV
-    const knownUserData = await findKnownUser(email);
-    
-    if (!knownUserData) {
-      throw new Error('Email not found in authorized users list');
-    }
-
-    console.log('Known user data:', knownUserData); // Debug log
-
-    // Create the new auth user
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
-    // Update their profile with pre-populated data
-    await firebaseUpdateProfile(userCredential.user, {
-      displayName: knownUserData.displayName,
-      photoURL: knownUserData.photoURL || null
-    });
-
-    console.log('Updated auth profile with:', {
-      displayName: knownUserData.displayName,
-      photoURL: knownUserData.photoURL
-    }); // Debug log
-
-    // Create their Firestore document with pre-populated data
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-      email: email,
-      displayName: knownUserData.displayName,
-      photoURL: knownUserData.photoURL || null,
-      role: knownUserData.role || 'user',
-      organization: knownUserData.organization,
-      createdAt: new Date().toISOString(),
-      authComplete: true
-    });
-
-    // Send verification email
-    await sendEmailVerification(userCredential.user);
-
-  } catch (error) {
-    console.error('Error registering user:', error);
-    throw error;
-  }
-}
 
 export async function signInUser(email: string, password: string) {
   try {

@@ -60,7 +60,11 @@
     "load:users": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/load-users.ts",
     "load:users:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/load-users.ts",
     "emulators:setup": "firebase init emulators",
-    "prestart": "cross-env NODE_ENV=development ts-node --project tsconfig.scripts.json scripts/setup-dev-env.ts"
+    "prestart": "cross-env NODE_ENV=development ts-node --project tsconfig.scripts.json scripts/setup-dev-env.ts",
+    "build:staging": "cp .env.production .env && npm run build",
+    "build:prod": "cp .env.production-prod .env && npm run build",
+    "deploy:staging": "firebase use staging && npm run build:staging && firebase deploy",
+    "deploy:prod": "firebase use prod && npm run build:prod && firebase deploy"
   },
   "eslintConfig": {
     "extends": [

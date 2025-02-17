@@ -22,6 +22,14 @@
   },
   "hosting": {
     "public": "build",
+    "targets": {
+      "staging": {
+        "site": "dse-k12-connections"
+      },
+      "prod": {
+        "site": "dseconnections"
+      }
+    },
     "ignore": [
       "firebase.json",
       "**/.*",
