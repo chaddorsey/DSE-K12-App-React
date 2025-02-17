@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import { MetricsCalculator } from '../services/MetricsCalculator';
-import { TriggerError, ErrorCodes } from '../utils/errors';
+import { FieldValue } from 'firebase-admin/firestore';
+import { QuestionResponse, GuessResponse } from '../types/metrics';
 import { logError, logInfo } from '../utils/logging';
 import { withRetry, RetryableError } from '../utils/retry';
 
@@ -17,7 +18,7 @@ export const onResponseCreate = functions.firestore
     };
 
     try {
-      const response = snap.data();
+      const response = snap.data() as QuestionResponse;
       if (!validateResponse(response)) {
         throw new RetryableError(
           'Invalid response data',
@@ -53,20 +54,20 @@ export const onResponseCreate = functions.firestore
           const userStatsRef = db.doc(`userStats/${response.userId}`);
           transaction.set(userStatsRef, {
             responseStats: {
-              total: functions.firestore.FieldValue.increment(1),
+              total: FieldValue.increment(1),
               byType: {
-                [response.value.type]: functions.firestore.FieldValue.increment(1)
+                [response.value.type]: FieldValue.increment(1)
               }
             },
-            lastUpdated: functions.firestore.FieldValue.serverTimestamp()
+            lastUpdated: FieldValue.serverTimestamp()
           }, { merge: true });
 
           if (response.quizId) {
             const quizMetricsRef = db.doc(`metrics/quizzes/${response.quizId}`);
             transaction.set(quizMetricsRef, {
-              totalParticipants: functions.firestore.FieldValue.increment(1),
-              [`questionStats.${questionId}.completion`]: functions.firestore.FieldValue.increment(1),
-              lastUpdated: functions.firestore.FieldValue.serverTimestamp()
+              totalParticipants: FieldValue.increment(1),
+              [`questionStats.${questionId}.completion`]: FieldValue.increment(1),
+              lastUpdated: FieldValue.serverTimestamp()
             }, { merge: true });
           }
         });
@@ -138,10 +139,10 @@ export const onGuessCreate = functions.firestore
           const userStatsRef = db.doc(`userStats/${userId}`);
           transaction.set(userStatsRef, {
             guessStats: {
-              total: functions.firestore.FieldValue.increment(1),
-              [`byTarget.${targetUserId}.total`]: functions.firestore.FieldValue.increment(1)
+              total: FieldValue.increment(1),
+              [`byTarget.${targetUserId}.total`]: FieldValue.increment(1)
             },
-            lastUpdated: functions.firestore.FieldValue.serverTimestamp()
+            lastUpdated: FieldValue.serverTimestamp()
           }, { merge: true });
         });
 
@@ -164,30 +165,22 @@ export const onGuessCreate = functions.firestore
     }
   });
 
-function validateResponse(response: any): response is QuestionResponse {
+function validateResponse(response: unknown): response is QuestionResponse {
   return !!(
     response &&
-    response.questionId &&
-    response.userId &&
-    response.value &&
-    response.value.type &&
-    (response.value.type === 'XY' ? validateXYResponse(response.value) :
-     response.value.type === 'MULTIPLE_CHOICE' ? validateMultipleChoiceResponse(response.value) :
-     false)
+    typeof (response as QuestionResponse).questionId === 'string' &&
+    typeof (response as QuestionResponse).userId === 'string' &&
+    (response as QuestionResponse).value &&
+    typeof (response as QuestionResponse).value.type === 'string'
   );
 }
 
-function validateGuess(guess: any): guess is GuessResponse {
+function validateGuess(guess: unknown): guess is GuessResponse {
   return !!(
     guess &&
-    guess.questionId &&
-    guess.userId &&
-    guess.targetUserId &&
-    guess.value &&
-    guess.value.type &&
-    (guess.value.type === 'XY' ? validateXYResponse(guess.value) :
-     guess.value.type === 'MULTIPLE_CHOICE' ? validateMultipleChoiceResponse(guess.value) :
-     false)
+    typeof (guess as GuessResponse).questionId === 'string' &&
+    typeof (guess as GuessResponse).userId === 'string' &&
+    typeof (guess as GuessResponse).targetUserId === 'string'
   );
 }
 

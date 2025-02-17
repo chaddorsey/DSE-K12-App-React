@@ -43,4 +43,26 @@ export interface KnownUser {
   image?: string | null;
   role?: UserRole;
   organization?: string;
+}
+
+export interface RoutePermissions {
+  allowedRoles: UserRole[];
+  requiresVerification?: boolean;
+}
+
+export const ROUTE_PERMISSIONS: Record<string, RoutePermissions> = {
+  '/': { allowedRoles: ['user', 'manager', 'admin'] },
+  '/profile': { allowedRoles: ['user', 'manager', 'admin'], requiresVerification: true },
+  '/questions': { allowedRoles: ['manager', 'admin'] },
+  '/users': { allowedRoles: ['admin'] },
+  '/settings': { allowedRoles: ['admin'] },
+  // Add more routes as needed
+};
+
+export interface AuthContextType {
+  user: User | null;
+  userClaims: { role?: string } | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<UserCredential>;
+  signOut: () => Promise<void>;
 } 

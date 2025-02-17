@@ -31,6 +31,8 @@ import { ProfileDemo } from './features/profile/components/ProfileDemo';
 import { PhotoUploadDemo } from './features/profile/pages/PhotoUploadDemo';
 import { testFirebaseConnection } from './config/firebase';
 import { MockDataProvider } from './mocks/MockDataProvider.prod';
+import { RoleBasedRoute } from './features/auth/components/RoleBasedRoute';
+import { Unauthorized } from './features/auth/components/Unauthorized';
 
 const AppContent = () => {
   const {
@@ -129,30 +131,25 @@ const AppContent = () => {
   return (
     <div className="App">
       <DemoBanner />
-      <Header 
-        links={[
-          { to: '/', label: 'Home' },
-          { to: '/question-playground', label: 'Quiz' },
-          { to: '/connections', label: 'Connections' }
-        ]} 
-      />
+      <Header />
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<SignIn />} />
           <Route path="/register" element={<RegistrationForm />} />
           <Route path="/verify-email" element={<EmailVerification />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
           
           {/* Protected Routes */}
           <Route path="/onboarding" element={
-            <ProtectedRoute>
+            <RoleBasedRoute path="/onboarding">
               <OnboardingDemo />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           } />
           <Route path="/question-playground" element={
-            <ProtectedRoute>
+            <RoleBasedRoute path="/question-playground">
               <QuestionPlayground />
-            </ProtectedRoute>
+            </RoleBasedRoute>
           } />
           <Route path="/connections" element={
             <ProtectedRoute>

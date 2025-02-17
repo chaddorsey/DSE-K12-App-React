@@ -1,16 +1,14 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { UserProfileButton } from '../features/auth/components/UserProfileButton';
+import { NAV_LINKS } from '../features/navigation/types';
 import './Header.css';
 
-interface HeaderProps {
-  links?: Array<{ to: string; label: string }>;
-}
-
-export function Header({ links = [] }: HeaderProps) {
+export const Header: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleClearStorage = () => {
     try {
@@ -32,44 +30,65 @@ export function Header({ links = [] }: HeaderProps) {
     navigate('/demo/photo-upload');
   };
 
+  const allowedLinks = NAV_LINKS.filter(link => {
+    if (!user) return false;
+    const hasRole = link.allowedRoles.includes(user.role);
+    const meetsVerification = !link.requiresVerification || user.emailVerified;
+    return hasRole && meetsVerification;
+  });
+
   return (
-    <header className="header">
-      <div className="header-content">
-        <div className="logo-section">
-          <Link to="/" className="logo">DSET App</Link>
-          <button
-            onClick={handleClearStorage}
-            className="clear-storage-button"
-          >
-            Reset Questions
-          </button>
-        </div>
-        <nav className="nav-links">
-          <Link to="/onboarding">Onboarding</Link>
-          <Link to="/demo/progressive-avatars">Connections</Link>
-          <Link to="/question-playground">Quiz</Link>
-          <Link 
-            to="/demo/photo-upload" 
-            onClick={handlePhotoUploadClick}
-          >
-            Photo Upload Demo
-          </Link>
-          {user ? (
-            <>
-              <Link to="/dashboard">Dashboard</Link>
-              <UserProfileButton />
-              <button 
-                onClick={() => signOut()}
-                className="text-sm text-gray-500 hover:text-gray-700"
+    <header className="bg-white shadow-sm">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex">
+            <div className="flex-shrink-0 flex items-center">
+              <img className="h-8 w-auto" src="/logo.png" alt="Logo" />
+            </div>
+            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              {allowedLinks.map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className={`inline-flex items-center px-1 pt-1 text-sm font-medium
+                    ${location.pathname === to 
+                      ? 'border-b-2 border-indigo-500 text-gray-900'
+                      : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Link 
+                to="/demo/photo-upload" 
+                onClick={handlePhotoUploadClick}
               >
-                Logout
-              </button>
-            </>
-          ) : (
-            <Link to="/login">Sign In</Link>
-          )}
-        </nav>
-      </div>
+                Photo Upload Demo
+              </Link>
+            </div>
+            <div className="flex-shrink-0">
+              {user ? (
+                <>
+                  <Link to="/dashboard">Dashboard</Link>
+                  <UserProfileButton />
+                  <button 
+                    onClick={() => signOut()}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link to="/login">Sign In</Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
     </header>
   );
 }

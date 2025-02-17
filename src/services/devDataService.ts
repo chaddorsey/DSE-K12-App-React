@@ -9,7 +9,7 @@ import {
   deleteDoc,
   addDoc 
 } from 'firebase/firestore';
-import { faker } from '@faker-js/faker';
+// import { faker } from '@faker-js/faker';
 import { logger } from '../utils/logger';
 
 export interface DummyUser {
@@ -106,4 +106,13 @@ export const devDataService = {
       throw error;
     }
   }
+};
+
+export const generateTestUsers = (count: number) => {
+  return Array(count).fill(null).map((_, index) => ({
+    id: `test-user-${index}`,
+    name: `Test User ${index}`,
+    email: `test${index}@example.com`,
+    // ... other user properties
+  }));
 }; 

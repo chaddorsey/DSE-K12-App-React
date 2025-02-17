@@ -2,7 +2,7 @@ export class TriggerError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly context: Record<string, unknown>
+    public readonly originalError?: Error
   ) {
     super(message);
     this.name = 'TriggerError';
@@ -10,15 +10,9 @@ export class TriggerError extends Error {
 }
 
 export const ErrorCodes = {
-  RESPONSE: {
-    INVALID_DATA: 'RESPONSE_INVALID_DATA',
-    METRICS_UPDATE_FAILED: 'RESPONSE_METRICS_UPDATE_FAILED',
-    USER_STATS_UPDATE_FAILED: 'USER_STATS_UPDATE_FAILED',
-    QUIZ_METRICS_UPDATE_FAILED: 'QUIZ_METRICS_UPDATE_FAILED'
-  },
-  GUESS: {
-    INVALID_DATA: 'GUESS_INVALID_DATA',
-    METRICS_UPDATE_FAILED: 'GUESS_METRICS_UPDATE_FAILED',
-    USER_STATS_UPDATE_FAILED: 'GUESS_USER_STATS_UPDATE_FAILED'
-  }
-} as const; 
+  INVALID_DATA: 'INVALID_DATA',
+  TRANSACTION_FAILED: 'TRANSACTION_FAILED',
+  METRICS_UPDATE_FAILED: 'METRICS_UPDATE_FAILED'
+} as const;
+
+export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes]; 

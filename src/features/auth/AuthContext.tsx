@@ -4,9 +4,14 @@ import { auth, db } from '../../config/firebase';
 import { doc, getDoc, setDoc, collection, query, limit, getDocs, where, updateDoc } from 'firebase/firestore';
 import { MonitoringService } from '@/monitoring/MonitoringService';
 import { logger } from '../../utils/logger';
-import { devDataService } from '../../services/devDataService';
 import { AuthService } from './services/AuthService';
 import { IAnalyticsEvent } from '@/monitoring/types';
+import { onAuthStateChanged } from 'firebase/auth';
+
+// Only import dev service in development
+const devDataService = process.env.NODE_ENV === 'development' 
+  ? require('../../services/devDataService').devDataService 
+  : null;
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const useDummyAuth = process.env.REACT_APP_USE_DUMMY_AUTH === 'true';
@@ -27,7 +32,9 @@ interface AuthError extends Error {
 // Update IAuthContext interface to match implementation
 interface IAuthContext {
   user: User | null;
+  userClaims: { role?: string } | null;
   loading: boolean;
+  initialLoadComplete: boolean;
   error: AuthError | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -44,7 +51,9 @@ interface AuthMode {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userClaims, setUserClaims] = useState<{ role?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [error, setError] = useState<AuthError | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>(() => ({
     type: process.env.REACT_APP_USE_DUMMY_AUTH === 'true' ? 'dummy' : 'real',
@@ -73,6 +82,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Development helper to get a random dummy user
   const getRandomDummyUser = async (): Promise<User | null> => {
+    if (process.env.NODE_ENV !== 'development') {
+      return null;
+    }
+
     try {
       const usersRef = collection(db, 'users');
       const q = query(
@@ -83,7 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const snapshot = await getDocs(q);
       
       if (snapshot.empty) {
-        await devDataService.seedDummyUsers();
+        if (devDataService) {
+          await devDataService.seedDummyUsers();
+        }
         return getRandomDummyUser();
       }
 
@@ -137,14 +152,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             const userData = await enrichUserData(firebaseUser);
             setUser(userData);
+            const token = await userData.getIdTokenResult();
+            setUserClaims(token.claims as { role?: string });
           } else {
             setUser(null);
+            setUserClaims(null);
           }
         } catch (error) {
           logger.error('Auth state change error:', error);
           setError(error as AuthError);
         } finally {
           setLoading(false);
+          setInitialLoadComplete(true);
         }
       });
       return unsubscribe;
@@ -172,14 +191,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             const userData = await enrichUserData(firebaseUser);
             setUser(userData);
+            const token = await userData.getIdTokenResult();
+            setUserClaims(token.claims as { role?: string });
           } else {
             setUser(null);
+            setUserClaims(null);
           }
         } catch (error) {
           logger.error('Auth state change error:', error);
           setError(error as AuthError);
         } finally {
           setLoading(false);
+          setInitialLoadComplete(true);
         }
       });
       return unsubscribe;
@@ -229,7 +252,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: IAuthContext = {
     user,
+    userClaims,
     loading,
+    initialLoadComplete,
     error,
     signIn,
     signOut,
@@ -239,7 +264,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!initialLoadComplete ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

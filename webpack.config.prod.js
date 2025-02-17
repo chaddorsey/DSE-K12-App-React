@@ -46,7 +46,8 @@ module.exports = {
     },
     fallback: {
       "path": false,
-      "fs": false
+      "fs": false,
+      "@faker-js/faker": false
     }
   },
   optimization: {
@@ -54,7 +55,8 @@ module.exports = {
     splitChunks: {
       chunks: 'all',
       name: false
-    }
+    },
+    sideEffects: true
   },
   plugins: [
     new HtmlWebpackPlugin({

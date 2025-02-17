@@ -27,6 +27,7 @@ firebase-debug.log
 firestore-debug.log
 service-account.json
 service-account-prod.json
+dse-k12-connections-firebase-adminsdk-PRIVATE.json
 
 # IDE
 .vscode/*
@@ -45,3 +46,7 @@ service-account-prod.json
 !.eslintrc.js
 !.eslintrc.json
 !tsconfig.json
+
+# Functions
+functions/lib
+functions/node_modules
