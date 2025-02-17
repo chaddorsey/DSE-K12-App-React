@@ -34,7 +34,6 @@ interface IAuthContext {
   user: User | null;
   userClaims: { role?: string } | null;
   loading: boolean;
-  initialLoadComplete: boolean;
   error: AuthError | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -53,7 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [userClaims, setUserClaims] = useState<{ role?: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [error, setError] = useState<AuthError | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>(() => ({
     type: process.env.REACT_APP_USE_DUMMY_AUTH === 'true' ? 'dummy' : 'real',
@@ -137,77 +135,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    if (!isDevelopment) {
-      // In production, always use real auth
-      const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-        try {
-          if (firebaseUser) {
-            // Check if verification status changed
-            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-            if (userDoc.exists() && userDoc.data().emailVerified !== firebaseUser.emailVerified) {
-              await updateDoc(doc(db, 'users', firebaseUser.uid), {
-                emailVerified: firebaseUser.emailVerified
-              });
-            }
-
-            const userData = await enrichUserData(firebaseUser);
-            setUser(userData);
-            const token = await userData.getIdTokenResult();
-            setUserClaims(token.claims as { role?: string });
-          } else {
-            setUser(null);
-            setUserClaims(null);
-          }
-        } catch (error) {
-          logger.error('Auth state change error:', error);
-          setError(error as AuthError);
-        } finally {
-          setLoading(false);
-          setInitialLoadComplete(true);
-        }
+    logger.info('AuthProvider: Initializing auth state listener');
+    
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      logger.info('AuthProvider: Auth state changed', { 
+        isAuthenticated: !!user,
+        loading 
       });
-      return unsubscribe;
-    }
 
-    if (authMode.type === 'dummy') {
-      // Use dummy auth
-      getRandomDummyUser().then(dummyUser => {
-        setUser(dummyUser);
+      try {
+        if (user) {
+          const token = await user.getIdTokenResult();
+          logger.info('AuthProvider: Got user token', { 
+            claims: token.claims 
+          });
+          setUserClaims(token.claims as { role?: string });
+          setUser(user);
+        } else {
+          setUser(null);
+          setUserClaims(null);
+        }
+      } catch (err) {
+        logger.error('Auth state change error:', err);
+        setError(err as AuthError);
+      } finally {
+        logger.info('AuthProvider: Setting loading to false');
         setLoading(false);
-      });
-      return;
-    } else {
-      // Use real auth
-      const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-        try {
-          if (firebaseUser) {
-            // Check if verification status changed
-            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-            if (userDoc.exists() && userDoc.data().emailVerified !== firebaseUser.emailVerified) {
-              await updateDoc(doc(db, 'users', firebaseUser.uid), {
-                emailVerified: firebaseUser.emailVerified
-              });
-            }
+      }
+    });
 
-            const userData = await enrichUserData(firebaseUser);
-            setUser(userData);
-            const token = await userData.getIdTokenResult();
-            setUserClaims(token.claims as { role?: string });
-          } else {
-            setUser(null);
-            setUserClaims(null);
-          }
-        } catch (error) {
-          logger.error('Auth state change error:', error);
-          setError(error as AuthError);
-        } finally {
-          setLoading(false);
-          setInitialLoadComplete(true);
-        }
-      });
-      return unsubscribe;
-    }
-  }, [authMode.type]);
+    return () => {
+      logger.info('AuthProvider: Cleaning up auth state listener');
+      unsubscribe();
+    };
+  }, []);
 
   const handleError = (error: unknown) => {
     const authError: AuthError = error instanceof Error ? error : new Error('An unknown error occurred');
@@ -254,7 +215,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     userClaims,
     loading,
-    initialLoadComplete,
     error,
     signIn,
     signOut,
@@ -264,13 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={value}>
-      {!initialLoadComplete ? (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-pulse">Loading...</div>
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </AuthContext.Provider>
   );
 };

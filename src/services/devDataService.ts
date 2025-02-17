@@ -81,25 +81,27 @@ export const devDataService = {
     }
   },
 
-  async seedDummyUsers(count: number) {
-    const users = Array.from({ length: count }, () => ({
-      id: faker.string.uuid(),
-      firstName: faker.person.firstName(),
-      lastName: faker.person.lastName(),
-      email: faker.internet.email(),
-      avatar: faker.image.avatar(),
-      role: ROLES[Math.floor(Math.random() * ROLES.length)],
-      department: DEPARTMENTS[Math.floor(Math.random() * DEPARTMENTS.length)],
-      interests: Array.from({ length: faker.number.int({ min: 1, max: 4 }) })
-        .map(() => INTERESTS[Math.floor(Math.random() * INTERESTS.length)]),
-      createdAt: faker.date.past(),
-      lastLogin: faker.date.recent()
-    }));
+  async seedDummyUsers(count: number = 50) {
+    if (process.env.NODE_ENV !== 'development') {
+      console.warn('Attempting to seed dummy users in non-development environment');
+      return;
+    }
 
     try {
+      // Clear existing dummy users first
+      await this.clearDummyData();
+      
+      const users = Array.from({ length: count }, () => ({
+        id: `dummy_${Math.random().toString(36).substr(2, 9)}`,
+        isDummy: true,
+        // ... other user properties
+      }));
+
       const usersCollection = collection(db, 'users');
-      const promises = users.map(user => addDoc(usersCollection, user));
-      await Promise.all(promises);
+      await Promise.all(users.map(user => 
+        setDoc(doc(usersCollection, user.id), user)
+      ));
+
       logger.info(`Successfully seeded ${count} dummy users`);
     } catch (error) {
       logger.error('Error seeding dummy users:', error);

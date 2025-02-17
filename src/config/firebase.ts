@@ -15,6 +15,7 @@ import {
 } from 'firebase/storage';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import '@firebase/storage';
+import { logger } from '../utils/logger';
 
 // Add debug logging
 const debug = (message: string, ...args: any[]) => {
@@ -96,6 +97,12 @@ if (isEmulator) {
     connectStorageEmulator(storage, '127.0.0.1', 9199);
     debug('Storage emulator connected');
   }
+}
+
+if (process.env.NODE_ENV === 'development') {
+  logger.info('Connecting to Firebase Auth emulator...');
+  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+  logger.info('Connected to Firebase Auth emulator');
 }
 
 export { storage };

@@ -1,9 +1,9 @@
 import type { Configuration as WebpackConfig } from 'webpack';
 import type { Configuration as DevServerConfig } from 'webpack-dev-server';
-const path = require('path');
-const webpack = require('webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const Dotenv = require('dotenv-webpack');
+import path from 'path';
+import webpack from 'webpack';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import Dotenv from 'dotenv-webpack';
 
 // Merge both Configuration types
 interface Configuration extends WebpackConfig {
@@ -42,20 +42,32 @@ const config: Configuration = {
       {
         test: /\.css$/,
         use: [
-          {
-            loader: 'style-loader',
-          },
+          'style-loader',
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
-            },
+              importLoaders: 1
+            }
           },
-        ],
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [
+                  require('tailwindcss'),
+                  require('autoprefixer'),
+                ]
+              }
+            }
+          }
+        ]
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
         type: 'asset/resource',
+        generator: {
+          filename: 'images/[hash][ext][query]'
+        }
       },
       {
         test: /\.(woff|woff2|eot|ttf|otf)$/i,
@@ -95,4 +107,4 @@ const config: Configuration = {
   devtool: 'inline-source-map',
 };
 
-module.exports = config; 
+export default config; 
