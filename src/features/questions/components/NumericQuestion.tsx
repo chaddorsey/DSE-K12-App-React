@@ -6,11 +6,13 @@ import './NumericQuestion.css';
 interface NumericQuestionProps {
   question: NMQuestion;
   onAnswer: (response: QuestionResponse) => void;
+  disabled?: boolean;
 }
 
-export const NumericQuestion: React.FC<NumericQuestionProps> = ({
+export const NumericQuestionComponent: React.FC<NumericQuestionProps> = ({
   question,
-  onAnswer
+  onAnswer,
+  disabled
 }) => {
   const [value, setValue] = useState<string>('');
 
@@ -54,12 +56,10 @@ export const NumericQuestion: React.FC<NumericQuestionProps> = ({
           onChange={(e) => setValue(e.target.value)}
           aria-label={question.text}
         />
-        <button onClick={handleSubmit} disabled={!value}>
+        <button onClick={handleSubmit} disabled={!value || disabled}>
           Next
         </button>
       </div>
     </div>
   );
-};
-
-export { NumericQuestion as NumericQuestionComponent }; 
+}; 

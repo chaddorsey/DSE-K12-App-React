@@ -115,7 +115,9 @@ const initializeEmulators = () => {
       connectFirestoreEmulator(db, host, 8080);
       
       // Connect to Storage emulator
-      connectStorageEmulator(storage, host, 9199);
+      if (storage) {
+        connectStorageEmulator(storage, host, 9199);
+      }
       
       console.log('Connected to Firebase emulators');
     } catch (error) {

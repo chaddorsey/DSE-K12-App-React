@@ -49,7 +49,8 @@
     "seed:auth": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\",\"isolatedModules\":false}' ts-node ./scripts/seed-auth.ts",
     "dev:emulate": "npm-run-all -p emulators dev",
     "emulators:init": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\",\"isolatedModules\":false}' ts-node scripts/init-emulators.ts",
-    "seed:users": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/seed-auth.ts",
+    "seed:users": "ts-node -r dotenv/config -r tsconfig-paths/register src/scripts/seedUsers.ts",
+    "seed:responses": "ts-node -r dotenv/config -r tsconfig-paths/register src/scripts/seedTestResponses.ts",
     "populate:known-users": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node scripts/populate-known-users.ts",
     "create:users-template": "cp ./data/known-users-template.csv ./data/known-users.csv",
     "migrate:roles": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node scripts/migrate-roles.ts",
@@ -70,7 +71,8 @@
     "deploy:staging": "firebase use staging && npm run build:staging && firebase deploy",
     "deploy:prod": "firebase use prod && npm run build:prod && firebase deploy",
     "setup:admin": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/setup-admin-users.ts",
-    "setup:admin:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/setup-admin-users.ts"
+    "setup:admin:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/setup-admin-users.ts",
+    "seed": "ts-node -r dotenv/config -r tsconfig-paths/register src/scripts/seedTestResponses.ts"
   },
   "eslintConfig": {
     "extends": [

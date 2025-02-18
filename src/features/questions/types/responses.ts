@@ -16,10 +16,17 @@ export interface BaseResponse {
   };
 }
 
-export interface MultipleChoiceResponse extends BaseResponse {
+export interface MCQuestionResponse extends BaseResponse {
   value: {
     type: 'MC';
     selectedOption: string;
+  };
+}
+
+export interface NMQuestionResponse extends BaseResponse {
+  value: {
+    type: 'NM';
+    number: number;
   };
 }
 
@@ -27,13 +34,6 @@ export interface OpenResponseResponse extends BaseResponse {
   value: {
     type: 'OP';
     text: string;
-  };
-}
-
-export interface NumericResponse extends BaseResponse {
-  value: {
-    type: 'NM';
-    number: number;
   };
 }
 
@@ -95,10 +95,28 @@ export interface DelightFactor {
   questionTypes: QuestionTypeString[];
 }
 
+export interface ResponseMetrics {
+  totalResponses: number;
+  // Add other metrics as needed
+}
+
+export interface ResponseValue {
+  type: QuestionTypeString;
+  // Common response value properties
+}
+
+export interface XYResponseValue extends ResponseValue {
+  type: 'XY_CONTINUUM';
+  coordinates: {
+    x: number;
+    y: number;
+  };
+}
+
 export type QuestionResponse =
-  | MultipleChoiceResponse
+  | MCQuestionResponse
+  | NMQuestionResponse
   | OpenResponseResponse
-  | NumericResponse
   | SliderResponse
   | SegmentedSliderResponse
   | XYContinuumResponse

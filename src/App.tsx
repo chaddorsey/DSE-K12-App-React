@@ -10,6 +10,10 @@ import { OnboardingFlow } from './features/onboarding/components/OnboardingFlow'
 import { AccessibilityProvider } from './features/accessibility/AccessibilityContext';
 import type { Question } from './features/questions/types/questions';
 import { QuestionCategory } from './features/questions/types/questions';
+import { QuizPage } from './features/quiz/pages/QuizPage';
+import { QuizProvider } from './features/quiz/context/QuizContext';
+import { QuizGenerator } from './features/quiz/services/QuizGenerator';
+import { sampleResponses } from './features/questions/data/sampleResponses';
 
 // Define sample questions
 const standardQuestions: Question[] = [
@@ -184,6 +188,9 @@ const questionPool: Question[] = [
   }
 ];
 
+// Initialize quiz generator with questions and responses
+const quizGenerator = new QuizGenerator(standardQuestions, sampleResponses);
+
 export const App = () => {
   return (
     <ErrorBoundary>
@@ -191,36 +198,44 @@ export const App = () => {
         <AccessibilityProvider>
           <BrowserRouter>
             <AuthProvider>
-              <Routes>
+        <Routes>
                 <Route path="/*" element={<AppContent />} />
                 <Route 
                   path="/questions/playground" 
                   element={
-                    <ProtectedRoute>
-                      <QuestionPlayground />
-                    </ProtectedRoute>
+            <ProtectedRoute>
+              <QuestionPlayground />
+            </ProtectedRoute>
                   } 
                 />
                 <Route 
                   path="/onboarding" 
                   element={
-                    <ProtectedRoute>
+            <ProtectedRoute>
                       <OnboardingProvider
                         standardQuestions={standardQuestions}
                         questionPool={questionPool}
                       >
                         <OnboardingFlow />
                       </OnboardingProvider>
+            </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/quiz" 
+                  element={
+                    <ProtectedRoute>
+                      <QuizPage />
                     </ProtectedRoute>
                   } 
                 />
-              </Routes>
+        </Routes>
             </AuthProvider>
           </BrowserRouter>
         </AccessibilityProvider>
-      </div>
+    </div>
     </ErrorBoundary>
   );
 };
 
-export default App;
+export default App; 

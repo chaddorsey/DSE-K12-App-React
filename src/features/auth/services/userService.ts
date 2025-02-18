@@ -7,11 +7,12 @@ export class UserService {
   private readonly usersCollection = 'users';
 
   async createUser(user: IUser): Promise<void> {
-    const userRef = doc(db, this.usersCollection, user.uid);
+    const userRef = doc(db, this.usersCollection, user.id);
     const now = new Date();
     
     const defaultProfile: IUserProfile = {
       ...user,
+      displayNameLower: user.displayName.toLowerCase(),
       createdAt: now,
       lastLoginAt: now,
       stats: {
@@ -28,9 +29,9 @@ export class UserService {
 
     try {
       await setDoc(userRef, defaultProfile);
-      logger.info('Created new user profile', { uid: user.uid });
+      logger.info('Created new user profile', { uid: user.id });
     } catch (error) {
-      logger.error('Failed to create user profile', { error, uid: user.uid });
+      logger.error('Failed to create user profile', { error, uid: user.id });
       throw error;
     }
   }
@@ -54,8 +55,11 @@ export class UserService {
     const userRef = doc(db, this.usersCollection, uid);
     
     try {
+      const updatesWithLower = updates.displayName 
+        ? { ...updates, displayNameLower: updates.displayName.toLowerCase() }
+        : updates;
       await updateDoc(userRef, {
-        ...updates,
+        ...updatesWithLower,
         updatedAt: new Date(),
       });
       logger.info('Updated user profile', { uid });
@@ -113,6 +117,14 @@ export class UserService {
       logger.error('Failed to increment user stat', { error, uid, stat });
       throw error;
     }
+  }
+
+  static async updateUser(userId: string, updates: Partial<IUser>): Promise<void> {
+    const userDoc = doc(db, 'users', userId);
+    const updatesWithLower = updates.displayName 
+      ? { ...updates, displayNameLower: updates.displayName.toLowerCase() }
+      : updates;
+    await updateDoc(userDoc, updatesWithLower);
   }
 }
 

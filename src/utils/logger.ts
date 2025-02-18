@@ -2,68 +2,73 @@
  * Centralized logging utility for application-wide logging
  */
 
-type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-interface ILoggerOptions {
+interface LoggerOptions {
   level: LogLevel;
-  timestamp?: boolean;
-  prefix?: string;
+  enabled: boolean;
+  debugEnabled?: boolean;
 }
 
 class Logger {
-  private static instance: Logger;
-  private options: ILoggerOptions = {
-    level: 'info',
-    timestamp: true,
-    prefix: '[App]'
-  };
+  private options: LoggerOptions;
 
-  private constructor() {}
-
-  public static getInstance(): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger();
-    }
-    return Logger.instance;
+  constructor(options: LoggerOptions) {
+    this.options = {
+      ...options,
+      debugEnabled: options.debugEnabled ?? (process.env.NODE_ENV === 'development')
+    };
   }
 
-  private formatMessage(level: LogLevel, message: string, ...args: any[]): string {
-    const timestamp = this.options.timestamp ? `[${new Date().toISOString()}]` : '';
-    const prefix = this.options.prefix || '';
-    return `${timestamp}${prefix}[${level.toUpperCase()}] ${message}`;
+  private formatMessage(level: LogLevel, message: string | Error, meta?: any): string {
+    const timestamp = new Date().toISOString();
+    const prefix = '[App]';
+    const formattedMessage = message instanceof Error ? message.message : message;
+    return `${timestamp}${prefix}[${level.toUpperCase()}] ${formattedMessage}`;
   }
 
-  public info(message: string, ...args: any[]): void {
-    if (process.env.NODE_ENV !== 'production') {
-      console.info(this.formatMessage('info', message), ...args);
-    }
-  }
-
-  public warn(message: string, ...args: any[]): void {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn(this.formatMessage('warn', message), ...args);
-    }
-  }
-
-  public error(message: string | Error, ...args: any[]): void {
-    const errorMessage = message instanceof Error ? message.message : message;
-    console.error(this.formatMessage('error', errorMessage), ...args);
+  private shouldLog(level: LogLevel): boolean {
+    if (!this.options.enabled) return false;
+    if (level === 'debug' && !this.options.debugEnabled) return false;
     
-    // In production, you might want to send this to an error tracking service
-    if (process.env.NODE_ENV === 'production') {
-      // Send to error tracking service
+    const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
+    const configuredLevelIndex = levels.indexOf(this.options.level);
+    const currentLevelIndex = levels.indexOf(level);
+    
+    return currentLevelIndex >= configuredLevelIndex;
+  }
+
+  debug(message: string, meta?: any): void {
+    if (this.shouldLog('debug')) {
+      console.debug(this.formatMessage('debug', message), meta);
     }
   }
 
-  public debug(message: string, ...args: any[]): void {
-    if (process.env.NODE_ENV === 'development') {
-      console.debug(this.formatMessage('debug', message), ...args);
+  info(message: string, meta?: any): void {
+    if (this.shouldLog('info')) {
+      console.info(this.formatMessage('info', message), meta);
     }
   }
 
-  public setOptions(options: Partial<ILoggerOptions>): void {
-    this.options = { ...this.options, ...options };
+  warn(message: string, meta?: any): void {
+    if (this.shouldLog('warn')) {
+      console.warn(this.formatMessage('warn', message), meta);
+    }
+  }
+
+  error(message: string | Error, meta?: any): void {
+    if (this.shouldLog('error')) {
+      console.error(this.formatMessage('error', message), meta);
+      if (message instanceof Error && meta?.stack) {
+        console.error(message.stack);
+      }
+    }
   }
 }
 
-export const logger = Logger.getInstance(); 
+// Create and export a single instance
+export const logger = new Logger({
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  enabled: true,
+  debugEnabled: true
+}); 

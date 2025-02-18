@@ -1,27 +1,26 @@
 import React, { useState, useRef, useCallback } from 'react';
-import type { MultipleChoiceQuestion as MCQuestion } from '../types';
-import type { QuestionResponse, QuizResponse } from '../types';
+import type { MultipleChoiceQuestion as MCQuestion } from '../types/questions';
+import type { QuestionResponse, MCQuestionResponse } from '../types/responses';
 import classNames from 'classnames';
 import './MultipleChoiceQuestion.css';
 import { useAccessibility } from '../../accessibility/AccessibilityContext';
 import { useKeyboardNavigation } from '../../accessibility/hooks/useKeyboardNavigation';
 
-interface MultipleChoiceQuestionProps {
-  question: MCQuestion;
-  onAnswer: (response: QuestionResponse) => void;
-  correctAnswer?: string;
-  disabled?: boolean;
+// Extend MCQuestion to include selected answer
+interface MCQuestionWithState extends MCQuestion {
   selected?: string;
-  correct?: boolean;
 }
 
-export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
+interface Props {
+  question: MCQuestionWithState;
+  onAnswer: (response: QuestionResponse) => void;
+  disabled?: boolean;
+}
+
+const MultipleChoiceQuestionComponent: React.FC<Props> = ({
   question,
   onAnswer,
-  correctAnswer,
-  disabled = false,
-  selected,
-  correct
+  disabled
 }) => {
   const { highContrast, fontSize } = useAccessibility();
   const [touchActive, setTouchActive] = useState<string | null>(null);
@@ -46,94 +45,83 @@ export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
       if (choiceId) {
         interactionCount.current++;
         setTouchActive(choiceId);
-        onAnswer({
-          id: `response_${question.id}`,
-          userId: 'current_user_id',
-          questionId: question.id,
-          value: {
-            type: 'MC',
-            selectedOption: choiceId
-          },
-          correct: false,
-          metadata: createMetadata(),
-          timestamp: new Date(Date.now())
-        });
+        handleOptionClick(choiceId);
       }
     }
   });
 
-  const handleTouchStart = useCallback((e: React.TouchEvent, option: string) => {
-    e.preventDefault(); // Prevent scrolling
-    setTouchActive(option);
-  }, []);
+  const handleTouchStart = useCallback((choiceId: string) => {
+    if (!disabled) {
+      interactionCount.current++;
+      setTouchActive(choiceId);
+      handleOptionClick(choiceId);
+    }
+  }, [disabled]);
 
   const handleTouchEnd = useCallback((option: string) => {
     interactionCount.current++;
     setTouchActive(null);
-    onAnswer({
-      id: `response_${question.id}`,
-      userId: 'current_user_id',
-      questionId: question.id,
-      value: {
-        type: 'MC',
-        selectedOption: option
-      },
-      correct: false,
-      metadata: createMetadata(),
-      timestamp: new Date(Date.now())
-    });
-  }, [onAnswer, question.id]);
+    handleOptionClick(option);
+  }, []);
 
   const handleTouchCancel = useCallback(() => {
     setTouchActive(null);
   }, []);
 
+  const handleOptionClick = (selectedOption: string) => {
+    const response: MCQuestionResponse = {
+      id: question.id,
+      questionId: question.id,
+      userId: '', // This will be filled in by the service
+      timestamp: new Date(),
+      value: {
+        type: 'MC',
+        selectedOption
+      },
+      metadata: {
+        timeToAnswer: 0,
+        interactionCount: interactionCount.current,
+        device: {
+          type: 'desktop',
+          input: 'mouse'
+        }
+      }
+    };
+
+    onAnswer(response);
+  };
+
   const getOptionStatus = (option: string) => {
-    if (!correctAnswer || !selected) return 'default';
-    if (option === correctAnswer) return 'correct';
-    if (option === selected && option !== correctAnswer) return 'incorrect';
+    if (!question.correctAnswer || !question.selected) return 'default';
+    if (option === question.correctAnswer) return 'correct';
+    if (option === question.selected && option !== question.correctAnswer) return 'incorrect';
     return 'default';
   };
 
-  const handleClick = (option: string) => {
-    interactionCount.current++;
-    onAnswer({
-      id: `response_${question.id}`,
-      userId: 'current_user_id',
-      questionId: question.id,
-      value: {
-        type: 'MC',
-        selectedOption: option
-      },
-      correct: false,
-      metadata: createMetadata(),
-      timestamp: new Date(Date.now())
-    });
-  };
-
   const getOptionClass = (option: string) => {
-    if (!selected) return 'mc-option';
+    if (!question.selected) return 'mc-option';
     
     const classes = ['mc-option'];
-    if (selected === option) {
-      classes.push(option === correctAnswer ? 'mc-option-correct' : 'mc-option-incorrect');
-    } else if (option === correctAnswer && selected) {
+    if (question.selected === option) {
+      classes.push(option === question.correctAnswer ? 'mc-option-correct' : 'mc-option-incorrect');
+    } else if (option === question.correctAnswer && question.selected) {
       classes.push('mc-option-correct');
     }
     if (disabled) classes.push('mc-option-disabled');
+    if (touchActive === option) classes.push('mc-option-active');
     
-    return classes.join(' ');
+    return classNames(classes);
   };
 
   return (
-    <div className="mc-question">
+    <div className="mc-container">
       <div className="mc-prompt">{question.text}</div>
       <div className="mc-options">
-        {question.options.map((option, index) => (
+        {question.options.map((option: string, index: number) => (
           <button
             key={index}
             className={getOptionClass(option)}
-            onClick={() => handleClick(option)}
+            onClick={() => handleOptionClick(option)}
             disabled={disabled}
           >
             {option}
@@ -144,4 +132,4 @@ export const MultipleChoiceQuestion: React.FC<MultipleChoiceQuestionProps> = ({
   );
 };
 
-export { MultipleChoiceQuestion as MultipleChoiceQuestionComponent }; 
+export { MultipleChoiceQuestionComponent }; 
