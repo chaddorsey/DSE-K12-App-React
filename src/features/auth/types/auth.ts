@@ -1,10 +1,19 @@
 export type UserRole = 'user' | 'admin';
 
 export interface User {
-  uid: string;
-  email: string;
+  id: string;
+  uid?: string;
+  email: string | null;
   emailVerified: boolean;
   role: UserRole;
+  displayName: string | null;
+  photoURL: string | null;
+  createdAt: string;
+  lastLoginAt: string;
+  metadata: Record<string, unknown>;
+  onboardingCompleted: boolean;
+  isAnonymous: boolean;
+  phoneNumber: string | null;
 }
 
 export interface AuthState {

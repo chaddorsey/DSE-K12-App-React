@@ -14,6 +14,7 @@ import { QuizPage } from './features/quiz/pages/QuizPage';
 import { QuizProvider } from './features/quiz/context/QuizContext';
 import { QuizGenerator } from './features/quiz/services/QuizGenerator';
 import { sampleResponses } from './features/questions/data/sampleResponses';
+import { SignUp } from './features/auth/components/SignUp';
 
 // Define sample questions
 const standardQuestions: Question[] = [
@@ -224,9 +225,15 @@ export const App = () => {
                 <Route 
                   path="/quiz" 
                   element={
-                    <ProtectedRoute>
+            <ProtectedRoute>
                       <QuizPage />
-                    </ProtectedRoute>
+            </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/signup" 
+                  element={
+                    <SignUp />
                   } 
                 />
         </Routes>

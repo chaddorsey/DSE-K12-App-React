@@ -72,7 +72,7 @@
     "deploy:prod": "firebase use prod && npm run build:prod && firebase deploy",
     "setup:admin": "cross-env TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/setup-admin-users.ts",
     "setup:admin:dev": "cross-env NODE_ENV=development TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/setup-admin-users.ts",
-    "seed": "ts-node -r dotenv/config -r tsconfig-paths/register src/scripts/seedTestResponses.ts"
+    "seed:questions": "cross-env NODE_ENV=development ts-node -r dotenv/config src/scripts/seedQuestions.ts"
   },
   "eslintConfig": {
     "extends": [

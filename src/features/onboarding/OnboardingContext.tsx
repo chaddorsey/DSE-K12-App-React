@@ -10,9 +10,11 @@ import type {
   QuestionCategory
 } from '../questions/types/questions';
 import { db } from '../../config/firebase';
-import { doc, setDoc, collection, arrayUnion, getDocs, query, where } from 'firebase/firestore';
+import { doc, setDoc, collection, arrayUnion, getDocs, query, where, getDoc } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
 import { logger } from '../../utils/logger';
+import { Link, useNavigate } from 'react-router-dom';
+import { OnboardingComplete } from './components/OnboardingComplete';
 
 interface OnboardingState {
   sessionId: string;
@@ -29,6 +31,8 @@ interface OnboardingContextValue {
     handleResponse: (response: QuestionResponse) => void;
     advanceToNext: () => void;
   };
+  loading: boolean;
+  hasCompletedOnboarding: boolean;
 }
 
 const initialState: OnboardingState = {
@@ -221,26 +225,38 @@ const convertStoredToQuestion = (stored: StoredQuestion): Question => {
 
 export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   children,
-  standardQuestions,
-  questionPool
+  standardQuestions = [],
+  questionPool = []
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [state, dispatch] = useReducer(onboardingReducer, initialState);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
 
-  // Check for completed onboarding when component mounts
+  const handleReturnHome = useCallback(() => {
+    setHasCompletedOnboarding(false);
+    navigate('/');
+  }, [navigate]);
+
+  useEffect(() => {
+    if (standardQuestions.length > 0 || questionPool.length > 0) {
+      setQuestionsLoading(false);
+    }
+  }, [standardQuestions, questionPool]);
+
   useEffect(() => {
     const checkOnboardingStatus = async () => {
-      if (!user) {
+      if (!user?.uid) {
         setLoading(false);
         return;
       }
 
       try {
+        setLoading(true);
         const onboardingRef = collection(db, 'onboarding');
         
-        // First check for any existing onboarding sessions for this user
         const userSessions = query(
           onboardingRef,
           where('userId', '==', user.uid)
@@ -293,63 +309,69 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
 
   const actions = {
     initializeSequence: useCallback(async () => {
-      if (!user) {
-        logger.debug('No user found during initialization');
-        setLoading(false);
+      if (!user?.uid) {
+        logger.error('Cannot initialize sequence: No user UID');
         return;
       }
-      
+
+      if (!standardQuestions?.length && !questionPool?.length) {
+        logger.error('Cannot initialize sequence: No questions available');
+        return;
+      }
+
       try {
         setLoading(true);
         
-        // Select all required questions plus 10 from the pool
+        // Select questions
         const selectedQuestions = [
-          ...standardQuestions.filter(q => q.requiredForOnboarding),
-          ...questionPool.filter(q => q.includeInOnboarding).slice(0, 10)
-        ];
+          ...(standardQuestions?.filter(q => q.requiredForOnboarding) || []),
+          ...(questionPool?.filter(q => q.includeInOnboarding)?.slice(0, 2) || [])
+        ].slice(0, 5); // Limit to 5 total questions
 
-        logger.debug('Initializing sequence with questions:', {
-          required: standardQuestions.filter(q => q.requiredForOnboarding),
-          pool: questionPool.filter(q => q.includeInOnboarding).slice(0, 10),
-          total: selectedQuestions
+        if (!selectedQuestions.length) {
+          logger.error('No questions selected for onboarding');
+          return;
+        }
+
+        logger.debug('Selected questions for onboarding:', {
+          required: standardQuestions?.filter(q => q.requiredForOnboarding)?.length || 0,
+          pool: questionPool?.filter(q => q.includeInOnboarding)?.length || 0,
+          total: selectedQuestions.length
         });
 
+        // Create onboarding document
         const onboardingRef = collection(db, 'onboarding');
         const docRef = doc(onboardingRef);
         const sessionId = docRef.id;
 
-        // Sanitize questions before saving to Firestore
-        const sanitizedQuestions = selectedQuestions.map(sanitizeQuestionForFirestore);
-
-        // Create new session document
-        const newSession: Omit<OnboardingSession, 'id'> = {
+        const onboardingData = {
           userId: user.uid,
-          selectedQuestions: sanitizedQuestions,
+          selectedQuestions: selectedQuestions.map(sanitizeQuestionForFirestore),
           responses: [],
           currentQuestionIndex: 0,
           completed: false,
-          startedAt: new Date().toISOString()
+          startedAt: new Date().toISOString(),
+          lastUpdatedAt: new Date().toISOString()
         };
 
-        await setDoc(docRef, newSession);
+        await setDoc(docRef, onboardingData);
 
-        // Initialize local state with original questions
-        const initialState = {
-          sessionId,
-          selectedQuestions,
-          responses: [],
-          currentQuestionIndex: 0,
-          completed: false
-        };
-
-        logger.debug('Dispatching initial state:', initialState);
+        // Initialize local state
         dispatch({
           type: 'INITIALIZE',
-          payload: initialState
+          payload: {
+            sessionId,
+            selectedQuestions,
+            responses: [],
+            currentQuestionIndex: 0,
+            completed: false
+          }
         });
 
+        logger.debug('Onboarding initialized successfully', { sessionId });
       } catch (error) {
         logger.error('Error initializing onboarding:', error);
+        throw error;
       } finally {
         setLoading(false);
       }
@@ -401,22 +423,16 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     }, [])
   };
 
-  if (loading) {
+  if (loading || questionsLoading) {
     return <div>Loading...</div>;
   }
 
   if (hasCompletedOnboarding) {
-    return (
-      <div className="onboarding-complete">
-        <h2>Onboarding Complete</h2>
-        <p>You have already completed all available onboarding questions.</p>
-        <p>Thank you for your participation!</p>
-      </div>
-    );
+    return <OnboardingComplete onReturn={handleReturnHome} />;
   }
 
   return (
-    <OnboardingContext.Provider value={{ state, actions }}>
+    <OnboardingContext.Provider value={{ state, actions, loading, hasCompletedOnboarding }}>
       {children}
     </OnboardingContext.Provider>
   );

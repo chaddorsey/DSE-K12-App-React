@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
-export const SignIn = () => {
+export const SignIn: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -21,17 +21,15 @@ export const SignIn = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-100">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <h2 className="text-center text-3xl font-bold tracking-tight text-primary">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center font-body text-sm text-gray-600">
-            Please sign in to continue
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+        <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+          Sign in to your account
+        </h2>
+      </div>
+
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="rounded-md bg-red-50 p-4">
               <div className="text-sm text-red-700">{error}</div>
@@ -81,6 +79,16 @@ export const SignIn = () => {
             </button>
           </div>
         </form>
+
+        <p className="mt-10 text-center text-sm text-gray-500">
+          Not signed up yet?{' '}
+          <Link
+            to="/signup"
+            className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500"
+          >
+            Register here
+          </Link>
+        </p>
       </div>
     </div>
   );

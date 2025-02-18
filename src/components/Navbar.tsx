@@ -5,45 +5,44 @@ import { Avatar } from './Avatar';
 import './Navbar.css';
 
 export const Navbar: React.FC = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const location = useLocation();
 
-  if (!user) return null;
-
   return (
-    <nav className="navbar">
-      <ul className="nav-links">
-        <li className={location.pathname === '/' ? 'active' : ''}>
-          <Link to="/">Home</Link>
-        </li>
-        <li className={location.pathname === '/dashboard' ? 'active' : ''}>
-          <Link to="/dashboard">Dashboard</Link>
-        </li>
-        <li className={location.pathname.startsWith('/quiz') ? 'active' : ''}>
-          <Link to="/quiz">Quiz</Link>
-        </li>
-        {user.role === 'admin' && (
-          <>
-            <li className={location.pathname === '/question-editor' ? 'active' : ''}>
-              <Link to="/question-editor">Question Editor</Link>
-            </li>
-            <li className={location.pathname === '/demo/editor' ? 'active' : ''}>
-              <Link to="/demo/editor">Question Bank</Link>
-            </li>
-          </>
-        )}
-      </ul>
-      <div className="profile-section">
-        <Link to="/profile" className="profile-button">
-          <Avatar 
-            src={user.avatarUrl} 
-            name={user.name || 'User'} 
-            size={32}
-          />
-          <span className="profile-text">
-            {user.name || 'Profile'}
-          </span>
+    <nav className="bg-gray-800 p-4">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link to="/" className="text-white font-bold">
+          DSET
         </Link>
+        
+        <div className="flex items-center space-x-4">
+          {user ? (
+            <>
+              <span className="text-gray-300">{user.displayName}</span>
+              <button
+                onClick={signOut}
+                className="text-white hover:text-gray-300"
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/signin"
+                className="text-white hover:text-gray-300"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/signup"
+                className="text-white hover:text-gray-300"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
+        </div>
       </div>
     </nav>
   );

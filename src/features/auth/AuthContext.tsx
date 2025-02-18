@@ -1,12 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User as FirebaseUser, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { User as FirebaseUser, signInWithEmailAndPassword, signOut as firebaseSignOut, createUserWithEmailAndPassword, updateProfile, getAuth, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../config/firebase';
 import { doc, getDoc, setDoc, collection, query, limit, getDocs, where, updateDoc } from 'firebase/firestore';
 import { MonitoringService } from '@/monitoring/MonitoringService';
 import { logger } from '../../utils/logger';
 import { AuthService } from './services/AuthService';
 import { IAnalyticsEvent } from '@/monitoring/types';
-import { onAuthStateChanged } from 'firebase/auth';
 import type { User, UserRole } from './types/auth';
 
 // Only import dev service in development
@@ -39,6 +38,7 @@ interface IAuthContext {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInAnonymously: (mode: "dummy" | "real") => Promise<void>;
+  signUp: (email: string, password: string, displayName: string) => Promise<void>;
   // ... other methods
 }
 
@@ -60,6 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }));
   const authService = new AuthService();
   const monitoring = MonitoringService.getInstance();
+  const authInstance = getAuth();
+  const mountedRef = useRef(false);
 
   // Fetch additional user data from Firestore
   const enrichUserData = async (firebaseUser: FirebaseUser): Promise<User> => {
@@ -119,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       if (mode === 'dummy') {
-        await firebaseSignOut(auth); // Sign out any real user
+        await firebaseSignOut(authInstance); // Sign out any real user
         const dummyUser = await getRandomDummyUser();
         setUser(dummyUser);
         setAuthMode({ type: 'dummy', active: true });
@@ -136,42 +138,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    logger.info('AuthProvider: Initializing auth state listener');
+    logger.info('AuthProvider effect starting');
     
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const token = await firebaseUser.getIdTokenResult();
-          logger.info('User token claims:', token.claims);
-          
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            emailVerified: firebaseUser.emailVerified,
-            role: token.claims.role || 'user' // Get role from token claims
-          });
-          logger.info('User state updated:', { 
-            uid: firebaseUser.uid, 
-            role: token.claims.role || 'user' 
-          });
-          setUserClaims(token.claims as { role?: string });
-        } catch (error) {
-          logger.error('Error getting user token:', error);
-          setUser(null);
-          setUserClaims(null);
-        }
-      } else {
-        setUser(null);
-        setUserClaims(null);
-      }
+    // Prevent double-initialization
+    if (mountedRef.current) {
+      logger.info('Skipping duplicate initialization');
+      return;
+    }
+    mountedRef.current = true;
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      logger.info('Auth state changed', { 
+        hasUser: !!user, 
+        uid: user?.uid,
+        timestamp: new Date().toISOString()
+      });
+      setUser(user);
+      setLoading(false);
+    }, (error) => {
+      logger.error('Auth state error:', error);
       setLoading(false);
     });
 
+    // Test the auth state immediately
+    logger.info('Current auth state:', { 
+      currentUser: auth.currentUser,
+      timestamp: new Date().toISOString()
+    });
+
     return () => {
-      logger.info('AuthProvider: Cleaning up auth state listener');
+      logger.info('AuthProvider effect cleanup');
       unsubscribe();
+      mountedRef.current = false;
     };
   }, []);
+
+  // Add loading state logging
+  useEffect(() => {
+    logger.info('Auth loading state changed:', { loading });
+  }, [loading]);
+
+  // Add user state logging
+  useEffect(() => {
+    logger.info('Auth user state changed:', { 
+      hasUser: !!user,
+      uid: user?.uid 
+    });
+  }, [user]);
 
   const handleError = (error: unknown) => {
     const authError: AuthError = error instanceof Error ? error : new Error('An unknown error occurred');
@@ -192,11 +205,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
-  const signIn = async (email: string, password: string): Promise<void> => {
+  const getUserDoc = async (uid: string) => {
+    const userRef = doc(db, 'users', uid);
+    return await getDoc(userRef);
+  };
+
+  const createUserDoc = async (user: User) => {
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, {
+      email: user.email,
+      displayName: user.displayName || '',
+      role: 'user',
+      emailVerified: user.emailVerified,
+      createdAt: new Date(),
+      uid: user.uid
+    });
+  };
+
+  const signIn = async (email: string, password: string) => {
     try {
-      await authService.signIn(email, password);
+      logger.debug('Attempting sign in:', { email });
+      const result = await signInWithEmailAndPassword(authInstance, email, password);
+      logger.debug('Sign in successful:', { uid: result.user.uid });
+      return result;
     } catch (error) {
-      handleError(error);
+      logger.error('Sign in error:', error);
       throw error;
     }
   };
@@ -207,9 +240,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async (): Promise<void> => {
     try {
-      await auth.signOut();
+      logger.debug('Attempting sign out');
+      await firebaseSignOut(authInstance);
+      setUser(null);
+      logger.debug('Sign out successful');
     } catch (error) {
-      handleError(error);
+      logger.error('Sign out error:', error);
+      throw error;
+    }
+  };
+
+  const signUp = async (email: string, password: string, displayName: string) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
+      const { user } = userCredential;
+
+      // Update display name
+      await updateProfile(user, { displayName });
+
+      // Create Firestore user document
+      await createUserDoc(user);
+
+      setUser({
+        id: user.uid,
+        email: user.email || '',
+        displayName,
+        role: 'user'
+      });
+
+    } catch (error) {
+      logger.error('Sign up error:', error);
       throw error;
     }
   };
@@ -222,8 +282,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signOut,
     signInAnonymously: signInAnonymously!, // Assert non-null since we know it's defined
+    signUp,
     // ... other methods
   };
+
+  logger.info('AuthProvider render');
 
   return (
     <AuthContext.Provider value={value}>
