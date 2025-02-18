@@ -1,31 +1,31 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { logger } from '../../../utils/logger';
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requireRole?: 'user' | 'manager' | 'admin';  // Make role requirement optional
-}
+export const ProtectedRoute: React.FC = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children,
-  requireRole 
-}) => {
-  const { user } = useAuth();
+  logger.info('ProtectedRoute render:', {
+    loading,
+    hasUser: !!user,
+    path: location.pathname
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    logger.info('No user, redirecting to login');
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If no specific role is required, allow any authenticated user
-  if (!requireRole) {
-    return <>{children}</>;
-  }
-
-  // If a specific role is required, check for it
-  if (user.role !== requireRole) {
-    return <Navigate to="/" />;
-  }
-
-  return <>{children}</>;
+  logger.info('User authenticated, rendering protected content');
+  return <Outlet />;
 }; 

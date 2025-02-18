@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { AuthProvider } from './features/auth/AuthContext';
 import { AppContent } from './AppContent';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -15,6 +15,9 @@ import { QuizProvider } from './features/quiz/context/QuizContext';
 import { QuizGenerator } from './features/quiz/services/QuizGenerator';
 import { sampleResponses } from './features/questions/data/sampleResponses';
 import { SignUp } from './features/auth/components/SignUp';
+import { useStandardQuestions, useQuestionPool } from './features/questions/hooks/useQuestions';
+import { Login } from './features/auth/components/Login';
+import { AuthErrorBoundary } from './features/auth/components/AuthErrorBoundary';
 
 // Define sample questions
 const standardQuestions: Question[] = [
@@ -192,55 +195,53 @@ const questionPool: Question[] = [
 // Initialize quiz generator with questions and responses
 const quizGenerator = new QuizGenerator(standardQuestions, sampleResponses);
 
-export const App = () => {
+const App = () => {
   return (
     <ErrorBoundary>
       <div className="app">
-        <AccessibilityProvider>
-          <BrowserRouter>
-            <AuthProvider>
-        <Routes>
-                <Route path="/*" element={<AppContent />} />
-                <Route 
-                  path="/questions/playground" 
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
+
+              {/* Protected routes */}
+              <Route element={<ProtectedRoute />}>
+                {/* Routes that need onboarding */}
+                <Route
+                  path="/onboarding/*"
                   element={
-            <ProtectedRoute>
-              <QuestionPlayground />
-            </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/onboarding" 
-                  element={
-            <ProtectedRoute>
+                    <AccessibilityProvider>
                       <OnboardingProvider
-                        standardQuestions={standardQuestions}
-                        questionPool={questionPool}
+                        standardQuestions={useStandardQuestions()}
+                        questionPool={useQuestionPool()}
                       >
                         <OnboardingFlow />
                       </OnboardingProvider>
-            </ProtectedRoute>
-                  } 
+                    </AccessibilityProvider>
+                  }
                 />
-                <Route 
-                  path="/quiz" 
+
+                {/* Routes that don't need onboarding */}
+                <Route
+                  path="/*"
                   element={
-            <ProtectedRoute>
-                      <QuizPage />
-            </ProtectedRoute>
-                  } 
+                    <AccessibilityProvider>
+                      <Routes>
+                        <Route path="/" element={<AppContent />} />
+                        <Route path="/questions/playground" element={<QuestionPlayground />} />
+                        <Route path="/quiz" element={<QuizPage />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </AccessibilityProvider>
+                  }
                 />
-                <Route 
-                  path="/signup" 
-                  element={
-                    <SignUp />
-                  } 
-                />
-        </Routes>
-            </AuthProvider>
-          </BrowserRouter>
-        </AccessibilityProvider>
-    </div>
+              </Route>
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </div>
     </ErrorBoundary>
   );
 };

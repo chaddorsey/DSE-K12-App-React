@@ -1,68 +1,45 @@
 import React from 'react';
-import { Routes, Route, Navigate, Link, Outlet } from 'react-router-dom';
-import { Header } from './components/Header';
 import { useAuth } from './features/auth/AuthContext';
-import { OnboardingPage } from './features/onboarding/OnboardingPage';
-import { ConnectionsPage } from './features/connections/ConnectionsPage';
-import { VisualizePage } from './features/visualize/VisualizePage';
-import { QuizPage } from './features/quiz/QuizPage';
-import { DashboardPage } from './features/dashboard/DashboardPage';
-import { ProtectedRoute } from './features/auth/components/ProtectedRoute';
-import { Unauthorized } from './features/auth/components/Unauthorized';
-import { SignIn } from './features/auth/components/SignIn';
-import { HomePage } from './features/home/HomePage';
-import { OnboardingProvider } from './features/onboarding';
-import { QuestionProvider } from './features/questions/context/QuestionContext';
-import { standardQuestions, questionPool } from './features/questions/data/questionSets';
+import { Header } from './components/Header';
 import { logger } from './utils/logger';
 
-export const AppContent = () => {
-  const { loading } = useAuth();
+export const AppContent: React.FC = () => {
+  const { user } = useAuth();
   
-  logger.debug('AppContent render', { loading });
+  logger.info('AppContent render:', {
+    hasUser: !!user,
+    uid: user?.uid,
+    email: user?.email
+  });
 
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
-        <p>Loading...</p>
-      </div>
-    );
+  if (!user?.uid) {
+    logger.error('AppContent: No user UID available');
+    return null;
   }
 
   return (
     <>
       <Header />
       <main className="app-main">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<SignIn />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
-          
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/connections" element={<ConnectionsPage />} />
-            <Route path="/visualize" element={<VisualizePage />} />
-            <Route path="/quiz" element={<QuizPage />} />
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Dashboard Cards */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Your Progress</h2>
+              {/* Add progress content */}
+            </div>
             
-            <Route 
-              path="/onboarding" 
-              element={
-                <QuestionProvider>
-                  <OnboardingProvider
-                    standardQuestions={standardQuestions}
-                    questionPool={questionPool}
-                  >
-                    <OnboardingPage />
-                  </OnboardingProvider>
-                </QuestionProvider>
-              } 
-            />
-          </Route>
-          
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <Outlet />
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Recent Connections</h2>
+              {/* Add connections content */}
+            </div>
+            
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+              {/* Add quick actions */}
+            </div>
+          </div>
+        </div>
       </main>
     </>
   );
