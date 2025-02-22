@@ -7,7 +7,10 @@ import {
   SliderQuestion,
   SegmentedSliderQuestion,
   XYContinuumQuestion,
-  Question
+  Question,
+  QuizQuestion,
+  OnboardingResponse,
+  QuizResponse
 } from '../questions';
 
 describe('Question Types', () => {
@@ -200,6 +203,96 @@ describe('Question Types', () => {
         defaultPosition: { x: 0.5, y: -1 }
       };
     });
+  });
+
+  it('validates base question structure', () => {
+    const question: BaseQuestion = {
+      id: 'q1',
+      type: QuestionType.MC,
+      prompt: 'Test?',
+      text: 'Test?',
+      label: 'Test',
+      number: 1,
+      requiredForOnboarding: true,
+      includeInOnboarding: true
+    };
+
+    expect(question).toBeDefined();
+    expect(question.type).toBe(QuestionType.MC);
+  });
+
+  it('validates quiz question structure', () => {
+    const quizQuestion: QuizQuestion = {
+      id: 'q1',
+      type: QuestionType.MC,
+      prompt: 'Test?',
+      text: 'Test?',
+      label: 'Test',
+      number: 1,
+      requiredForOnboarding: false,
+      includeInOnboarding: false,
+      correctAnswer: 'A',
+      distractors: ['B', 'C', 'D'],
+      explanation: 'Because...',
+      points: 10
+    };
+
+    expect(quizQuestion).toBeDefined();
+    expect(quizQuestion.correctAnswer).toBe('A');
+  });
+
+  it('validates onboarding response structure', () => {
+    const response: OnboardingResponse = {
+      id: 'r1',
+      questionId: 'q1',
+      userId: 'u1',
+      timestamp: new Date(),
+      context: 'ONBOARDING',
+      value: {
+        type: 'MC',
+        selectedOption: 'A'
+      },
+      metadata: {
+        timeToAnswer: 1000,
+        interactionCount: 1,
+        device: {
+          type: 'desktop',
+          input: 'mouse'
+        }
+      }
+    };
+
+    expect(response).toBeDefined();
+    expect(response.context).toBe('ONBOARDING');
+  });
+
+  it('validates quiz response structure', () => {
+    const response: QuizResponse = {
+      id: 'r1',
+      questionId: 'q1',
+      userId: 'u1',
+      targetUserId: 'u2',
+      timestamp: new Date(),
+      context: 'QUIZ',
+      value: {
+        type: 'MC',
+        selectedOption: 'A'
+      },
+      isCorrect: true,
+      points: 10,
+      metadata: {
+        timeToAnswer: 1000,
+        interactionCount: 1,
+        device: {
+          type: 'desktop',
+          input: 'mouse'
+        }
+      }
+    };
+
+    expect(response).toBeDefined();
+    expect(response.context).toBe('QUIZ');
+    expect(response.isCorrect).toBe(true);
   });
 
   // Add more test cases for other question types...

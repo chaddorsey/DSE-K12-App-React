@@ -1,105 +1,109 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { OpenResponseQuestion } from '../OpenResponseQuestion';
-import type { OpenResponseQuestionType } from '../../types';
+import { OpenResponseQuestionComponent } from '../OpenResponseQuestion';
+import { QuestionType } from '../../types/questions';
 import { AccessibilityProvider } from '../../../accessibility/context/AccessibilityContext';
 
 describe('OpenResponseQuestion', () => {
-  const mockQuestion: OpenResponseQuestionType = {
+  const mockQuestion = {
     id: 'q1',
-    type: 'OPEN_RESPONSE',
-    prompt: 'What are your career goals?',
-    maxLength: 500
+    type: QuestionType.OP,
+    prompt: 'Describe your experience',
+    text: 'Describe your experience',
+    label: 'Experience',
+    maxLength: 500,
+    number: 1,
+    requiredForOnboarding: true,
+    includeInOnboarding: true
   };
 
   const mockOnAnswer = jest.fn();
 
   beforeEach(() => {
-    mockOnAnswer.mockClear();
+    jest.clearAllMocks();
   });
 
-  it('renders the question prompt', () => {
+  it('renders question prompt and textarea', () => {
     render(
-      <OpenResponseQuestion
+      <OpenResponseQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
-    
+
     expect(screen.getByText(mockQuestion.prompt)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter your response')).toBeInTheDocument();
+    expect(screen.getByText('0 / 500')).toBeInTheDocument();
   });
 
-  it('renders a textarea for input', () => {
+  it('handles text input and submission', () => {
     render(
-      <OpenResponseQuestion
+      <OpenResponseQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
-    
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
-  });
 
-  it('calls onAnswer with entered text', () => {
-    render(
-      <OpenResponseQuestion
-        question={mockQuestion}
-        onAnswer={mockOnAnswer}
-      />
+    const textarea = screen.getByPlaceholderText('Enter your response');
+    fireEvent.change(textarea, { target: { value: 'Test response' } });
+    
+    const submitButton = screen.getByText('Submit');
+    fireEvent.click(submitButton);
+
+    expect(mockOnAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionId: mockQuestion.id,
+        value: {
+          type: 'OP',
+          text: 'Test response',
+          length: 13
+        }
+      })
     );
-    
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'My response' } });
-    fireEvent.blur(input);
-    
-    expect(mockOnAnswer).toHaveBeenCalledWith({
-      questionId: mockQuestion.id,
-      answer: 'My response',
-      timestamp: expect.any(Number)
-    });
   });
 
   it('enforces maxLength constraint', () => {
     render(
-      <OpenResponseQuestion
+      <OpenResponseQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
-    
-    const input = screen.getByRole('textbox');
-    expect(input).toHaveAttribute('maxLength', '500');
+
+    const textarea = screen.getByPlaceholderText('Enter your response');
+    expect(textarea).toHaveAttribute('maxLength', '500');
   });
 
-  it('shows remaining character count', () => {
+  it('updates character count', () => {
     render(
-      <OpenResponseQuestion
+      <OpenResponseQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
+
+    const textarea = screen.getByPlaceholderText('Enter your response');
+    fireEvent.change(textarea, { target: { value: 'Test' } });
     
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'Test' } });
-    
-    expect(screen.getByText('496 characters remaining')).toBeInTheDocument();
+    expect(screen.getByText('4 / 500')).toBeInTheDocument();
   });
 
-  it('disables input when disabled prop is true', () => {
+  it('disables interaction when disabled prop is true', () => {
     render(
-      <OpenResponseQuestion
+      <OpenResponseQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
         disabled={true}
       />
     );
-    
-    expect(screen.getByRole('textbox')).toBeDisabled();
+
+    expect(screen.getByPlaceholderText('Enter your response')).toBeDisabled();
+    expect(screen.getByText('Submit')).toBeDisabled();
   });
 
   it('shows loading state when loading prop is true', () => {
     render(
-      <OpenResponseQuestion
+      <OpenResponseQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
         loading={true}
@@ -111,40 +115,45 @@ describe('OpenResponseQuestion', () => {
 
   it('enables submit button only when text is entered', () => {
     render(
-      <OpenResponseQuestion
+      <OpenResponseQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
     
-    const submitButton = screen.getByRole('button', { name: /submit/i });
+    const submitButton = screen.getByText('Submit');
     expect(submitButton).toBeDisabled();
     
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'Test response' } });
+    const textarea = screen.getByPlaceholderText('Enter your response');
+    fireEvent.change(textarea, { target: { value: 'Test response' } });
     
     expect(submitButton).not.toBeDisabled();
   });
 
   it('calls onAnswer when submit button is clicked', () => {
     render(
-      <OpenResponseQuestion
+      <OpenResponseQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
     
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'Test response' } });
+    const textarea = screen.getByPlaceholderText('Enter your response');
+    fireEvent.change(textarea, { target: { value: 'Test response' } });
     
-    const submitButton = screen.getByRole('button', { name: /submit/i });
+    const submitButton = screen.getByText('Submit');
     fireEvent.click(submitButton);
     
-    expect(mockOnAnswer).toHaveBeenCalledWith({
-      questionId: mockQuestion.id,
-      answer: 'Test response',
-      timestamp: expect.any(Number)
-    });
+    expect(mockOnAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionId: mockQuestion.id,
+        value: {
+          type: 'OP',
+          text: 'Test response',
+          length: 13
+        }
+      })
+    );
   });
 });
 
@@ -173,21 +182,21 @@ describe('OpenResponseQuestion Mobile Keyboard', () => {
   it('adjusts input position when keyboard opens', () => {
     render(
       <AccessibilityProvider>
-        <OpenResponseQuestion 
+        <OpenResponseQuestionComponent
           question={mockQuestion}
           onAnswer={mockOnAnswer}
         />
       </AccessibilityProvider>
     );
 
-    const input = screen.getByRole('textbox');
+    const textarea = screen.getByPlaceholderText('Enter your response');
     const mockResizeListener = mockVisualViewport.addEventListener.mock.calls[0][1];
 
     // Simulate keyboard opening
     Object.defineProperty(window.visualViewport!, 'height', { value: 500 });
     mockResizeListener(new Event('resize'));
 
-    expect(input.parentElement).toHaveStyle({
+    expect(textarea.parentElement).toHaveStyle({
       transform: `translateY(-300px)` // Keyboard height
     });
   });
@@ -195,21 +204,21 @@ describe('OpenResponseQuestion Mobile Keyboard', () => {
   it('restores input position when keyboard closes', () => {
     render(
       <AccessibilityProvider>
-        <OpenResponseQuestion 
+        <OpenResponseQuestionComponent
           question={mockQuestion}
           onAnswer={mockOnAnswer}
         />
       </AccessibilityProvider>
     );
 
-    const input = screen.getByRole('textbox');
+    const textarea = screen.getByPlaceholderText('Enter your response');
     const mockResizeListener = mockVisualViewport.addEventListener.mock.calls[0][1];
 
     // Simulate keyboard closing
     Object.defineProperty(window.visualViewport!, 'height', { value: 800 });
     mockResizeListener(new Event('resize'));
 
-    expect(input.parentElement).toHaveStyle({
+    expect(textarea.parentElement).toHaveStyle({
       transform: 'translateY(0)'
     });
   });
@@ -217,21 +226,21 @@ describe('OpenResponseQuestion Mobile Keyboard', () => {
   it('handles viewport scrolling with keyboard open', () => {
     render(
       <AccessibilityProvider>
-        <OpenResponseQuestion 
+        <OpenResponseQuestionComponent
           question={mockQuestion}
           onAnswer={mockOnAnswer}
         />
       </AccessibilityProvider>
     );
 
-    const input = screen.getByRole('textbox');
+    const textarea = screen.getByPlaceholderText('Enter your response');
     const mockScrollListener = mockVisualViewport.addEventListener.mock.calls[1][1];
 
     // Simulate viewport scroll
     Object.defineProperty(window.visualViewport!, 'offsetTop', { value: 50 });
     mockScrollListener(new Event('scroll'));
 
-    expect(input.parentElement).toHaveStyle({
+    expect(textarea.parentElement).toHaveStyle({
       transform: `translateY(-50px)`
     });
   });

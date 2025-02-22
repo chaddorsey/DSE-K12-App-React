@@ -1,0 +1,36 @@
+.multiple-choice-question {
+  margin-top: 1rem;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.option-button {
+  padding: 1rem;
+  border: 2px solid var(--gray-300);
+  border-radius: 0.5rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.option-button:hover:not(:disabled) {
+  border-color: var(--primary-500);
+  background: var(--primary-50);
+}
+
+.option-button.selected {
+  border-color: var(--primary-500);
+  background: var(--primary-100);
+}
+
+.option-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+} 

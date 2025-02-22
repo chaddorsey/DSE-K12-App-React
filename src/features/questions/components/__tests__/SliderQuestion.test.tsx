@@ -1,71 +1,93 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { SliderQuestion } from '../SliderQuestion';
-import type { SliderQuestionType } from '../../types';
+import { SliderQuestionComponent } from '../SliderQuestion';
+import { QuestionType } from '../../types/questions';
 
 describe('SliderQuestion', () => {
-  const mockQuestion: SliderQuestionType = {
-    id: 'slider1',
-    type: 'SLIDER',
-    prompt: 'What mix of Country and Rock & Roll?',
-    leftOption: 'Country',
-    rightOption: 'Rock & Roll',
-    defaultValue: 0.5
+  const mockQuestion = {
+    id: 'q1',
+    type: QuestionType.SLIDER,
+    prompt: 'How satisfied are you?',
+    text: 'How satisfied are you?',
+    label: 'Satisfaction',
+    leftLabel: 'Not at all',
+    rightLabel: 'Very much',
+    defaultValue: 50,
+    number: 1,
+    requiredForOnboarding: true,
+    includeInOnboarding: true
   };
 
-  const defaultProps = {
-    question: mockQuestion,
-    onAnswer: jest.fn(),
-    disabled: false,
-    loading: false
-  };
+  const mockOnAnswer = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders the question prompt and options', () => {
-    render(<SliderQuestion {...defaultProps} />);
-    
+  it('renders question prompt and slider', () => {
+    render(
+      <SliderQuestionComponent
+        question={mockQuestion}
+        onAnswer={mockOnAnswer}
+      />
+    );
+
     expect(screen.getByText(mockQuestion.prompt)).toBeInTheDocument();
-    expect(screen.getByText(mockQuestion.leftOption)).toBeInTheDocument();
-    expect(screen.getByText(mockQuestion.rightOption)).toBeInTheDocument();
+    expect(screen.getByRole('slider')).toBeInTheDocument();
+    expect(screen.getByText(mockQuestion.leftLabel)).toBeInTheDocument();
+    expect(screen.getByText(mockQuestion.rightLabel)).toBeInTheDocument();
   });
 
-  it('renders a slider with default value', () => {
-    render(<SliderQuestion {...defaultProps} />);
-    
-    const slider = screen.getByRole('slider');
-    expect(slider).toBeInTheDocument();
-    expect(slider).toHaveValue('50'); // 0.5 converted to percentage
-  });
+  it('handles slider input and submission', () => {
+    render(
+      <SliderQuestionComponent
+        question={mockQuestion}
+        onAnswer={mockOnAnswer}
+      />
+    );
 
-  it('calls onAnswer with normalized value when submitted', () => {
-    render(<SliderQuestion {...defaultProps} />);
-    
     const slider = screen.getByRole('slider');
     fireEvent.change(slider, { target: { value: '75' } });
     
-    const submitButton = screen.getByRole('button', { name: /submit/i });
+    const submitButton = screen.getByText('Submit');
     fireEvent.click(submitButton);
-    
-    expect(defaultProps.onAnswer).toHaveBeenCalledWith({
-      questionId: mockQuestion.id,
-      value: 0.75,
-      timestamp: expect.any(Number)
-    });
+
+    expect(mockOnAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionId: mockQuestion.id,
+        value: {
+          type: 'SLIDER',
+          value: 75,
+          normalizedValue: 0.75
+        }
+      })
+    );
   });
 
-  it('disables slider and submit button when disabled prop is true', () => {
-    render(<SliderQuestion {...defaultProps} disabled={true} />);
+  it('shows current value as percentage', () => {
+    render(
+      <SliderQuestionComponent
+        question={mockQuestion}
+        onAnswer={mockOnAnswer}
+      />
+    );
+
+    const slider = screen.getByRole('slider');
+    fireEvent.change(slider, { target: { value: '75' } });
     
+    expect(screen.getByText('75%')).toBeInTheDocument();
+  });
+
+  it('disables interaction when disabled prop is true', () => {
+    render(
+      <SliderQuestionComponent
+        question={mockQuestion}
+        onAnswer={mockOnAnswer}
+        disabled={true}
+      />
+    );
+
     expect(screen.getByRole('slider')).toBeDisabled();
-    expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled();
-  });
-
-  it('shows loading state when loading prop is true', () => {
-    render(<SliderQuestion {...defaultProps} loading={true} />);
-    
-    expect(screen.getByTestId('question-loading')).toBeInTheDocument();
+    expect(screen.getByText('Submit')).toBeDisabled();
   });
 }); 

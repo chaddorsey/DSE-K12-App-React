@@ -1,166 +1,94 @@
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QuizFlow } from '../QuizFlow';
-import { DelightFactor } from '../../../questions/components/DelightFactor/DelightFactor';
-import type { Quiz, QuizQuestion } from '../../types/quiz';
+import { useQuiz } from '../../QuizContext';
+import { QuestionType, QuestionCategory } from '../../../questions/types/questions';
 
-// Mock DelightFactor component
-jest.mock('../../../questions/components/DelightFactor/DelightFactor', () => ({
-  DelightFactor: jest.fn(({ onComplete }) => {
-    // Simulate completion after a short delay
-    setTimeout(onComplete, 100);
-    return <div data-testid="mock-delight">Delight Animation</div>;
-  })
-}));
-
-const mockQuiz: Quiz = {
-  id: 'quiz_1',
-  targetUserId: 'user1',
-  questions: [
-    {
-      id: 'q1',
-      type: 'MC',
-      text: 'What is their favorite color?',
-      prompt: 'What is their favorite color?',
-      label: 'Favorite Color',
-      category: 'PREFERENCES',
-      number: 1,
-      correctAnswer: 'Blue',
-      options: ['Red', 'Blue', 'Green', 'Yellow'],
-      delightFactor: {
-        id: 'delight1',
-        type: 'ANIMATION',
-        timing: 'POST_ANSWER',
-        trigger: 'ON_CORRECT',
-        content: {
-          animation: 'confetti',
-          duration: 2000
-        },
-        questionTypes: ['MC']
-      }
-    },
-    {
-      id: 'q2',
-      type: 'NM',
-      prompt: 'How many years of experience?',
-      correctAnswer: 5,
-      options: [3, 5, 7, 10]
-    }
-  ],
-  createdAt: new Date()
-};
+jest.mock('../../QuizContext');
 
 describe('QuizFlow', () => {
-  const mockOnComplete = jest.fn();
+  const mockQuestion = {
+    id: 'q1',
+    type: QuestionType.MC,
+    prompt: 'Test question?',
+    text: 'Test question?',
+    label: 'Test',
+    category: QuestionCategory.PREFERENCES,
+    options: ['A', 'B', 'C'],
+    number: 1,
+    correctAnswer: 'A',
+    distractors: ['B', 'C']
+  };
+
+  const mockSubmitAnswer = jest.fn();
+  const mockSkipQuestion = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  it('displays the first question initially', () => {
-    render(<QuizFlow quiz={mockQuiz} onComplete={mockOnComplete} />);
-    
-    expect(screen.getByText('Question 1 of 2')).toBeInTheDocument();
-    expect(screen.getByText('What is their favorite color?')).toBeInTheDocument();
-    
-    // Should show all options
-    mockQuiz.questions[0].options.forEach(option => {
-      expect(screen.getByText(option)).toBeInTheDocument();
+    (useQuiz as jest.Mock).mockReturnValue({
+      currentQuestion: mockQuestion,
+      currentQuestionComponent: () => <div>Mock Question Component</div>,
+      responses: [],
+      isComplete: false,
+      loading: false,
+      error: null,
+      score: 0,
+      submitAnswer: mockSubmitAnswer,
+      skipQuestion: mockSkipQuestion
     });
   });
 
-  it('shows delight factor on correct answer', async () => {
-    render(<QuizFlow quiz={mockQuiz} onComplete={mockOnComplete} />);
-    
-    // Select correct answer
-    fireEvent.click(screen.getByText('Blue'));
-    
-    // Should show delight animation
-    expect(screen.getByTestId('mock-delight')).toBeInTheDocument();
-    
-    // Wait for delight animation to complete
-    await waitFor(() => {
-      expect(screen.queryByTestId('mock-delight')).not.toBeInTheDocument();
-    });
+  it('renders question component when available', () => {
+    render(<QuizFlow />);
+    expect(screen.getByText('Mock Question Component')).toBeInTheDocument();
   });
 
-  it('does not show delight factor on incorrect answer', () => {
-    render(<QuizFlow quiz={mockQuiz} onComplete={mockOnComplete} />);
-    
-    // Select incorrect answer
-    fireEvent.click(screen.getByText('Red'));
-    
-    expect(screen.queryByTestId('mock-delight')).not.toBeInTheDocument();
+  it('shows loading spinner when loading', () => {
+    (useQuiz as jest.Mock).mockReturnValue({
+      loading: true
+    });
+    render(<QuizFlow />);
+    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
   });
 
-  it('shows feedback after answering', async () => {
-    render(<QuizFlow quiz={mockQuiz} onComplete={mockOnComplete} />);
-    
-    // Select correct answer
-    fireEvent.click(screen.getByText('Blue'));
-    
-    await waitFor(() => {
-      expect(screen.getByText('Correct!')).toBeInTheDocument();
-      expect(screen.getByText('Score: 1/1')).toBeInTheDocument();
+  it('shows error message when error occurs', () => {
+    (useQuiz as jest.Mock).mockReturnValue({
+      error: 'Test error'
     });
+    render(<QuizFlow />);
+    expect(screen.getByText('Error: Test error')).toBeInTheDocument();
   });
 
-  it('advances to next question after answering', async () => {
-    render(<QuizFlow quiz={mockQuiz} onComplete={mockOnComplete} />);
-    
-    // Answer first question
-    fireEvent.click(screen.getByText('Blue'));
-    
-    // Click next
-    fireEvent.click(screen.getByText('Next Question'));
-    
-    await waitFor(() => {
-      expect(screen.getByText('Question 2 of 2')).toBeInTheDocument();
-      expect(screen.getByText('How many years of experience?')).toBeInTheDocument();
+  it('shows completion screen with score when complete', () => {
+    (useQuiz as jest.Mock).mockReturnValue({
+      isComplete: true,
+      score: 150,
+      responses: Array(5).fill({})
     });
+    render(<QuizFlow />);
+    expect(screen.getByText(/Quiz Complete!/)).toBeInTheDocument();
+    expect(screen.getByText(/150/)).toBeInTheDocument();
   });
 
-  it('completes quiz after last question', async () => {
-    render(<QuizFlow quiz={mockQuiz} onComplete={mockOnComplete} />);
-    
-    // Answer both questions
-    fireEvent.click(screen.getByText('Blue'));
-    fireEvent.click(screen.getByText('Next Question'));
-    fireEvent.click(screen.getByText('5'));
-    
-    await waitFor(() => {
-      expect(screen.getByText('Quiz Complete!')).toBeInTheDocument();
-      expect(screen.getByText('Final Score: 2/2')).toBeInTheDocument();
-      expect(mockOnComplete).toHaveBeenCalledWith({
-        score: 2,
-        totalQuestions: 2,
-        answers: expect.any(Array)
-      });
+  it('shows progress indicator', () => {
+    (useQuiz as jest.Mock).mockReturnValue({
+      currentQuestion: mockQuestion,
+      responses: Array(2).fill({}),
+      currentQuestionComponent: () => <div>Mock Question</div>
     });
+    render(<QuizFlow />);
+    expect(screen.getByText('Question 3 of 3')).toBeInTheDocument();
   });
 
-  it('handles incorrect answers', async () => {
-    render(<QuizFlow quiz={mockQuiz} onComplete={mockOnComplete} />);
-    
-    // Select wrong answer
-    fireEvent.click(screen.getByText('Red'));
-    
-    await waitFor(() => {
-      expect(screen.getByText('Incorrect')).toBeInTheDocument();
-      expect(screen.getByText('The correct answer was Blue')).toBeInTheDocument();
-      expect(screen.getByText('Score: 0/1')).toBeInTheDocument();
+  it('allows skipping non-required questions', () => {
+    (useQuiz as jest.Mock).mockReturnValue({
+      currentQuestion: { ...mockQuestion, required: false },
+      currentQuestionComponent: () => <div>Mock Question</div>,
+      skipQuestion: mockSkipQuestion
     });
-  });
-
-  it('shows loading state while transitioning questions', async () => {
-    render(<QuizFlow quiz={mockQuiz} onComplete={mockOnComplete} />);
     
-    fireEvent.click(screen.getByText('Blue'));
-    
-    // Should show loading briefly
-    expect(screen.getByText('Loading next question...')).toBeInTheDocument();
-    
-    await waitFor(() => {
-      expect(screen.queryByText('Loading next question...')).not.toBeInTheDocument();
-    });
+    render(<QuizFlow />);
+    fireEvent.click(screen.getByText('Skip'));
+    expect(mockSkipQuestion).toHaveBeenCalled();
   });
 }); 

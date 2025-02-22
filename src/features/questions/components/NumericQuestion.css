@@ -74,39 +74,52 @@
 }
 
 .numeric-question {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
+  composes: question-container from './QuestionBase.css';
 }
 
-.question-text {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
+.numeric-prompt {
+  composes: question-prompt from './QuestionBase.css';
 }
 
-.input-container {
+.numeric-input-container {
   display: flex;
-  gap: 1rem;
   align-items: center;
+  gap: 0.5rem;
+  margin: 2rem 0;
 }
 
-.input-container input {
-  padding: 0.5rem;
+.numeric-input-container input {
+  width: 120px;
+  padding: 0.75rem;
   font-size: 1rem;
-  width: 100px;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  transition: border-color 0.2s;
 }
 
-.input-container button {
-  padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.numeric-input-container input:focus {
+  outline: none;
+  border-color: var(--primary-400);
+  box-shadow: 0 0 0 3px var(--primary-100);
 }
 
-.input-container button:disabled {
-  background-color: #ccc;
+.numeric-input-container input:disabled {
+  background-color: var(--gray-100);
   cursor: not-allowed;
+}
+
+.unit {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .numeric-input-container {
+    margin: 1rem 0;
+  }
+  
+  .numeric-input-container input {
+    width: 100px;
+    padding: 0.5rem;
+  }
 } 

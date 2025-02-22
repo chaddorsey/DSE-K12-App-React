@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User as FirebaseUser, signInWithEmailAndPassword, signOut as firebaseSignOut, createUserWithEmailAndPassword, updateProfile, getAuth, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../config/firebase';
 import { doc, getDoc, setDoc, collection, query, limit, getDocs, where, updateDoc } from 'firebase/firestore';
@@ -7,6 +7,7 @@ import { logger } from '../../utils/logger';
 import { AuthService } from './services/AuthService';
 import { IAnalyticsEvent } from '@/monitoring/types';
 import type { User, UserRole } from './types/auth';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 // Only import dev service in development
 const devDataService = process.env.NODE_ENV === 'development' 
@@ -21,6 +22,8 @@ export interface User extends FirebaseUser {
   department?: string;
   interests?: string[];
   onboardingCompleted?: boolean;
+  isAnonymous: boolean;
+  phoneNumber: string | null;
 }
 
 // Add custom error type
@@ -38,11 +41,11 @@ interface IAuthContext {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   signInAnonymously: (mode: "dummy" | "real") => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   // ... other methods
 }
 
-const AuthContext = createContext<IAuthContext | null>(null);
+export const AuthContext = createContext<IAuthContext | null>(null);
 
 interface AuthMode {
   type: 'real' | 'dummy';
@@ -50,150 +53,119 @@ interface AuthMode {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [userClaims, setUserClaims] = useState<{ role?: string } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<AuthError | null>(null);
-  const [authMode, setAuthMode] = useState<AuthMode>(() => ({
-    type: process.env.REACT_APP_USE_DUMMY_AUTH === 'true' ? 'dummy' : 'real',
-    active: true
-  }));
-  const authService = new AuthService();
-  const monitoring = MonitoringService.getInstance();
-  const authInstance = getAuth();
-  const mountedRef = useRef(false);
-
-  // Fetch additional user data from Firestore
-  const enrichUserData = async (firebaseUser: FirebaseUser): Promise<User> => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-      const userData = userDoc.data();
-      
-      return {
-        ...firebaseUser,
-        department: userData?.department,
-        interests: userData?.interests,
-        onboardingCompleted: userData?.onboardingCompleted
-      };
-    } catch (error) {
-      logger.error('Error fetching user data:', error);
-      return firebaseUser as User;
-    }
-  };
-
-  // Development helper to get a random dummy user
-  const getRandomDummyUser = async (): Promise<User | null> => {
-    if (process.env.NODE_ENV !== 'development') {
-      return null;
-    }
-
-    try {
-      const usersRef = collection(db, 'users');
-      const q = query(
-        usersRef, 
-        where('isDummy', '==', true),
-        limit(1)
-      );
-      const snapshot = await getDocs(q);
-      
-      if (snapshot.empty) {
-        if (devDataService) {
-          await devDataService.seedDummyUsers();
-        }
-        return getRandomDummyUser();
-      }
-
-      const userData = snapshot.docs[0].data();
-      return userData as User;
-    } catch (error) {
-      logger.error('Error getting dummy user:', error);
-      return null;
-    }
-  };
-
-  // Switch between real and dummy auth
-  const switchAuthMode = async (mode: 'real' | 'dummy') => {
-    if (!isDevelopment) {
-      logger.warn('Auth mode switching is only available in development');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (mode === 'dummy') {
-        await firebaseSignOut(authInstance); // Sign out any real user
-        const dummyUser = await getRandomDummyUser();
-        setUser(dummyUser);
-        setAuthMode({ type: 'dummy', active: true });
-      } else {
-        setUser(null);
-        setAuthMode({ type: 'real', active: true });
-      }
-    } catch (error) {
-      logger.error('Error switching auth mode:', error);
-      setError(error as AuthError);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [authState, setAuthState] = useState<{
+    user: User | null;
+    loading: boolean;
+    error: Error | null;
+    initialized: boolean;
+  }>({
+    user: null,
+    loading: true,
+    error: null,
+    initialized: false
+  });
+  
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    logger.info('AuthProvider effect starting');
-    
-    // Prevent double-initialization
-    if (mountedRef.current) {
-      logger.info('Skipping duplicate initialization');
-      return;
-    }
-    mountedRef.current = true;
+    logger.info('AuthProvider initializing');
+    let unsubscribed = false;
 
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      logger.info('Auth state changed', { 
-        hasUser: !!user, 
-        uid: user?.uid,
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (unsubscribed) return;
+
+      logger.info('Auth state changed:', { 
+        hasUser: !!firebaseUser, 
+        uid: firebaseUser?.uid,
         timestamp: new Date().toISOString()
       });
-      setUser(user);
-      setLoading(false);
-    }, (error) => {
-      logger.error('Auth state error:', error);
-      setLoading(false);
-    });
 
-    // Test the auth state immediately
-    logger.info('Current auth state:', { 
-      currentUser: auth.currentUser,
-      timestamp: new Date().toISOString()
+      try {
+        // Always set loading true when auth state changes
+        setAuthState(prev => ({ 
+          ...prev, 
+          loading: true,
+          initialized: true 
+        }));
+
+        if (firebaseUser) {
+          // Get user doc from Firestore
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          
+          const userData: User = {
+            id: firebaseUser.uid,
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            emailVerified: firebaseUser.emailVerified,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            role: userDoc.exists() ? userDoc.data()?.role || 'user' : 'user',
+            isNewUser: !userDoc.exists(),
+            createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+            lastLoginAt: firebaseUser.metadata.lastSignInTime || new Date().toISOString(),
+            metadata: userDoc.exists() ? userDoc.data()?.metadata || {} : {},
+            onboardingCompleted: userDoc.exists() ? userDoc.data()?.onboardingCompleted || false : false,
+            isAnonymous: firebaseUser.isAnonymous,
+            phoneNumber: firebaseUser.phoneNumber
+          };
+
+          logger.info('Setting complete user data:', { 
+            uid: userData.uid, 
+            email: userData.email,
+            timestamp: new Date().toISOString()
+          });
+          
+          if (!unsubscribed) {
+            setAuthState({
+              user: userData,
+              loading: false,
+              error: null,
+              initialized: true
+            });
+          }
+        } else {
+          logger.info('No firebase user, clearing auth state');
+          if (!unsubscribed) {
+            setAuthState({
+              user: null,
+              loading: false,
+              error: null,
+              initialized: true
+            });
+          }
+        }
+      } catch (error) {
+        logger.error('Error in auth state change:', error);
+        if (!unsubscribed) {
+          setAuthState({
+            user: null,
+            loading: false,
+            error: error as Error,
+            initialized: true
+          });
+        }
+      }
     });
 
     return () => {
-      logger.info('AuthProvider effect cleanup');
+      unsubscribed = true;
       unsubscribe();
-      mountedRef.current = false;
     };
   }, []);
 
-  // Add loading state logging
-  useEffect(() => {
-    logger.info('Auth loading state changed:', { loading });
-  }, [loading]);
-
-  // Add user state logging
-  useEffect(() => {
-    logger.info('Auth user state changed:', { 
-      hasUser: !!user,
-      uid: user?.uid 
-    });
-  }, [user]);
+  // Don't render children until auth is initialized
+  if (!authState.initialized) {
+    return <LoadingSpinner />;
+  }
 
   const handleError = (error: unknown) => {
     const authError: AuthError = error instanceof Error ? error : new Error('An unknown error occurred');
     if (error instanceof Error) {
       authError.type = 'auth_error';
     }
-    setError(authError);
+    setAuthState(prev => ({ ...prev, error }));
     
-    monitoring.trackError(
+    MonitoringService.getInstance().trackError(
       'auth_error',  // eventName: string
       authError,     // error: Error
       {             // metadata?: Record<string, unknown>
@@ -224,12 +196,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      logger.debug('Attempting sign in:', { email });
-      const result = await signInWithEmailAndPassword(authInstance, email, password);
-      logger.debug('Sign in successful:', { uid: result.user.uid });
+      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+      const result = await signInWithEmailAndPassword(auth, email, password);
       return result;
     } catch (error) {
-      logger.error('Sign in error:', error);
+      setAuthState(prev => ({ 
+        ...prev, 
+        loading: false,
+        error: error as Error 
+      }));
+      throw error;
+    }
+  };
+
+  const signOut = async (): Promise<void> => {
+    try {
+      logger.debug('Attempting sign out');
+      await firebaseSignOut(auth);
+      setAuthState(prev => ({ ...prev, user: null }));
+      logger.debug('Sign out successful');
+    } catch (error) {
+      logger.error('Sign out error:', error);
+      throw error;
+    }
+  };
+
+  const signUp = async (email: string, password: string) => {
+    try {
+      setAuthState(prev => ({ ...prev, loading: true, error: null }));
+      
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      const userData = {
+        email: userCredential.user.email,
+        createdAt: new Date().toISOString(),
+        role: 'user' as const,
+        isNewUser: true,
+        onboardingCompleted: false,
+        uid: userCredential.user.uid,
+        id: userCredential.user.uid,
+        displayName: null,
+        photoURL: null,
+        emailVerified: false,
+        metadata: {},
+        isAnonymous: false,
+        phoneNumber: null
+      };
+
+      await setDoc(doc(db, 'users', userCredential.user.uid), userData);
+      await auth.signOut();
+      
+      setAuthState(prev => ({ ...prev, loading: false }));
+      return userCredential;
+    } catch (error) {
+      setAuthState(prev => ({ 
+        ...prev, 
+        loading: false,
+        error: error as Error 
+      }));
       throw error;
     }
   };
@@ -238,58 +262,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Implementation
   };
 
-  const signOut = async (): Promise<void> => {
-    try {
-      logger.debug('Attempting sign out');
-      await firebaseSignOut(authInstance);
-      setUser(null);
-      logger.debug('Sign out successful');
-    } catch (error) {
-      logger.error('Sign out error:', error);
-      throw error;
-    }
-  };
-
-  const signUp = async (email: string, password: string, displayName: string) => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
-      const { user } = userCredential;
-
-      // Update display name
-      await updateProfile(user, { displayName });
-
-      // Create Firestore user document
-      await createUserDoc(user);
-
-      setUser({
-        id: user.uid,
-        email: user.email || '',
-        displayName,
-        role: 'user'
-      });
-
-    } catch (error) {
-      logger.error('Sign up error:', error);
-      throw error;
-    }
-  };
-
-  const value: IAuthContext = {
-    user,
-    userClaims,
-    loading,
-    error,
-    signIn,
-    signOut,
-    signInAnonymously: signInAnonymously!, // Assert non-null since we know it's defined
-    signUp,
-    // ... other methods
-  };
-
-  logger.info('AuthProvider render');
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user: authState.user,
+      loading: authState.loading,
+      error: authState.error,
+      initialized: authState.initialized,
+      signUp,
+      signIn,
+      signOut: () => auth.signOut()
+    }}>
       {children}
     </AuthContext.Provider>
   );

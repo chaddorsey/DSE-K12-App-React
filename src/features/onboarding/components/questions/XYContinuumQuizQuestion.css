@@ -1,0 +1,78 @@
+.xy-question {
+  margin-top: 1rem;
+}
+
+.xy-grid {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  background: var(--gray-50);
+  border: 2px solid var(--gray-200);
+  border-radius: 0.5rem;
+  cursor: crosshair;
+}
+
+.axis-labels {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.x-labels, .y-labels {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.x-labels {
+  bottom: 0.5rem;
+  left: 1rem;
+  right: 1rem;
+}
+
+.y-labels {
+  flex-direction: column;
+  justify-content: space-between;
+  top: 1rem;
+  bottom: 1rem;
+  right: 0.5rem;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.x-axis, .y-axis {
+  position: absolute;
+  background: var(--gray-300);
+}
+
+.x-axis {
+  width: 100%;
+  height: 1px;
+  top: 50%;
+}
+
+.y-axis {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+}
+
+.point {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--primary-600);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.2s;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .point {
+    transition: none;
+  }
+} 

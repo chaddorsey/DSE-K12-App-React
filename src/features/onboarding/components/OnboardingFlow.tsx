@@ -1,117 +1,153 @@
-import React, { useEffect } from 'react';
-import { useOnboardingContext } from '../OnboardingContext';
-import { MultipleChoiceQuestionComponent } from '../../questions/components/MultipleChoiceQuestion';
-import { NumericQuestionComponent } from '../../questions/components/NumericQuestion';
-import { SliderQuestionComponent } from '../../questions/components/SliderQuestion';
-import { OpenResponseQuestionComponent } from '../../questions/components/OpenResponseQuestion';
-import { logger } from '../../../utils/logger';
-import type { 
-  MultipleChoiceQuestion, 
+import React from 'react';
+import { useOnboarding } from '../OnboardingContext';
+import { 
+  Question,
+  QuestionType,
+  QuestionResponse,
+  MultipleChoiceQuestion,
+  OpenResponseQuestion,
   NumericQuestion,
   SliderQuestion,
-  OpenResponseQuestion,
-  QuestionResponse 
+  XYContinuumQuestion
 } from '../../questions/types/questions';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { ErrorMessage } from '@/components/ErrorMessage';
+import { OnboardingProgress } from './OnboardingProgress';
+import { OnboardingComplete } from './OnboardingComplete';
+import { MultipleChoiceQuizQuestion } from './questions/MultipleChoiceQuizQuestion';
+import { OpenResponseQuizQuestion } from './questions/OpenResponseQuizQuestion';
+import { NumericQuizQuestion } from './questions/NumericQuizQuestion';
+import { SliderQuizQuestion } from './questions/SliderQuizQuestion';
+import { XYContinuumQuizQuestion } from './questions/XYContinuumQuizQuestion';
+import { logger } from '@/utils/logger';
+import { useAuth } from '../../auth/AuthContext';
+import { Navigate } from 'react-router-dom';
 
-export const OnboardingFlow = () => {
-  const { state, actions } = useOnboardingContext();
-  
-  // Add debug logging
-  useEffect(() => {
-    logger.info('OnboardingFlow state:', {
-      currentIndex: state.currentQuestionIndex,
-      totalQuestions: state.selectedQuestions.length,
-      currentQuestion: state.selectedQuestions[state.currentQuestionIndex],
-      allQuestions: state.selectedQuestions
-    });
-  }, [state]);
+// Define base props interface with required showFeedback
+interface BaseQuestionProps {
+  onAnswer: (response: QuestionResponse) => void;
+  showFeedback: boolean;  // Changed to required
+}
 
-  useEffect(() => {
-    logger.info('Available components:', {
-      hasMultipleChoice: !!MultipleChoiceQuestionComponent,
-      hasNumeric: !!NumericQuestionComponent,
-      hasSlider: !!SliderQuestionComponent,
-      hasOpenResponse: !!OpenResponseQuestionComponent
-    });
-  }, []);
+// Define specific component types
+interface MCQuestionProps extends BaseQuestionProps {
+  question: MultipleChoiceQuestion;
+}
 
-  if (!state.selectedQuestions.length) {
-    return (
-      <div className="onboarding-flow">
-        <h2>Onboarding Flow</h2>
-        <button onClick={() => actions.initializeSequence()}>
-          Start Onboarding
-        </button>
-      </div>
-    );
+interface ORQuestionProps extends BaseQuestionProps {
+  question: OpenResponseQuestion;
+}
+
+interface NMQuestionProps extends BaseQuestionProps {
+  question: NumericQuestion;
+}
+
+interface SLQuestionProps extends BaseQuestionProps {
+  question: SliderQuestion;
+}
+
+interface XYQuestionProps extends BaseQuestionProps {
+  question: XYContinuumQuestion;
+}
+
+type QuestionComponentMap = {
+  [QuestionType.MC]: React.ComponentType<MCQuestionProps>;
+  [QuestionType.OP]: React.ComponentType<ORQuestionProps>;
+  [QuestionType.NM]: React.ComponentType<NMQuestionProps>;
+  [QuestionType.SLIDER]: React.ComponentType<SLQuestionProps>;
+  [QuestionType.XY]: React.ComponentType<XYQuestionProps>;
+};
+
+export const OnboardingFlow: React.FC = () => {
+  const { user } = useAuth();
+  const {
+    currentQuestion,
+    responses,
+    isComplete,
+    loading,
+    error,
+    handleResponse,
+    skipQuestion
+  } = useOnboarding();
+
+  if (!user?.uid) {
+    return <Navigate to="/login" replace />;
   }
 
-  if (state.completed) {
-    return (
-      <div className="onboarding-flow">
-        <h2>Onboarding Complete</h2>
-        <p>Thank you for completing the onboarding process!</p>
-      </div>
-    );
+  if (loading) {
+    return <LoadingSpinner />;
   }
 
-  const currentQuestion = state.selectedQuestions[state.currentQuestionIndex];
-  
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (isComplete) {
+    return <OnboardingComplete />;
+  }
+
   if (!currentQuestion) {
-    return (
-      <div className="onboarding-flow">
-        <h2>Error</h2>
-        <p>No question found. Please try again.</p>
-        <button onClick={() => actions.initializeSequence()}>
-          Restart Onboarding
-        </button>
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
-  logger.info('Rendering question:', {
-    type: currentQuestion?.type,
-    id: currentQuestion?.id,
-    text: currentQuestion?.text
-  });
-
-  const handleAnswer = (response: QuestionResponse) => {
-    actions.handleResponse(response);
-    actions.advanceToNext();
+  const components: QuestionComponentMap = {
+    [QuestionType.MC]: MultipleChoiceQuizQuestion,
+    [QuestionType.OP]: OpenResponseQuizQuestion,
+    [QuestionType.NM]: NumericQuizQuestion,
+    [QuestionType.SLIDER]: SliderQuizQuestion,
+    [QuestionType.XY]: XYContinuumQuizQuestion
   };
+
+  const getQuestionComponent = (question: Question): { Component: React.ComponentType<any>; type: QuestionType } | null => {
+    const Component = components[question.type];
+    if (!Component) {
+      logger.error('Unsupported question type:', question.type);
+      return null;
+    }
+    return { Component, type: question.type };
+  };
+
+  const questionData = getQuestionComponent(currentQuestion);
+
+  if (!questionData) {
+    return <ErrorMessage message="Unsupported question type" />;
+  }
+
+  const { Component, type } = questionData;
+
+  // Type guard to narrow the question type
+  const isMatchingQuestionType = (q: Question, t: QuestionType): q is Question & { type: typeof t } => {
+    return q.type === t;
+  };
+
+  if (!isMatchingQuestionType(currentQuestion, type)) {
+    return <ErrorMessage message="Question type mismatch" />;
+  }
 
   return (
     <div className="onboarding-flow">
-      <h2>Onboarding Flow</h2>
+      <OnboardingProgress 
+        currentIndex={responses.length} 
+        totalQuestions={responses.length + 1} 
+      />
+      
       <div className="question-container">
-        {currentQuestion.type === 'MC' && (
-          <MultipleChoiceQuestionComponent
-            question={currentQuestion as MultipleChoiceQuestion}
-            onAnswer={handleAnswer}
-          />
-        )}
-        {currentQuestion.type === 'NM' && (
-          <NumericQuestionComponent
-            question={currentQuestion as NumericQuestion}
-            onAnswer={handleAnswer}
-          />
-        )}
-        {currentQuestion.type === 'SCALE' && (
-          <SliderQuestionComponent
-            question={currentQuestion as SliderQuestion}
-            onAnswer={handleAnswer}
-          />
-        )}
-        {currentQuestion.type === 'OP' && (
-          <OpenResponseQuestionComponent
-            question={currentQuestion as OpenResponseQuestion}
-            onAnswer={handleAnswer}
-          />
-        )}
+        <Component
+          question={currentQuestion}
+          onAnswer={handleResponse}
+          showFeedback={false}
+        />
       </div>
-      <div className="progress">
-        Question {state.currentQuestionIndex + 1} of {state.selectedQuestions.length}
-      </div>
+
+      {!currentQuestion.requiredForOnboarding && (
+        <button 
+          className="skip-button"
+          onClick={skipQuestion}
+          aria-label="Skip question"
+        >
+          Skip
+        </button>
+      )}
     </div>
   );
 }; 

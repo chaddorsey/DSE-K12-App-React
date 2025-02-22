@@ -1,60 +1,80 @@
 import React, { useState } from 'react';
-import type { OpenResponseQuestion as OPQuestion } from '../types';
-import type { QuestionResponse } from '../types';
+import type { OpenResponseQuestion } from '../types/questions';
+import type { QuestionResponse } from '../types/responses';
 import './OpenResponseQuestion.css';
 
-interface OpenResponseQuestionProps {
-  question: OPQuestion;
+interface Props {
+  question: OpenResponseQuestion;
   onAnswer: (response: QuestionResponse) => void;
+  disabled?: boolean;
+  showFeedback?: boolean;
 }
 
-export const OpenResponseQuestion: React.FC<OpenResponseQuestionProps> = ({
+export const OpenResponseQuestionComponent: React.FC<Props> = ({
   question,
-  onAnswer
+  onAnswer,
+  disabled = false,
+  showFeedback = false
 }) => {
-  const [value, setValue] = useState('');
+  const [text, setText] = useState('');
+  const [interactionCount, setInteractionCount] = useState(0);
+  const startTime = React.useRef(Date.now());
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (disabled) return;
+    
+    setText(e.target.value);
+    setInteractionCount(prev => prev + 1);
+  };
 
   const handleSubmit = () => {
-    if (value.trim()) {
-      onAnswer({
-        id: `response_${question.id}`,
-        userId: 'current_user_id',
-        questionId: question.id,
-        value: {
-          type: 'OP',
-          text: value.trim()
-        },
-        correct: false,
-        metadata: {
-          timeToAnswer: 0,
-          interactionCount: 1,
-          device: {
-            type: 'browser',
-            input: 'keyboard'
-          }
-        },
-        timestamp: new Date()
-      });
-    }
+    if (!text || disabled) return;
+
+    const response: QuestionResponse = {
+      questionId: question.id,
+      value: {
+        type: 'OP',
+        text,
+        length: text.length
+      },
+      metadata: {
+        timeToAnswer: Date.now() - startTime.current,
+        interactionCount,
+        device: {
+          type: 'desktop',
+          input: 'keyboard'
+        }
+      }
+    };
+
+    onAnswer(response);
   };
 
   return (
     <div className="open-response-question">
-      <div className="question-text">{question.text}</div>
-      <div className="input-container">
+      <div className="open-prompt">{question.prompt}</div>
+      
+      <div className="open-input-container">
         <textarea
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
+          value={text}
+          onChange={handleChange}
           maxLength={question.maxLength}
-          placeholder="Enter your response..."
-          aria-label={question.text}
+          disabled={disabled}
+          placeholder="Enter your response"
+          rows={5}
         />
-        <button onClick={handleSubmit} disabled={!value.trim()}>
-          Next
-        </button>
+        <div className="character-count">
+          {text.length} / {question.maxLength}
+        </div>
       </div>
+
+      <button
+        className="submit-button"
+        onClick={handleSubmit}
+        disabled={!text || disabled}
+      >
+        Submit
+      </button>
     </div>
   );
-};
-
-export { OpenResponseQuestion as OpenResponseQuestionComponent }; 
+}; 

@@ -1,142 +1,81 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { BaseSlider } from './BaseSlider';
-import type { SegmentedSliderQuestionType, QuestionResponse } from '../types';
-import classNames from 'classnames';
+import React, { useState, useRef } from 'react';
+import type { SegmentedSliderQuestion } from '../types/questions';
+import type { QuestionResponse } from '../types/responses';
 import './SegmentedSliderQuestion.css';
 
 interface Props {
-  question: SegmentedSliderQuestionType;
+  question: SegmentedSliderQuestion;
   onAnswer: (response: QuestionResponse) => void;
-  correctAnswer?: string;
   disabled?: boolean;
-  loading?: boolean;
+  showFeedback?: boolean;
 }
 
-export const SegmentedSliderQuestion: React.FC<Props> = ({
+export const SegmentedSliderQuestionComponent: React.FC<Props> = ({
   question,
   onAnswer,
-  correctAnswer,
   disabled = false,
-  loading = false
+  showFeedback = false
 }) => {
-  const segmentCount = question.segments.length;
-  const stepSize = 100 / (segmentCount - 1);
-  
-  const [value, setValue] = useState(
-    question.defaultSegment 
-      ? (question.defaultSegment - 1) * stepSize 
-      : 50
-  );
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [selectedSegment, setSelectedSegment] = useState<number | null>(question.defaultSegment ?? null);
+  const [interactionCount, setInteractionCount] = useState(0);
+  const startTime = useRef(Date.now());
 
-  useEffect(() => {
-    setShowFeedback(false);
-    setIsCorrect(null);
-  }, [question.id]);
-
-  useEffect(() => {
-    if (correctAnswer && !showFeedback) {
-      const selectedSegment = Math.round(value / stepSize) + 1;
-      const isAnswerCorrect = selectedSegment.toString() === correctAnswer;
-      
-      setIsCorrect(isAnswerCorrect);
-      setShowFeedback(true);
-
-      if (!isAnswerCorrect && containerRef.current) {
-        containerRef.current.classList.add('shake');
-        setTimeout(() => {
-          containerRef.current?.classList.remove('shake');
-        }, 500);
-      }
-    }
-  }, [correctAnswer, value, showFeedback, stepSize]);
-
-  if (loading) {
-    return <div data-testid="question-loading">Loading...</div>;
-  }
-
-  const handleSliderChange = (newValue: number) => {
+  const handleSegmentClick = (index: number) => {
     if (disabled) return;
     
-    // Snap to nearest segment
-    const nearestSegment = Math.round(newValue / stepSize);
-    setValue(nearestSegment * stepSize);
+    setSelectedSegment(index);
+    setInteractionCount(prev => prev + 1);
   };
 
   const handleSubmit = () => {
-    const selectedSegment = Math.round(value / stepSize) + 1;
-    onAnswer({
-      questionId: question.id,
-      value: selectedSegment,
-      timestamp: Date.now()
-    });
-  };
+    if (selectedSegment === null || disabled) return;
 
-  const renderSegmentLabels = () => {
-    return question.segments.map((segment, index) => {
-      const position = index * stepSize;
-      return (
-        <div
-          key={segment.value}
-          className="segment-label"
-          style={{ left: `${position}%` }}
-        >
-          {segment.label || segment.value}
-        </div>
-      );
-    });
+    const response: QuestionResponse = {
+      questionId: question.id,
+      value: {
+        type: 'SEGMENTED',
+        selectedSegment,
+        segmentLabel: question.segments[selectedSegment].label,
+        normalizedValue: selectedSegment / (question.segments.length - 1)
+      },
+      metadata: {
+        timeToAnswer: Date.now() - startTime.current,
+        interactionCount,
+        device: {
+          type: 'desktop',
+          input: 'mouse'
+        }
+      }
+    };
+
+    onAnswer(response);
   };
 
   return (
-    <div 
-      ref={containerRef}
-      className={classNames('segmented-slider-question', {
-        'correct': showFeedback && isCorrect,
-        'incorrect': showFeedback && !isCorrect
-      })}
-    >
-      <div className="prompt">{question.prompt}</div>
-      <div className="slider-container">
-        <div className="slider-wrapper">
-          <div className="slider-track-container">
-            <BaseSlider
-              id={question.id}
-              min={0}
-              max={100}
-              step={stepSize}
-              defaultValue={value}
-              disabled={disabled}
-              onChange={handleSliderChange}
-            />
-            {showFeedback && correctAnswer && !isCorrect && (
-              <div 
-                className="correct-marker"
-                style={{ 
-                  left: `${(parseInt(correctAnswer) - 1) * stepSize}%` 
-                }}
-                title={`Correct answer: ${
-                  question.segments[parseInt(correctAnswer) - 1].label || 
-                  question.segments[parseInt(correctAnswer) - 1].value
-                }`}
-              />
-            )}
-          </div>
-          <div className="segment-markers">
-            {renderSegmentLabels()}
-          </div>
-        </div>
+    <div className="segmented-slider-question">
+      <div className="segmented-prompt">{question.prompt}</div>
+      
+      <div className="segments-container">
+        {question.segments.map((segment, index) => (
+          <button
+            key={index}
+            className={`segment ${selectedSegment === index ? 'selected' : ''}`}
+            onClick={() => handleSegmentClick(index)}
+            disabled={disabled}
+          >
+            <div className="segment-label">{segment.label}</div>
+            <div className="segment-description">{segment.description}</div>
+          </button>
+        ))}
       </div>
+
       <button
         className="submit-button"
         onClick={handleSubmit}
-        disabled={disabled}
+        disabled={selectedSegment === null || disabled}
       >
         Submit
       </button>
     </div>
   );
-};
-
-export { SegmentedSliderQuestion as SegmentedSliderQuestionComponent }; 
+}; 

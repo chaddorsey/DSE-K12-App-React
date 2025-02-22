@@ -1,0 +1,129 @@
+:root {
+  /* Primary Colors - Sapphire Theme */
+  --primary-900: #23235F; /* Deep Sapphire */
+  --primary-800: #2D2D7A;
+  --primary-700: #363694;
+  --primary-600: #4158A9; /* Sapphire */
+  --primary-500: #5169BE;
+  --primary-400: #7288CB;
+  --primary-300: #94A7D8;
+  --primary-200: #B6C3E5;
+  --primary-100: #D8DFF2;
+  --primary-50: #EBF0F9;
+
+  /* Accent Colors */
+  --accent-teal: #4FC4CA;    /* Viking */
+  --accent-pink: #D74870;    /* Cranberry */
+  --accent-green: #51BF9D;   /* Puerto Rico */
+
+  /* Gray Scale - based on Deep Sapphire */
+  --gray-900: #23235F;       /* Deep Sapphire */
+  --gray-800: #2F2F66;
+  --gray-700: #3B3B6E;
+  --gray-600: #474776;
+  --gray-500: #53537E;
+  --gray-400: #6F6F93;
+  --gray-300: #8B8BA8;
+  --gray-200: #A7A7BD;
+  --gray-100: #C3C3D2;
+  --gray-50: #F5F5F8;
+
+  /* Pure Colors */
+  --white: #FFFFFF;
+  --black: #000000;
+
+  /* Semantic Colors */
+  --success: #51BF9D;      /* Puerto Rico */
+  --error: #D74870;        /* Cranberry */
+  --info: #4FC4CA;         /* Viking */
+  --warning: #F5A623;      /* Orange */
+
+  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-display: futura-pt, Futura, 'Futura PT', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Base font styles */
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display font styles */
+h1, h2, h3, h4, h5, h6,
+.font-futura {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+/* Utility classes */
+.font-dm-sans {
+  font-family: var(--font-sans);
+}
+
+.font-futura {
+  font-family: var(--font-display);
+}
+
+/* Add specific header styles if needed */
+h1 {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+
+h2 {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--gray-50);
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dashboard {
+  padding: 2rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card {
+  padding: 1.5rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--gray-200);
+}
+
+.primary-button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: var(--primary-600);
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-decoration: none;
+}
+
+.primary-button:hover {
+  background: var(--primary-700);
+} 

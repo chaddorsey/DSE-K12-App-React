@@ -1,0 +1,65 @@
+.xy-question {
+  margin-top: 1rem;
+}
+
+.xy-grid {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  background: var(--gray-50);
+  border: 2px solid var(--gray-200);
+  border-radius: 0.5rem;
+  cursor: crosshair;
+}
+
+.x-axis, .y-axis {
+  position: absolute;
+  background: var(--gray-300);
+}
+
+.x-axis {
+  width: 100%;
+  height: 1px;
+  top: 50%;
+}
+
+.y-axis {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+}
+
+.point {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--primary-600);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.2s;
+}
+
+.correct-point {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--success-600);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+} 

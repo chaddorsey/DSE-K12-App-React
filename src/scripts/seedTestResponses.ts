@@ -1,7 +1,7 @@
 import { db } from '../config/firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import type { QuestionResponse } from '../features/questions/types/responses';
-import type { QuestionTypeString } from '../features/questions/types/questions';
+import { QuestionType } from '../features/questions/types/questions';
 import { logger } from '../utils/logger';
 
 interface SeedOptions {
@@ -19,7 +19,7 @@ const generateResponses = (userId: string, count: number): Partial<QuestionRespo
   const mcOptions = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange'];
   
   for (let i = 0; i < count; i++) {
-    const type = questionTypes[i % questionTypes.length] as QuestionTypeString;
+    const type = questionTypes[i % questionTypes.length] as QuestionType;
     const now = new Date();
     const baseResponse = {
       id: `response_${i}`,

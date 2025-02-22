@@ -1,21 +1,28 @@
-export type QuestionTypeString = 
-  | 'MC'
-  | 'OP'
-  | 'NM'
-  | 'SCALE'
-  | 'SEGMENTED_SLIDER'
-  | 'XY_CONTINUUM';
+export enum QuestionType {
+  MC = 'MC',
+  OP = 'OP',
+  NM = 'NM',
+  SLIDER = 'SLIDER',
+  XY = 'XY'
+}
 
-export type QuestionCategory = 
-  | 'GENERAL'
-  | 'TECHNICAL'
-  | 'BEHAVIORAL'
-  | 'PREFERENCES'
-  | 'BACKGROUND';
+export enum QuestionContext {
+  ONBOARDING = 'ONBOARDING',
+  QUIZ = 'QUIZ',
+  HEAD_TO_HEAD = 'HEAD_TO_HEAD'
+}
 
+export enum QuestionCategory {
+  PREFERENCES = 'PREFERENCES',
+  SKILLS = 'SKILLS',
+  PERSONALITY = 'PERSONALITY',
+  BACKGROUND = 'BACKGROUND'
+}
+
+// Base question interface
 export interface BaseQuestion {
   id: string;
-  type: QuestionTypeString;
+  type: QuestionType;
   prompt: string;
   text: string;
   label: string;
@@ -23,48 +30,35 @@ export interface BaseQuestion {
   number: number;
   requiredForOnboarding: boolean;
   includeInOnboarding: boolean;
-  correctAnswer?: string;
 }
 
+// Type-specific question interfaces
 export interface MultipleChoiceQuestion extends BaseQuestion {
-  type: 'MC';
+  type: QuestionType.MC;
   options: string[];
 }
 
 export interface OpenResponseQuestion extends BaseQuestion {
-  type: 'OP';
+  type: QuestionType.OP;
   maxLength: number;
 }
 
 export interface NumericQuestion extends BaseQuestion {
-  type: 'NM';
+  type: QuestionType.NM;
   min: number;
   max: number;
   step: number;
 }
 
 export interface SliderQuestion extends BaseQuestion {
-  type: 'SCALE';
-  leftOption: string;
-  rightOption: string;
+  type: QuestionType.SLIDER;
+  leftLabel: string;
+  rightLabel: string;
   defaultValue?: number;
 }
 
-// Update both interfaces to use the same segment type
-type Segment = {
-  value: number;
-  label?: string;
-};
-
-export interface SegmentedSliderQuestion extends BaseQuestion {
-  type: 'SEGMENTED_SLIDER';
-  segments: Segment[];
-  defaultSegment?: number;
-  correctAnswer?: string;
-}
-
 export interface XYContinuumQuestion extends BaseQuestion {
-  type: 'XY_CONTINUUM';
+  type: QuestionType.XY;
   xAxis: {
     left: string;
     right: string;
@@ -76,44 +70,24 @@ export interface XYContinuumQuestion extends BaseQuestion {
   defaultPosition?: { x: number; y: number };
 }
 
-// Update QuestionType to be a discriminated union
-export type QuestionType = 
-  | MultipleChoiceQuestion 
-  | OpenResponseQuestion 
-  | NumericQuestion 
-  | SliderQuestion 
-  | SegmentedSliderQuestion 
-  | XYContinuumQuestion;
-
-// Update QuizQuestion to extend the base types
-export interface QuizQuestion extends BaseQuestion {
-  type: QuestionTypeString;
-  correctAnswer: string;
+// Quiz-specific question interface
+export interface QuizQuestion {
+  id: string;
+  type: QuestionType;
+  prompt: string;
+  text: string;
+  label: string;
+  category: QuestionCategory;
+  number: number;
+  correctAnswer?: string;
   distractors?: string[];
-  options?: string[];
-  maxLength?: number;
-  min?: number;
-  max?: number;
-  step?: number;
-  leftOption?: string;
-  rightOption?: string;
-  defaultValue?: number;
-  defaultSegment?: number;
-  defaultPosition?: { x: number; y: number };
-  segments?: Segment[];  // Use the same type
-  xAxis?: {
-    left: string;
-    right: string;
-  };
-  yAxis?: {
-    top: string;
-    bottom: string;
-  };
+  explanation?: string;
+  points?: number;
 }
 
-// Add context type
-export interface QuestionContextValue {
-  experience: 'ONBOARDING' | 'QUIZ' | 'HEAD_TO_HEAD';
+// Question context configuration
+export interface QuestionContextConfig {
+  experience: QuestionContext;
   mode?: 'PRACTICE' | 'COMPETITION';
   subjectId?: string;
   timeLimit?: number;
@@ -122,18 +96,58 @@ export interface QuestionContextValue {
   trackProgress: boolean;
 }
 
-// Update the Question type to be a single union type
+// Response types
+export interface ResponseMetadata {
+  timeToAnswer: number;
+  interactionCount: number;
+  device: {
+    type: 'desktop' | 'mobile' | 'tablet';
+    input: 'mouse' | 'touch' | 'keyboard';
+  };
+}
+
+export interface BaseResponse {
+  id: string;
+  questionId: string;
+  userId: string;
+  timestamp: Date;
+  metadata: ResponseMetadata;
+  context: QuestionContext;
+}
+
+export interface QuestionValue {
+  type: QuestionType;
+  selectedOption?: string;
+  position?: number;
+  coordinates?: { x: number; y: number };
+  segment?: number;
+}
+
+export interface OnboardingResponse extends BaseResponse {
+  context: QuestionContext.ONBOARDING;
+  value: QuestionValue;
+}
+
+export interface QuizResponse extends BaseResponse {
+  context: QuestionContext.QUIZ;
+  value: QuestionValue;
+  targetUserId: string;
+  isCorrect?: boolean;
+  points?: number;
+}
+
+// Update the Question type to be a discriminated union
 export type Question = 
   | MultipleChoiceQuestion 
   | OpenResponseQuestion 
   | NumericQuestion 
   | SliderQuestion 
-  | SegmentedSliderQuestion 
-  | XYContinuumQuestion
-  | QuizQuestion;
+  | XYContinuumQuestion;
 
-// Add these exports
-export type { 
-  QuestionResponse,
-  QuizResponse 
-} from './responses'; 
+export type QuestionResponse = OnboardingResponse | QuizResponse;
+
+// Remove these lines since they're causing conflicts
+// export type { 
+//   QuestionResponse,
+//   QuizResponse 
+// } from './responses'; 

@@ -1,168 +1,80 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { OnboardingFlow } from '../OnboardingFlow';
-import { OnboardingProvider } from '../../context/OnboardingContext';
-import { QuestionBankProvider } from '../../../questions/context/QuestionBankContext';
+import { useOnboarding } from '../../OnboardingContext';
+import { QuestionType, QuestionCategory } from '../../../questions/types/questions';
 
-const mockQuestions = [
-  {
-    id: 'q1',
-    type: 'MC',
-    text: 'Test MC Question',
-    label: 'test_mc',
-    category: 'PERSONALITY',
-    number: 1,
-    options: ['Option 1', 'Option 2'],
-    requiredForOnboarding: true
-  },
-  {
-    id: 'q2',
-    type: 'OP',
-    text: 'Test Open Question',
-    label: 'test_op',
-    category: 'INTERESTS',
-    number: 2,
-    maxLength: 500,
-    includeInOnboarding: true
-  }
-];
-
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <QuestionBankProvider initialQuestions={mockQuestions}>
-    <OnboardingProvider questions={mockQuestions}>
-      {children}
-    </OnboardingProvider>
-  </QuestionBankProvider>
-);
+jest.mock('../../OnboardingContext');
 
 describe('OnboardingFlow', () => {
-  it('shows progress bar', () => {
-    render(<OnboardingFlow />, { wrapper });
-    const progressBar = screen.getByRole('progressbar');
-    expect(progressBar).toBeInTheDocument();
-  });
+  const mockQuestion = {
+    id: 'q1',
+    type: QuestionType.MC,
+    prompt: 'Test question?',
+    text: 'Test question?',
+    label: 'Test',
+    category: QuestionCategory.PREFERENCES,
+    options: ['A', 'B', 'C'],
+    number: 1,
+    requiredForOnboarding: true,
+    includeInOnboarding: true
+  };
 
-  it('renders multiple choice question', () => {
-    render(<OnboardingFlow />, { wrapper });
-    expect(screen.getByText('Test MC Question')).toBeInTheDocument();
-    expect(screen.getByText('Option 1')).toBeInTheDocument();
-  });
+  const mockHandleResponse = jest.fn();
+  const mockSkipQuestion = jest.fn();
 
-  it('handles question answers', () => {
-    render(<OnboardingFlow />, { wrapper });
-    fireEvent.click(screen.getByText('Option 1'));
-    expect(screen.getByText('Test Open Question')).toBeInTheDocument();
-  });
-
-  it('shows skip button for optional questions', async () => {
-    render(<OnboardingFlow />, { wrapper });
-    // Answer first required question
-    fireEvent.click(screen.getByText('Option 1'));
-    // Second question is optional
-    const skipButton = screen.getByText('Skip this question');
-    expect(skipButton).toBeInTheDocument();
-  });
-
-  it('shows completion message', () => {
-    render(<OnboardingFlow />, { wrapper });
-    // Complete all questions
-    fireEvent.click(screen.getByText('Option 1'));
-    fireEvent.click(screen.getByText('Skip this question'));
-    expect(screen.getByText(/Welcome aboard/)).toBeInTheDocument();
-  });
-
-  it('renders numeric question', () => {
-    const numericQuestions = [
-      {
-        id: 'num1',
-        type: 'NM',
-        text: 'Test Numeric Question',
-        label: 'test_num',
-        category: 'DEMOGRAPHIC',
-        number: 1,
-        min: 0,
-        max: 100,
-        requiredForOnboarding: true
-      }
-    ];
-
-    render(<OnboardingFlow />, { 
-      wrapper: ({ children }) => (
-        <QuestionBankProvider initialQuestions={numericQuestions}>
-          <OnboardingProvider questions={numericQuestions}>
-            {children}
-          </OnboardingProvider>
-        </QuestionBankProvider>
-      )
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useOnboarding as jest.Mock).mockReturnValue({
+      currentQuestion: mockQuestion,
+      currentQuestionComponent: () => <div>Mock Question Component</div>,
+      responses: [],
+      isComplete: false,
+      loading: false,
+      error: null,
+      handleResponse: mockHandleResponse,
+      skipQuestion: mockSkipQuestion
     });
-
-    expect(screen.getByText('Test Numeric Question')).toBeInTheDocument();
-    expect(screen.getByRole('spinbutton')).toBeInTheDocument();
   });
 
-  it('handles numeric responses', () => {
-    const numericQuestions = [
-      {
-        id: 'num1',
-        type: 'NM',
-        text: 'How many?',
-        label: 'test_num',
-        category: 'DEMOGRAPHIC',
-        number: 1,
-        min: 0,
-        max: 100,
-        requiredForOnboarding: true
-      }
-    ];
-
-    render(<OnboardingFlow />, { 
-      wrapper: ({ children }) => (
-        <QuestionBankProvider initialQuestions={numericQuestions}>
-          <OnboardingProvider questions={numericQuestions}>
-            {children}
-          </OnboardingProvider>
-        </QuestionBankProvider>
-      )
-    });
-
-    const input = screen.getByRole('spinbutton');
-    fireEvent.change(input, { target: { value: '42' } });
-    fireEvent.blur(input);
-
-    expect(screen.getByText(/Welcome aboard/)).toBeInTheDocument();
+  it('renders question component when available', () => {
+    render(<OnboardingFlow />);
+    expect(screen.getByText('Mock Question Component')).toBeInTheDocument();
   });
 
-  it('renders slider question', () => {
-    const sliderQuestions = [
-      {
-        id: 'scale1',
-        type: 'SCALE',
-        text: 'Rate your experience',
-        label: 'experience_rating',
-        category: 'FEEDBACK',
-        number: 1,
-        min: 1,
-        max: 5,
-        step: 1,
-        labels: {
-          min: 'Poor',
-          max: 'Excellent'
-        },
-        requiredForOnboarding: true
-      }
-    ];
-
-    render(<OnboardingFlow />, { 
-      wrapper: ({ children }) => (
-        <QuestionBankProvider initialQuestions={sliderQuestions}>
-          <OnboardingProvider questions={sliderQuestions}>
-            {children}
-          </OnboardingProvider>
-        </QuestionBankProvider>
-      )
+  it('shows loading spinner when loading', () => {
+    (useOnboarding as jest.Mock).mockReturnValue({
+      loading: true
     });
+    render(<OnboardingFlow />);
+    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+  });
 
-    expect(screen.getByText('Rate your experience')).toBeInTheDocument();
-    expect(screen.getByRole('slider')).toBeInTheDocument();
+  it('shows error message when error occurs', () => {
+    (useOnboarding as jest.Mock).mockReturnValue({
+      error: 'Test error'
+    });
+    render(<OnboardingFlow />);
+    expect(screen.getByText('Test error')).toBeInTheDocument();
+  });
+
+  it('shows completion screen when complete', () => {
+    (useOnboarding as jest.Mock).mockReturnValue({
+      isComplete: true
+    });
+    render(<OnboardingFlow />);
+    expect(screen.getByTestId('onboarding-complete')).toBeInTheDocument();
+  });
+
+  it('allows skipping non-required questions', () => {
+    (useOnboarding as jest.Mock).mockReturnValue({
+      currentQuestion: { ...mockQuestion, requiredForOnboarding: false },
+      currentQuestionComponent: () => <div>Mock Question Component</div>,
+      skipQuestion: mockSkipQuestion
+    });
+    
+    render(<OnboardingFlow />);
+    fireEvent.click(screen.getByText('Skip'));
+    expect(mockSkipQuestion).toHaveBeenCalled();
   });
 }); 

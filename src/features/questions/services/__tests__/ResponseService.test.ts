@@ -11,9 +11,12 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import type { XYValue, QuestionResponse, Device, MultipleChoiceValue } from '../../types';
+import { QuestionType, QuestionContext } from '../../types/questions';
+
+jest.mock('../../../../config/firebase');
 
 describe('ResponseService', () => {
-  let service: ResponseService;
+  let responseService: ResponseService;
 
   const mockDevice: Device = {
     type: 'desktop' as const,
@@ -51,13 +54,33 @@ describe('ResponseService', () => {
     ]
   };
 
+  const mockResponse = {
+    id: 'resp1',
+    questionId: 'q1',
+    userId: 'user1',
+    context: QuestionContext.ONBOARDING,
+    value: {
+      type: QuestionType.MC,
+      selectedOption: 'A'
+    },
+    metadata: {
+      timeToAnswer: 1000,
+      interactionCount: 1,
+      device: {
+        type: 'desktop' as const,
+        input: 'mouse' as const
+      }
+    },
+    timestamp: new Date()
+  };
+
   beforeEach(() => {
-    service = new ResponseService();
+    responseService = new ResponseService(db);
   });
 
   describe('Response Submission', () => {
     it('submits multiple choice response and updates metrics', async () => {
-      const response = await service.submitResponse(
+      const response = await responseService.submitResponse(
         'test-user',
         'test-question',
         mockMultipleChoiceValue,
@@ -78,7 +101,7 @@ describe('ResponseService', () => {
         coordinates: { x: 0.75, y: 0.25 }
       };
 
-      const response = await service.submitResponse(
+      const response = await responseService.submitResponse(
         'test-user',
         'test-xy-question',
         topRightXYValue,
@@ -103,7 +126,7 @@ describe('ResponseService', () => {
         coordinates: { x: 0.1, y: 0.9 }
       };
 
-      await service.submitResponse(
+      await responseService.submitResponse(
         'test-user',
         'test-xy-question',
         topLeftXYValue,
@@ -126,7 +149,7 @@ describe('ResponseService', () => {
         ]
       };
 
-      await service.submitResponse(
+      await responseService.submitResponse(
         'test-user',
         'test-xy-question',
         interactiveXYValue,
@@ -153,7 +176,7 @@ describe('ResponseService', () => {
       };
 
       await expect(
-        service.submitResponse('test-user', 'test-question', invalidValue, mockMetadata)
+        responseService.submitResponse('test-user', 'test-question', invalidValue, mockMetadata)
       ).rejects.toThrow();
     });
 
@@ -164,8 +187,48 @@ describe('ResponseService', () => {
       });
 
       await expect(
-        service.submitResponse('test-user', 'test-question', mockXYValue, mockMetadata)
+        responseService.submitResponse('test-user', 'test-question', mockXYValue, mockMetadata)
       ).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('saveResponse', () => {
+    it('saves response and updates metrics in transaction', async () => {
+      const mockTransaction = {
+        set: jest.fn(),
+        get: jest.fn().mockResolvedValue({ exists: () => false }),
+        update: jest.fn()
+      };
+
+      const mockRunTransaction = jest.fn().mockImplementation(async (db, callback) => {
+        return callback(mockTransaction);
+      });
+
+      (db as any).runTransaction = mockRunTransaction;
+
+      await responseService.saveResponse(mockResponse);
+
+      expect(mockTransaction.set).toHaveBeenCalledTimes(2); // Response and metrics
+      expect(mockRunTransaction).toHaveBeenCalled();
+    });
+  });
+
+  describe('getResponsesByContext', () => {
+    it('queries responses by user and context', async () => {
+      const mockDocs = [
+        { id: 'resp1', data: () => mockResponse }
+      ];
+      const mockQuery = jest.fn().mockReturnValue({});
+      const mockGetDocs = jest.fn().mockResolvedValue({ docs: mockDocs });
+
+      (db.collection as jest.Mock).mockReturnValue({ query: mockQuery });
+      (query as unknown as jest.Mock).mockReturnValue({ getDocs: mockGetDocs });
+
+      const responses = await responseService.getResponsesByContext('user1', QuestionContext.ONBOARDING);
+
+      expect(responses.length).toBe(1);
+      expect(responses[0].id).toBe('resp1');
+      expect(where).toHaveBeenCalledWith('context', '==', QuestionContext.ONBOARDING);
     });
   });
 }); 

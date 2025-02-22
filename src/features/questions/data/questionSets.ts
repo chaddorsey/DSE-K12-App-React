@@ -1,31 +1,29 @@
-import type { Question } from '../types/questions';
+import { QuestionType, QuestionCategory } from '../types/questions';
 
-export const standardQuestions: Question[] = [
+export const standardQuestions = [
   {
     id: 'std1',
-    type: 'MC',
+    type: QuestionType.MC,
     prompt: 'What brings you here today?',
     options: ['Learning', 'Career Growth', 'Curiosity', 'Other'],
     text: 'What brings you here today?',
     label: '',
-    category: 'GENERAL',
+    category: QuestionCategory.GENERAL,
     number: 1,
     requiredForOnboarding: true,
     includeInOnboarding: true
   },
   {
     id: 'std2',
-    type: 'SCALE',
-    prompt: 'How do you prefer to balance theory and practice?',
-    leftOption: 'Pure Theory',
-    rightOption: 'Pure Practice',
-    defaultValue: 0.5,
-    text: 'How do you prefer to balance theory and practice?',
+    type: QuestionType.OP,
+    prompt: 'What are your main goals?',
+    maxLength: 500,
+    text: 'What are your main goals?',
     label: '',
-    category: 'PREFERENCES',
-    number: 2,
-    requiredForOnboarding: true,
-    includeInOnboarding: true
+    category: QuestionCategory.PREFERENCES,
+    number: 1,
+    requiredForOnboarding: false,
+    includeInOnboarding: false
   },
   {
     id: 'std3',
@@ -49,7 +47,7 @@ export const standardQuestions: Question[] = [
   }
 ];
 
-export const questionPool: Question[] = [
+export const questionPool = [
   {
     id: 'pool1',
     type: 'MC',

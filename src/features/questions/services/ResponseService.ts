@@ -23,8 +23,11 @@ import type {
   ResponseValue,
   ResponseMetrics,
   XYResponseValue,
-  QuizResponse
-} from '../types/responses';
+  QuizResponse,
+  OnboardingResponse,
+  QuestionContext,
+  QuestionType
+} from '../types/questions';
 import type { Firestore } from '@firebase/firestore';
 
 interface GridCell {
@@ -37,31 +40,34 @@ export class ResponseService {
   private readonly responsesRef = collection(db, 'responses');
   private readonly metricsRef = collection(db, 'response_metrics');
   private readonly COLLECTION_NAME = 'responses';
+  private readonly METRICS_COLLECTION = 'response_metrics';
 
   constructor(private readonly firestore: Firestore) {}
 
-  async saveResponse(response: QuestionResponse | QuizResponse): Promise<QuestionResponse | QuizResponse> {
-    // Validate required fields
-    if (!this.isValidResponse(response)) {
-      throw new Error('Invalid response data');
-    }
-
-    try {
-      const responsesRef = collection(this.firestore, this.COLLECTION_NAME);
-      const docRef = await addDoc(responsesRef, {
+  async saveResponse(response: QuestionResponse): Promise<QuestionResponse> {
+    return runTransaction(this.firestore, async transaction => {
+      // Save response
+      const responseRef = doc(this.responsesRef);
+      transaction.set(responseRef, {
         ...response,
-        timestamp: response.timestamp || Date.now()
+        timestamp: serverTimestamp()
       });
 
-      // Return the saved response with its ID
+      // Update metrics
+      const metricsRef = doc(this.metricsRef, response.questionId);
+      const metricsDoc = await transaction.get(metricsRef);
+
+      if (!metricsDoc.exists()) {
+        transaction.set(metricsRef, this.initializeMetrics(response));
+      } else {
+        transaction.update(metricsRef, this.calculateMetricsUpdate(response));
+      }
+
       return {
         ...response,
-        id: docRef.id
+        id: responseRef.id
       };
-    } catch (error) {
-      console.error('Error saving response:', error);
-      throw new Error('Failed to save response');
-    }
+    });
   }
 
   async getResponsesBySession(sessionId: string): Promise<(QuestionResponse | QuizResponse)[]> {
@@ -80,19 +86,19 @@ export class ResponseService {
     }
   }
 
-  async getResponsesByUser(userId: string): Promise<(QuestionResponse | QuizResponse)[]> {
+  async getResponsesByUser(userId: string): Promise<QuestionResponse[]> {
     try {
       const responsesRef = collection(this.firestore, this.COLLECTION_NAME);
       const q = query(responsesRef, where('userId', '==', userId));
-      const querySnapshot = await getDocs(q);
-
-      return querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id
-      })) as (QuestionResponse | QuizResponse)[];
+      const snapshot = await getDocs(q);
+      
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as QuestionResponse));
     } catch (error) {
-      console.error('Error getting responses by user:', error);
-      throw new Error('Failed to get responses');
+      console.error('Error fetching user responses:', error);
+      throw error;
     }
   }
 
@@ -108,7 +114,7 @@ export class ResponseService {
   }
 
   async submitResponse(response: QuestionResponse): Promise<string> {
-    return runTransaction(db, async (transaction) => {
+    return runTransaction(this.firestore, async (transaction) => {
       // Create response document
       const responseRef = doc(this.responsesRef);
       
@@ -137,7 +143,7 @@ export class ResponseService {
     const responseIds: string[] = [];
 
     for (const batchResponses of batches) {
-      const batch = writeBatch(db);
+      const batch = writeBatch(this.firestore);
       
       for (const response of batchResponses) {
         const responseRef = doc(this.responsesRef);
@@ -166,36 +172,73 @@ export class ResponseService {
     }, [[]] as T[][]);
   }
 
-  private initializeMetrics(response: QuestionResponse) {
-    // Initialize metrics document
-    return {
+  private initializeMetrics(response: QuestionResponse): ResponseMetrics {
+    const baseMetrics = {
+      questionId: response.questionId,
       totalResponses: 1,
+      averageTimeToAnswer: response.metadata.timeToAnswer,
       lastUpdated: serverTimestamp()
     };
+
+    // Add type-specific metrics
+    switch (response.value.type) {
+      case QuestionType.MC:
+        return {
+          ...baseMetrics,
+          optionDistribution: {
+            [response.value.selectedOption]: 1
+          }
+        };
+
+      case QuestionType.XY:
+        return {
+          ...baseMetrics,
+          quadrantDistribution: {
+            [this.getQuadrant(response.value.position)]: 1
+          }
+        };
+
+      default:
+        return baseMetrics;
+    }
   }
 
   private calculateMetricsUpdate(response: QuestionResponse) {
-    // Calculate metrics update
-    return {
+    const baseUpdate = {
       totalResponses: increment(1),
       lastUpdated: serverTimestamp()
     };
+
+    // Add type-specific updates
+    switch (response.value.type) {
+      case QuestionType.MC:
+        return {
+          ...baseUpdate,
+          [`optionDistribution.${response.value.selectedOption}`]: increment(1)
+        };
+
+      case QuestionType.XY:
+        return {
+          ...baseUpdate,
+          [`quadrantDistribution.${this.getQuadrant(response.value.position)}`]: increment(1)
+        };
+
+      default:
+        return baseUpdate;
+    }
   }
 
-  private async updateMetrics(questionId: string, value: ResponseValue): Promise<void> {
-    const metricRef = doc(this.metricsRef, questionId);
-    const metricDoc = await getDoc(metricRef);
-
-    if (!metricDoc.exists()) {
-      await this.initializeMetrics(questionId);
-    }
-
-    // Update metrics based on response type
-    if (value.type === 'MULTIPLE_CHOICE') {
-      await this.updateMultipleChoiceMetrics(metricRef, value);
-    } else if (value.type === 'XY') {
-      await this.updateXYMetrics(metricRef, value);
-    }
+  private async updateMetrics(response: QuestionResponse) {
+    const metricsRef = collection(this.firestore, this.METRICS_COLLECTION);
+    
+    await runTransaction(this.firestore, async transaction => {
+      // Update metrics based on response context
+      if (response.context === QuestionContext.QUIZ) {
+        // Update quiz-specific metrics
+      } else if (response.context === QuestionContext.ONBOARDING) {
+        // Update onboarding metrics
+      }
+    });
   }
 
   private async initializeMetrics(
@@ -314,5 +357,24 @@ export class ResponseService {
     // Implement the mapping logic based on the structure of your response document
     // This is a placeholder and should be replaced with the actual implementation
     return responseDoc.data() as QuestionResponse;
+  }
+
+  async getResponsesByContext(userId: string, context: QuestionContext): Promise<QuestionResponse[]> {
+    const q = query(
+      collection(this.firestore, this.COLLECTION_NAME),
+      where('userId', '==', userId),
+      where('context', '==', context)
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as QuestionResponse));
+  }
+
+  async getResponseMetrics(questionId: string): Promise<ResponseMetrics> {
+    const metricsDoc = await getDoc(doc(this.firestore, this.METRICS_COLLECTION, questionId));
+    return metricsDoc.data() as ResponseMetrics;
   }
 } 

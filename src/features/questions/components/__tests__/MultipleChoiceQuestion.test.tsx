@@ -1,88 +1,81 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MultipleChoiceQuestion } from '../MultipleChoiceQuestion';
+import { MultipleChoiceQuestionComponent } from '../MultipleChoiceQuestion';
 import type { MultipleChoiceQuestionType } from '../../types';
 import { AccessibilityProvider } from '../../../accessibility/context/AccessibilityContext';
+import { QuestionType } from '../../types/questions';
 
 describe('MultipleChoiceQuestion', () => {
-  const mockQuestion: MultipleChoiceQuestionType = {
+  const mockQuestion = {
     id: 'q1',
-    type: 'MULTIPLE_CHOICE',
-    prompt: 'What is your favorite color?',
-    options: ['Red', 'Blue', 'Green'],
+    type: QuestionType.MC,
+    prompt: 'Test question?',
+    text: 'Test question?',
+    label: 'Test',
+    options: ['A', 'B', 'C'],
+    number: 1,
+    requiredForOnboarding: true,
+    includeInOnboarding: true
   };
 
   const mockOnAnswer = jest.fn();
 
   beforeEach(() => {
-    mockOnAnswer.mockClear();
+    jest.clearAllMocks();
   });
 
-  it('renders the question prompt', () => {
+  it('renders question prompt and options', () => {
     render(
-      <MultipleChoiceQuestion
+      <MultipleChoiceQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
-    
+
     expect(screen.getByText(mockQuestion.prompt)).toBeInTheDocument();
-  });
-
-  it('renders all options as buttons', () => {
-    render(
-      <MultipleChoiceQuestion
-        question={mockQuestion}
-        onAnswer={mockOnAnswer}
-      />
-    );
-    
     mockQuestion.options.forEach(option => {
-      expect(screen.getByRole('button', { name: option })).toBeInTheDocument();
+      expect(screen.getByText(option)).toBeInTheDocument();
     });
   });
 
-  it('calls onAnswer with selected option', () => {
+  it('handles option selection and submission', () => {
     render(
-      <MultipleChoiceQuestion
+      <MultipleChoiceQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
+
+    const option = screen.getByText('A');
+    fireEvent.click(option);
     
-    fireEvent.click(screen.getByRole('button', { name: 'Blue' }));
-    
-    expect(mockOnAnswer).toHaveBeenCalledWith({
-      questionId: mockQuestion.id,
-      answer: 'Blue',
-      timestamp: expect.any(Number)
-    });
+    const submitButton = screen.getByText('Submit');
+    fireEvent.click(submitButton);
+
+    expect(mockOnAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionId: mockQuestion.id,
+        value: {
+          type: 'MC',
+          selectedOption: 'A'
+        }
+      })
+    );
   });
 
-  it('disables all options when disabled prop is true', () => {
+  it('disables interaction when disabled prop is true', () => {
     render(
-      <MultipleChoiceQuestion
+      <MultipleChoiceQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
         disabled={true}
       />
     );
-    
-    mockQuestion.options.forEach(option => {
-      expect(screen.getByRole('button', { name: option })).toBeDisabled();
-    });
-  });
 
-  it('shows loading state when loading prop is true', () => {
-    render(
-      <MultipleChoiceQuestion
-        question={mockQuestion}
-        onAnswer={mockOnAnswer}
-        loading={true}
-      />
-    );
-    
-    expect(screen.getByTestId('question-loading')).toBeInTheDocument();
+    const options = screen.getAllByRole('button');
+    options.forEach(option => {
+      expect(option).toBeDisabled();
+    });
   });
 });
 
@@ -103,7 +96,7 @@ describe('MultipleChoiceQuestion Accessibility', () => {
 
   it('supports keyboard navigation between options', () => {
     renderWithA11y(
-      <MultipleChoiceQuestion 
+      <MultipleChoiceQuestionComponent 
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
@@ -127,7 +120,7 @@ describe('MultipleChoiceQuestion Accessibility', () => {
 
   it('allows selection with Space and Enter keys', () => {
     renderWithA11y(
-      <MultipleChoiceQuestion 
+      <MultipleChoiceQuestionComponent 
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
@@ -156,7 +149,7 @@ describe('MultipleChoiceQuestion Accessibility', () => {
 
   it('handles Escape key to clear selection', () => {
     renderWithA11y(
-      <MultipleChoiceQuestion 
+      <MultipleChoiceQuestionComponent 
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
@@ -175,7 +168,7 @@ describe('MultipleChoiceQuestion Accessibility', () => {
 
   it('maintains proper ARIA attributes', () => {
     renderWithA11y(
-      <MultipleChoiceQuestion 
+      <MultipleChoiceQuestionComponent 
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />

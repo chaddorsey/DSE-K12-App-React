@@ -2,10 +2,11 @@ export type UserRole = 'user' | 'admin';
 
 export interface User {
   id: string;
-  uid?: string;
+  uid: string;
   email: string | null;
   emailVerified: boolean;
   role: UserRole;
+  isNewUser: boolean;
   displayName: string | null;
   photoURL: string | null;
   createdAt: string;
@@ -84,6 +85,7 @@ export interface AuthContextType {
   user: User | null;
   userClaims: { role?: string } | null;
   loading: boolean;
+  error: Error | null;
   signIn: (email: string, password: string) => Promise<UserCredential>;
   signOut: () => Promise<void>;
 } 

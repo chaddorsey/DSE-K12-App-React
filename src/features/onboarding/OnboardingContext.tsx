@@ -1,449 +1,250 @@
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useState } from 'react';
-import type { 
-  Question, 
+import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode, useState } from 'react';
+import { QuestionService } from '../questions/services/QuestionService';
+import { ResponseService } from '../questions/services/ResponseService';
+import { OnboardingService } from './services/OnboardingService';
+import { QuestionFactory } from '../questions/services/QuestionFactory';
+import { db } from '@/config/firebase';
+import { 
+  Question,
   QuestionResponse,
-  MultipleChoiceQuestion,
-  OpenResponseQuestion,
-  NumericQuestion,
-  SliderQuestion,
-  QuestionTypeString,
+  QuestionContext,
   QuestionCategory
 } from '../questions/types/questions';
-import { db } from '../../config/firebase';
-import { doc, setDoc, collection, arrayUnion, getDocs, query, where, getDoc } from 'firebase/firestore';
 import { useAuth } from '../auth/AuthContext';
-import { logger } from '../../utils/logger';
-import { Link, useNavigate } from 'react-router-dom';
-import { OnboardingComplete } from './components/OnboardingComplete';
+import { logger } from '@/utils/logger';
+import { questionPool } from '../questions/data/rawQuestions';
+import { useNavigate } from 'react-router-dom';
 
 interface OnboardingState {
-  sessionId: string;
-  selectedQuestions: Question[];
+  sessionId: string | null;
+  questions: Question[];
   currentQuestionIndex: number;
   responses: QuestionResponse[];
   completed: boolean;
+  loading: boolean;
+  error: string | null;
 }
 
 interface OnboardingContextValue {
-  state: OnboardingState;
-  actions: {
-    initializeSequence: () => Promise<void>;
-    handleResponse: (response: QuestionResponse) => void;
-    advanceToNext: () => void;
-  };
+  currentQuestion: Question | null;
+  currentQuestionComponent: React.ComponentType<any> | null;
+  responses: QuestionResponse[];
+  isComplete: boolean;
   loading: boolean;
-  hasCompletedOnboarding: boolean;
+  error: string | null;
+  handleResponse: (response: QuestionResponse) => Promise<void>;
+  skipQuestion: () => void;
+  resetOnboarding: () => void;
 }
 
 const initialState: OnboardingState = {
-  sessionId: '',
-  selectedQuestions: [],
+  sessionId: null,
+  questions: [],
   currentQuestionIndex: 0,
   responses: [],
-  completed: false
+  completed: false,
+  loading: true,
+  error: null
 };
 
 type OnboardingAction = 
-  | { type: 'INITIALIZE'; payload: OnboardingState }
-  | { type: 'HANDLE_RESPONSE'; payload: QuestionResponse }
-  | { type: 'ADVANCE_TO_NEXT' };
+  | { type: 'SET_SESSION'; payload: { id: string; questions: Question[] } }
+  | { type: 'ADD_RESPONSE'; payload: QuestionResponse }
+  | { type: 'SKIP_QUESTION' }
+  | { type: 'SET_ERROR'; payload: string }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'RESET' };
 
 function onboardingReducer(state: OnboardingState, action: OnboardingAction): OnboardingState {
-  logger.info('Reducer called with:', { action, currentState: state });
-  
+  logger.debug('Onboarding reducer:', { action, currentState: state });
+
   switch (action.type) {
-    case 'INITIALIZE': {
-      logger.info('Initializing state with:', action.payload);
-      return action.payload;
-    }
-    case 'HANDLE_RESPONSE': {
-      const newState = {
+    case 'SET_SESSION':
+      return {
         ...state,
-        responses: [...state.responses, action.payload]
+        sessionId: action.payload.id,
+        questions: action.payload.questions,
+        loading: false
       };
-      logger.debug('Handling response:', { 
-        response: action.payload, 
-        newState 
-      });
-      return newState;
-    }
-    case 'ADVANCE_TO_NEXT': {
-      const nextIndex = state.currentQuestionIndex + 1;
-      const isCompleted = nextIndex >= state.selectedQuestions.length;
-      
-      const newState = {
+
+    case 'ADD_RESPONSE':
+      const newResponses = [...state.responses, action.payload];
+      return {
         ...state,
-        currentQuestionIndex: isCompleted ? state.currentQuestionIndex : nextIndex,
-        completed: isCompleted
+        responses: newResponses,
+        currentQuestionIndex: state.currentQuestionIndex + 1,
+        completed: state.currentQuestionIndex + 1 === state.questions.length
       };
-      
-      logger.debug('Advancing to next:', { 
-        nextIndex, 
-        isCompleted, 
-        newState 
-      });
-      return newState;
-    }
+
+    case 'SKIP_QUESTION':
+      return {
+        ...state,
+        currentQuestionIndex: state.currentQuestionIndex + 1,
+        completed: state.currentQuestionIndex + 1 === state.questions.length
+      };
+
+    case 'SET_ERROR':
+      return {
+        ...state,
+        error: action.payload,
+        loading: false
+      };
+
+    case 'SET_LOADING':
+      return {
+        ...state,
+        loading: action.payload
+      };
+
+    case 'RESET':
+      return initialState;
+
     default:
       return state;
   }
 }
 
-const OnboardingContext = createContext<OnboardingContextValue | undefined>(undefined);
-
 interface OnboardingProviderProps {
-  children: React.ReactNode;
-  standardQuestions: Question[];
-  questionPool: Question[];
+  children: ReactNode;
+  questions: Question[];
+  additionalQuestions: Question[];
 }
 
-// Update the interface to use a more specific type for stored questions
-interface StoredQuestion {
-  id: string;
-  type: QuestionTypeString;
-  prompt: string;
-  text: string;
-  label: string;
-  category: QuestionCategory;
-  number: number;
-  requiredForOnboarding: boolean;
-  includeInOnboarding: boolean;
-  correctAnswer: string | null;
-  options?: string[];
-  maxLength?: number;
-  min?: number;
-  max?: number;
-  step?: number;
-  leftOption?: string;
-  rightOption?: string;
-}
+export const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
-interface OnboardingSession {
-  id: string;
-  userId: string;
-  selectedQuestions: StoredQuestion[];  // Use StoredQuestion instead of Question
-  responses: QuestionResponse[];
-  currentQuestionIndex: number;
-  completed: boolean;
-  startedAt: string;
-  completedAt?: string;
-}
-
-// Add this helper function at the top of the file
-const sanitizeQuestionForFirestore = (question: Question) => {
-  // Base properties that all questions have
-  const base = {
-    id: question.id,
-    type: question.type,
-    prompt: question.prompt,
-    text: question.text,
-    label: question.label,
-    category: question.category,
-    number: question.number,
-    requiredForOnboarding: question.requiredForOnboarding,
-    includeInOnboarding: question.includeInOnboarding,
-    correctAnswer: question.correctAnswer || null
-  };
-
-  // Add type-specific properties
-  switch (question.type) {
-    case 'MC':
-      return {
-        ...base,
-        options: (question as MultipleChoiceQuestion).options
-      };
-    case 'OP':
-      return {
-        ...base,
-        maxLength: (question as OpenResponseQuestion).maxLength
-      };
-    case 'NM':
-      return {
-        ...base,
-        min: (question as NumericQuestion).min,
-        max: (question as NumericQuestion).max,
-        step: (question as NumericQuestion).step
-      };
-    case 'SCALE':
-      return {
-        ...base,
-        leftOption: (question as SliderQuestion).leftOption,
-        rightOption: (question as SliderQuestion).rightOption
-      };
-    default:
-      return base;
-  }
-};
-
-// Add this helper function
-const convertStoredToQuestion = (stored: StoredQuestion): Question => {
-  const base = {
-    id: stored.id,
-    type: stored.type,
-    prompt: stored.prompt,
-    text: stored.text,
-    label: stored.label,
-    category: stored.category,
-    number: stored.number,
-    requiredForOnboarding: stored.requiredForOnboarding,
-    includeInOnboarding: stored.includeInOnboarding,
-    correctAnswer: stored.correctAnswer || undefined
-  };
-
-  switch (stored.type) {
-    case 'MC':
-      return {
-        ...base,
-        type: 'MC',
-        options: stored.options || []
-      };
-    case 'OP':
-      return {
-        ...base,
-        type: 'OP',
-        maxLength: stored.maxLength || 500
-      };
-    case 'NM':
-      return {
-        ...base,
-        type: 'NM',
-        min: stored.min || 0,
-        max: stored.max || 100,
-        step: stored.step || 1
-      };
-    case 'SCALE':
-      return {
-        ...base,
-        type: 'SCALE',
-        leftOption: stored.leftOption || '',
-        rightOption: stored.rightOption || ''
-      };
-    default:
-      return base as Question;
-  }
-};
-
-export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
-  children,
-  standardQuestions = [],
-  questionPool = []
-}) => {
+export const OnboardingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [state, dispatch] = useReducer(onboardingReducer, initialState);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [state, dispatch] = useReducer(onboardingReducer, initialState);
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
-  const [questionsLoading, setQuestionsLoading] = useState(true);
 
-  const handleReturnHome = useCallback(() => {
-    setHasCompletedOnboarding(false);
-    navigate('/');
-  }, [navigate]);
+  const questionService = new QuestionService(db);
+  const responseService = new ResponseService(db);
+  const onboardingService = new OnboardingService(db);
+  const questionFactory = new QuestionFactory();
 
-  useEffect(() => {
-    if (standardQuestions.length > 0 || questionPool.length > 0) {
-      setQuestionsLoading(false);
-    }
-  }, [standardQuestions, questionPool]);
+  const initializeSession = useCallback(async () => {
+    if (!user?.uid) return;
 
-  useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      if (!user?.uid) {
-        setLoading(false);
-        return;
+    try {
+      // Don't set loading if we already have a session
+      if (!state.sessionId) {
+        dispatch({ type: 'SET_LOADING', payload: true });
       }
 
-      try {
-        setLoading(true);
-        const onboardingRef = collection(db, 'onboarding');
-        
-        const userSessions = query(
-          onboardingRef,
-          where('userId', '==', user.uid)
-        );
-
-        const sessionsSnapshot = await getDocs(userSessions);
-        
-        if (!sessionsSnapshot.empty) {
-          // Get the most recent session
-          const sessions = sessionsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as OnboardingSession[];
-
-          const latestSession = sessions.sort((a, b) => 
-            b.startedAt.localeCompare(a.startedAt)
-          )[0];
-
-          if (latestSession.completed) {
-            setHasCompletedOnboarding(true);
-            logger.debug('User has already completed onboarding');
-          } else {
-            // Restore in-progress session
-            logger.debug('Restoring in-progress session:', latestSession);
-            dispatch({
-              type: 'INITIALIZE',
-              payload: {
-                sessionId: latestSession.id,
-                selectedQuestions: latestSession.selectedQuestions.map(convertStoredToQuestion),
-                responses: latestSession.responses || [],
-                currentQuestionIndex: latestSession.currentQuestionIndex,
-                completed: false
-              }
-            });
-          }
-        } else {
-          // No existing sessions, start new one
-          logger.debug('Starting new onboarding session');
-          await actions.initializeSequence();
-        }
-      } catch (error) {
-        logger.error('Error checking onboarding status:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkOnboardingStatus();
-  }, [user]);
-
-  const actions = {
-    initializeSequence: useCallback(async () => {
-      if (!user?.uid) {
-        logger.error('Cannot initialize sequence: No user UID');
-        return;
-      }
-
-      if (!standardQuestions?.length && !questionPool?.length) {
-        logger.error('Cannot initialize sequence: No questions available');
-        return;
-      }
-
-      try {
-        setLoading(true);
-        
-        // Select questions
-        const selectedQuestions = [
-          ...(standardQuestions?.filter(q => q.requiredForOnboarding) || []),
-          ...(questionPool?.filter(q => q.includeInOnboarding)?.slice(0, 2) || [])
-        ].slice(0, 5); // Limit to 5 total questions
-
-        if (!selectedQuestions.length) {
-          logger.error('No questions selected for onboarding');
+      // Check for existing session
+      const existingSession = await onboardingService.getLatestSession(user.uid);
+      
+      if (existingSession) {
+        if (existingSession.completed) {
+          navigate('/', { replace: true });
           return;
         }
-
-        logger.debug('Selected questions for onboarding:', {
-          required: standardQuestions?.filter(q => q.requiredForOnboarding)?.length || 0,
-          pool: questionPool?.filter(q => q.includeInOnboarding)?.length || 0,
-          total: selectedQuestions.length
-        });
-
-        // Create onboarding document
-        const onboardingRef = collection(db, 'onboarding');
-        const docRef = doc(onboardingRef);
-        const sessionId = docRef.id;
-
-        const onboardingData = {
-          userId: user.uid,
-          selectedQuestions: selectedQuestions.map(sanitizeQuestionForFirestore),
-          responses: [],
-          currentQuestionIndex: 0,
-          completed: false,
-          startedAt: new Date().toISOString(),
-          lastUpdatedAt: new Date().toISOString()
-        };
-
-        await setDoc(docRef, onboardingData);
-
-        // Initialize local state
-        dispatch({
-          type: 'INITIALIZE',
-          payload: {
-            sessionId,
-            selectedQuestions,
-            responses: [],
-            currentQuestionIndex: 0,
-            completed: false
+        
+        dispatch({ 
+          type: 'SET_SESSION', 
+          payload: { 
+            id: existingSession.id, 
+            questions: existingSession.questions 
           }
         });
-
-        logger.debug('Onboarding initialized successfully', { sessionId });
-      } catch (error) {
-        logger.error('Error initializing onboarding:', error);
-        throw error;
-      } finally {
-        setLoading(false);
+        return;
       }
-    }, [user, standardQuestions, questionPool]),
 
-    handleResponse: useCallback(async (response: QuestionResponse) => {
-      try {
-        logger.debug('Handling response:', {
-          response,
-          currentIndex: state.currentQuestionIndex,
-          nextIndex: state.currentQuestionIndex + 1,
-          totalQuestions: state.selectedQuestions.length,
-          nextQuestion: state.selectedQuestions[state.currentQuestionIndex + 1]
-        });
+      // Get required questions first
+      const requiredQuestions = questionPool.filter(q => q.required);
+      
+      // Get some random non-required questions
+      const optionalQuestions = questionPool
+        .filter(q => !q.required)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 5);
 
-        // Update local state
-        dispatch({ type: 'HANDLE_RESPONSE', payload: response });
+      const onboardingQuestions = [...requiredQuestions, ...optionalQuestions];
 
-        const onboardingRef = collection(db, 'onboarding');
-        const docRef = doc(onboardingRef, state.sessionId);
-        
-        const isLastQuestion = state.currentQuestionIndex === state.selectedQuestions.length - 1;
-        
-        // Update Firestore with the new response and current state
-        await setDoc(docRef, {
-          responses: arrayUnion(response),
-          currentQuestionIndex: state.currentQuestionIndex + 1,
-          completed: isLastQuestion,
-          completedAt: isLastQuestion ? new Date().toISOString() : null
-        }, { merge: true });
-
-        if (isLastQuestion) {
-          setHasCompletedOnboarding(true);
+      // Create new session
+      const newSession = await onboardingService.createSession(user.uid, onboardingQuestions);
+      
+      dispatch({ 
+        type: 'SET_SESSION', 
+        payload: { 
+          id: newSession.id, 
+          questions: onboardingQuestions 
         }
+      });
+    } catch (error) {
+      logger.error('Failed to initialize session:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to initialize onboarding' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [user?.uid, navigate, state.sessionId]);
 
-        logger.debug('Response saved, state updated:', {
-          response,
-          newIndex: state.currentQuestionIndex + 1,
-          isLastQuestion,
-          sessionId: state.sessionId
-        });
-      } catch (error) {
-        logger.error('Error saving response:', error);
-      }
-    }, [state.currentQuestionIndex, state.selectedQuestions.length, state.sessionId]),
+  const handleResponse = async (response: QuestionResponse) => {
+    if (!state.sessionId) return;
 
-    advanceToNext: useCallback(() => {
-      dispatch({ type: 'ADVANCE_TO_NEXT' });
-    }, [])
+    try {
+      const savedResponse = await responseService.saveResponse({
+        ...response,
+        userId: user?.uid || '',
+        context: QuestionContext.ONBOARDING
+      });
+
+      await onboardingService.updateSession(state.sessionId, {
+        responses: [...state.responses, savedResponse],
+        currentQuestionIndex: state.currentQuestionIndex + 1,
+        completed: state.currentQuestionIndex + 1 === state.questions.length
+      });
+
+      dispatch({ type: 'ADD_RESPONSE', payload: savedResponse });
+    } catch (error) {
+      logger.error('Failed to save response:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to save response' });
+    }
   };
 
-  if (loading || questionsLoading) {
-    return <div>Loading...</div>;
-  }
+  const skipQuestion = () => {
+    dispatch({ type: 'SKIP_QUESTION' });
+  };
 
-  if (hasCompletedOnboarding) {
-    return <OnboardingComplete onReturn={handleReturnHome} />;
-  }
+  const resetOnboarding = () => {
+    dispatch({ type: 'RESET' });
+    initializeSession();
+  };
+
+  useEffect(() => {
+    if (user?.uid && !state.sessionId) {
+      initializeSession();
+    }
+  }, [user?.uid, initializeSession, state.sessionId]);
+
+  const currentQuestion = state.questions[state.currentQuestionIndex] || null;
+  const currentQuestionComponent = currentQuestion 
+    ? questionFactory.createQuestionComponent(currentQuestion)
+    : null;
+
+  const value: OnboardingContextValue = {
+    currentQuestion,
+    currentQuestionComponent,
+    responses: state.responses,
+    isComplete: state.completed,
+    loading: state.loading,
+    error: state.error,
+    handleResponse,
+    skipQuestion,
+    resetOnboarding
+  };
 
   return (
-    <OnboardingContext.Provider value={{ state, actions, loading, hasCompletedOnboarding }}>
+    <OnboardingContext.Provider value={value}>
       {children}
     </OnboardingContext.Provider>
   );
 };
 
-export const useOnboardingContext = () => {
+export const useOnboarding = () => {
   const context = useContext(OnboardingContext);
   if (!context) {
-    throw new Error('useOnboardingContext must be used within an OnboardingProvider');
+    throw new Error('useOnboarding must be used within OnboardingProvider');
   }
   return context;
-};
-
-export { OnboardingContext }; 
+}; 

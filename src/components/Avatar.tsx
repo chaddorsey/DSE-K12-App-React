@@ -1,44 +1,40 @@
 import React from 'react';
-import { getAvatarUrl } from '@/utils/avatar';
-import './Avatar.css';
 
 interface AvatarProps {
-  src?: string | null;
-  name?: string;
-  size?: number;
-  scaleToFit?: boolean;
-  className?: string;
+  user: {
+    photoURL?: string | null;
+    email?: string | null;
+  };
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export const Avatar: React.FC<AvatarProps> = ({
-  src,
-  name = 'User',
-  size = 40,
-  scaleToFit = false,
-  className = ''
-}) => {
-  const avatarUrl = getAvatarUrl(src, name, size);
+export const Avatar: React.FC<AvatarProps> = ({ user, size = 'md' }) => {
+  const sizeClasses = {
+    sm: 'w-8 h-8 text-sm',
+    md: 'w-10 h-10 text-base',
+    lg: 'w-12 h-12 text-lg'
+  };
+
+  if (user.photoURL) {
+    return (
+      <img
+        src={user.photoURL}
+        alt="User avatar"
+        className={`${sizeClasses[size]} rounded-full object-cover`}
+      />
+    );
+  }
+
+  // Get initials from email
+  const initials = user.email
+    ? user.email.split('@')[0].slice(0, 2).toUpperCase()
+    : '??';
 
   return (
-    <div 
-      className={`avatar-container ${className}`}
-      style={{ 
-        width: size,
-        height: size,
-        minWidth: size,
-        minHeight: size,
-      }}
+    <div
+      className={`${sizeClasses[size]} rounded-full bg-primary-600 text-white flex items-center justify-center font-medium`}
     >
-      <img
-        src={avatarUrl}
-        alt={`Avatar for ${name}`}
-        className={`avatar-image ${scaleToFit ? 'scale-to-fit' : ''}`}
-        width={size}
-        height={size}
-        loading="lazy"
-      />
+      {initials}
     </div>
   );
-};
-
-export default Avatar; 
+}; 

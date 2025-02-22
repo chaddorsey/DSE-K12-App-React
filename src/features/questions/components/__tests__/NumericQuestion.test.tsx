@@ -1,135 +1,93 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { NumericQuestion } from '../NumericQuestion';
-import type { NumericQuestionType } from '../../types';
+import { NumericQuestionComponent } from '../NumericQuestion';
+import { QuestionType } from '../../types/questions';
 
 describe('NumericQuestion', () => {
-  const mockQuestion: NumericQuestionType = {
+  const mockQuestion = {
     id: 'q1',
-    type: 'NUMERIC',
-    prompt: 'How many years of experience do you have?',
+    type: QuestionType.NM,
+    prompt: 'What is 2 + 2?',
+    text: 'What is 2 + 2?',
+    label: 'Basic Math',
     min: 0,
-    max: 50,
-    step: 1
+    max: 10,
+    step: 1,
+    unit: 'units',
+    number: 1,
+    requiredForOnboarding: true,
+    includeInOnboarding: true
   };
 
   const mockOnAnswer = jest.fn();
 
   beforeEach(() => {
-    mockOnAnswer.mockClear();
+    jest.clearAllMocks();
   });
 
-  it('renders the question prompt', () => {
+  it('renders question prompt and numeric input', () => {
     render(
-      <NumericQuestion
+      <NumericQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
-    
+
     expect(screen.getByText(mockQuestion.prompt)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter a number')).toBeInTheDocument();
+    expect(screen.getByText(mockQuestion.unit)).toBeInTheDocument();
   });
 
-  it('renders a numeric input with min/max/step constraints', () => {
+  it('handles numeric input and submission', () => {
     render(
-      <NumericQuestion
+      <NumericQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
       />
     );
+
+    const input = screen.getByPlaceholderText('Enter a number');
+    fireEvent.change(input, { target: { value: '4' } });
     
-    const input = screen.getByRole('spinbutton');
+    const submitButton = screen.getByText('Submit');
+    fireEvent.click(submitButton);
+
+    expect(mockOnAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionId: mockQuestion.id,
+        value: {
+          type: 'NM',
+          numericValue: 4,
+          unit: 'units'
+        }
+      })
+    );
+  });
+
+  it('validates input within min/max range', () => {
+    render(
+      <NumericQuestionComponent
+        question={mockQuestion}
+        onAnswer={mockOnAnswer}
+      />
+    );
+
+    const input = screen.getByPlaceholderText('Enter a number');
     expect(input).toHaveAttribute('min', '0');
-    expect(input).toHaveAttribute('max', '50');
+    expect(input).toHaveAttribute('max', '10');
     expect(input).toHaveAttribute('step', '1');
   });
 
-  it('calls onAnswer with entered number', () => {
+  it('disables interaction when disabled prop is true', () => {
     render(
-      <NumericQuestion
-        question={mockQuestion}
-        onAnswer={mockOnAnswer}
-      />
-    );
-    
-    const input = screen.getByRole('spinbutton');
-    fireEvent.change(input, { target: { value: '5' } });
-    fireEvent.blur(input);
-    
-    expect(mockOnAnswer).toHaveBeenCalledWith({
-      questionId: mockQuestion.id,
-      answer: '5',
-      timestamp: expect.any(Number)
-    });
-  });
-
-  it('shows validation error for out-of-range values', () => {
-    render(
-      <NumericQuestion
-        question={mockQuestion}
-        onAnswer={mockOnAnswer}
-      />
-    );
-    
-    const input = screen.getByRole('spinbutton');
-    fireEvent.change(input, { target: { value: '100' } });
-    
-    expect(screen.getByText(/must be between 0 and 50/i)).toBeInTheDocument();
-  });
-
-  it('disables input when disabled prop is true', () => {
-    render(
-      <NumericQuestion
+      <NumericQuestionComponent
         question={mockQuestion}
         onAnswer={mockOnAnswer}
         disabled={true}
       />
     );
-    
-    expect(screen.getByRole('spinbutton')).toBeDisabled();
-  });
 
-  it('shows loading state when loading prop is true', () => {
-    render(
-      <NumericQuestion
-        question={mockQuestion}
-        onAnswer={mockOnAnswer}
-        loading={true}
-      />
-    );
-    
-    expect(screen.getByTestId('question-loading')).toBeInTheDocument();
-  });
-
-  it('enables submit button only when valid value is entered', () => {
-    render(
-      <NumericQuestion
-        question={mockQuestion}
-        onAnswer={mockOnAnswer}
-      />
-    );
-    
-    const submitButton = screen.getByRole('button', { name: /submit/i });
-    expect(submitButton).toBeDisabled();
-    
-    const input = screen.getByRole('spinbutton');
-    fireEvent.change(input, { target: { value: '5' } });
-    
-    expect(submitButton).not.toBeDisabled();
-  });
-
-  it('disables submit button when value is out of range', () => {
-    render(
-      <NumericQuestion
-        question={mockQuestion}
-        onAnswer={mockOnAnswer}
-      />
-    );
-    
-    const submitButton = screen.getByRole('button', { name: /submit/i });
-    const input = screen.getByRole('spinbutton');
-    
-    fireEvent.change(input, { target: { value: '100' } });
-    expect(submitButton).toBeDisabled();
+    expect(screen.getByPlaceholderText('Enter a number')).toBeDisabled();
+    expect(screen.getByText('Submit')).toBeDisabled();
   });
 }); 

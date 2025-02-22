@@ -1,65 +1,83 @@
 import React, { useState } from 'react';
-import type { NumericQuestion as NMQuestion } from '../types';
-import type { QuestionResponse } from '../types';
+import type { NumericQuestion } from '../types/questions';
+import type { QuestionResponse } from '../types/responses';
 import './NumericQuestion.css';
 
-interface NumericQuestionProps {
-  question: NMQuestion;
+interface Props {
+  question: NumericQuestion;
   onAnswer: (response: QuestionResponse) => void;
   disabled?: boolean;
+  showFeedback?: boolean;
 }
 
-export const NumericQuestionComponent: React.FC<NumericQuestionProps> = ({
+export const NumericQuestionComponent: React.FC<Props> = ({
   question,
   onAnswer,
-  disabled
+  disabled = false,
+  showFeedback = false
 }) => {
   const [value, setValue] = useState<string>('');
+  const [interactionCount, setInteractionCount] = useState(0);
+  const startTime = React.useRef(Date.now());
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    
+    setValue(e.target.value);
+    setInteractionCount(prev => prev + 1);
+  };
 
   const handleSubmit = () => {
-    const numValue = parseInt(value, 10);
-    if (isNaN(numValue)) return;
+    if (!value || disabled) return;
 
-    if (numValue >= question.min && numValue <= question.max) {
-      onAnswer({
-        id: `response_${question.id}`,
-        userId: 'current_user_id',
-        questionId: question.id,
-        value: {
-          type: 'NM',
-          number: numValue
-        },
-        correct: false,
-        metadata: {
-          timeToAnswer: 0,
-          interactionCount: 1,
-          device: {
-            type: 'browser',
-            input: 'keyboard'
-          }
-        },
-        timestamp: new Date()
-      });
-    }
+    const numericValue = parseFloat(value);
+    if (isNaN(numericValue)) return;
+
+    const response: QuestionResponse = {
+      questionId: question.id,
+      value: {
+        type: 'NM',
+        numericValue,
+        unit: question.unit
+      },
+      metadata: {
+        timeToAnswer: Date.now() - startTime.current,
+        interactionCount,
+        device: {
+          type: 'desktop',
+          input: 'keyboard'
+        }
+      }
+    };
+
+    onAnswer(response);
   };
 
   return (
     <div className="numeric-question">
-      <div className="question-text">{question.text}</div>
-      <div className="input-container">
+      <div className="numeric-prompt">{question.prompt}</div>
+      
+      <div className="numeric-input-container">
         <input
           type="number"
+          value={value}
+          onChange={handleChange}
           min={question.min}
           max={question.max}
-          step={question.step || 1}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          aria-label={question.text}
+          step={question.step}
+          disabled={disabled}
+          placeholder="Enter a number"
         />
-        <button onClick={handleSubmit} disabled={!value || disabled}>
-          Next
-        </button>
+        {question.unit && <span className="unit">{question.unit}</span>}
       </div>
+
+      <button
+        className="submit-button"
+        onClick={handleSubmit}
+        disabled={!value || disabled}
+      >
+        Submit
+      </button>
     </div>
   );
 }; 
